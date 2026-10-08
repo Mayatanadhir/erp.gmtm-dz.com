@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'gemini' => [
+        'api_keys' => array_values(array_filter(array_map('trim', explode(',', env('GEMINI_API_KEYS', ''))))),
+        'model' => env('GEMINI_MODEL', 'gemini-3-flash-preview'),
+        'fallback_models' => ['gemini-3.6-flash', 'gemini-flash-latest'],
+        'timeout' => (int) env('GEMINI_TIMEOUT', 60),
+        'max_duration' => (int) env('GEMINI_MAX_DURATION', 90),
+        'queue_connection' => env('GEMINI_QUEUE_CONNECTION', 'sync'),
+    ],
+
 ];

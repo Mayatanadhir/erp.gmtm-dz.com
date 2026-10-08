@@ -1,4 +1,4 @@
-﻿<nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 transition-colors duration-200">
+<nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 transition-colors duration-200">
     <!-- Primary Navigation Menu -->
     <div class="w-full px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
@@ -34,6 +34,13 @@
                     @can('view analytics')
                     <x-nav-link :href="route('dashboard_analytics')" :active="request()->routeIs('dashboard_analytics') || request()->routeIs('analytics.*')">
                         {{ __('Analytics') }}
+                    </x-nav-link>
+                    @endcan
+
+                    {{-- 💰 Financial Management --}}
+                    @can('view financial')
+                    <x-nav-link :href="route('dashboard_financial')" :active="request()->routeIs('dashboard_financial') || request()->routeIs('financial.*')">
+                        {{ __('Financial') }}
                     </x-nav-link>
                     @endcan
 
@@ -88,9 +95,9 @@
                                 <!-- Large Centered Avatar with Camera Badge -->
                                 <div class="relative inline-block mx-auto mb-3">
                                     @if(Auth::user()->profile_photo_url)
-                                        <img class="w-20 h-20 rounded-full object-cover ring-4 ring-brand-100 dark:ring-brand-950/60 shadow-md mx-auto" src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}">
+                                        <img class="w-20 h-20 rounded-full object-cover ring-4 ring-brand-100 dark:ring-brand-500/30 shadow-md mx-auto" src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}">
                                     @else
-                                        <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-brand-600 to-brand-800 text-white font-bold text-3xl flex items-center justify-center ring-4 ring-brand-100 dark:ring-brand-950/60 shadow-md mx-auto">
+                                        <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-brand-600 to-brand-800 text-white font-bold text-3xl flex items-center justify-center ring-4 ring-brand-100 dark:ring-brand-500/30 shadow-md mx-auto">
                                             {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                                         </div>
                                     @endif
@@ -142,7 +149,7 @@
                             <div class="border-t border-gray-100 dark:border-gray-700/80 p-2 bg-gray-50/50 dark:bg-gray-800/50">
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
-                                    <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-300 transition">
+                                    <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/20 hover:text-rose-700 dark:hover:text-rose-300 transition">
                                         <svg class="w-4 h-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                                         </svg>
@@ -189,6 +196,12 @@
             @can('view analytics')
             <x-responsive-nav-link :href="route('dashboard_analytics')" :active="request()->routeIs('dashboard_analytics') || request()->routeIs('analytics.*')">
                 {{ __('Analytics') }}
+            </x-responsive-nav-link>
+            @endcan
+
+            @can('view financial')
+            <x-responsive-nav-link :href="route('dashboard_financial')" :active="request()->routeIs('dashboard_financial') || request()->routeIs('financial.*')">
+                {{ __('Financial') }}
             </x-responsive-nav-link>
             @endcan
 

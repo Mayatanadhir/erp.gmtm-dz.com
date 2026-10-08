@@ -147,57 +147,73 @@
                         </x-alert>
                     @endif
 
-                    <!-- KPI Statistics Grid -->
-                    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-                        <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex items-center gap-3">
-                            <div class="p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shrink-0">
-                                <i class="fas fa-boxes text-lg"></i>
+                    <!-- KPI Statistics Grid (1: Has Certificate, 2: Work Tools, 3: Vehicles, 4: Inactive) -->
+                    @php
+                        $isCertifiedActive = request('category') === 'measuring_instrument' || request('requires_calibration') === '1';
+                        $isWorkToolActive = request('category') === 'work_tool';
+                        $isVehicleActive = request('category') === 'vehicle';
+                        $isInactiveActive = request('status') === 'inactive';
+                    @endphp
+                    <div class="kpi-grid-4 grid grid-cols-4 gap-2.5 sm:gap-4 w-full">
+                        <!-- 1. Has Certificate -->
+                        <a href="{{ route('metrology.equipment', $isCertifiedActive ? request()->except(['category', 'requires_calibration', 'page']) : array_merge(request()->except(['page']), ['category' => 'measuring_instrument'])) }}"
+                           class="p-3 sm:p-4 rounded-xl border bg-white dark:bg-gray-800 shadow-sm flex items-center justify-between gap-2 sm:gap-3 hover:shadow-md transition-all duration-150 group min-w-0 {{ $isCertifiedActive ? 'ring-2 ring-emerald-500 border-emerald-500 dark:border-emerald-500 bg-emerald-50/20 dark:bg-emerald-500/10' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' }}">
+                            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div class="p-2 sm:p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="fas fa-certificate text-base sm:text-lg"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium truncate">{{ __('Has Certificate') }}</div>
+                                    <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight mt-0.5">{{ $stats['has_certificate'] ?? 0 }}</div>
+                                </div>
                             </div>
-                            <div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ __('Total Equipment') }}</div>
-                                <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $stats['total'] }}</div>
-                            </div>
-                        </div>
+                            <span class="shrink-0 text-[10px] sm:text-[11px] font-mono font-semibold px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-500/30">1</span>
+                        </a>
 
-                        <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex items-center gap-3">
-                            <div class="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 shrink-0">
-                                <i class="fas fa-check-circle text-lg"></i>
+                        <!-- 2. Work Tools -->
+                        <a href="{{ route('metrology.equipment', $isWorkToolActive ? request()->except(['category', 'page']) : array_merge(request()->except(['page']), ['category' => 'work_tool'])) }}"
+                           class="p-3 sm:p-4 rounded-xl border bg-white dark:bg-gray-800 shadow-sm flex items-center justify-between gap-2 sm:gap-3 hover:shadow-md transition-all duration-150 group min-w-0 {{ $isWorkToolActive ? 'ring-2 ring-amber-500 border-amber-500 dark:border-amber-500 bg-amber-50/20 dark:bg-amber-500/10' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' }}">
+                            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div class="p-2 sm:p-2.5 rounded-lg bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="fas fa-tools text-base sm:text-lg"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium truncate">{{ __('Work Tools') }}</div>
+                                    <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight mt-0.5">{{ $stats['work_tools'] ?? 0 }}</div>
+                                </div>
                             </div>
-                            <div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ __('Active Available') }}</div>
-                                <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $stats['active'] }}</div>
-                            </div>
-                        </div>
+                            <span class="shrink-0 text-[10px] sm:text-[11px] font-mono font-semibold px-1.5 sm:px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-200/60 dark:border-amber-500/30">2</span>
+                        </a>
 
-                        <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex items-center gap-3">
-                            <div class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shrink-0">
-                                <i class="fas fa-tachometer-alt text-lg"></i>
+                        <!-- 3. Vehicles -->
+                        <a href="{{ route('metrology.equipment', $isVehicleActive ? request()->except(['category', 'page']) : array_merge(request()->except(['page']), ['category' => 'vehicle'])) }}"
+                           class="p-3 sm:p-4 rounded-xl border bg-white dark:bg-gray-800 shadow-sm flex items-center justify-between gap-2 sm:gap-3 hover:shadow-md transition-all duration-150 group min-w-0 {{ $isVehicleActive ? 'ring-2 ring-indigo-500 border-indigo-500 dark:border-indigo-500 bg-indigo-50/20 dark:bg-indigo-500/10' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' }}">
+                            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div class="p-2 sm:p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="fas fa-truck-pickup text-base sm:text-lg"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium truncate">{{ __('Vehicles') }}</div>
+                                    <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight mt-0.5">{{ $stats['vehicles'] ?? 0 }}</div>
+                                </div>
                             </div>
-                            <div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ __('Instruments') }}</div>
-                                <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $stats['measuring_instruments'] }}</div>
-                            </div>
-                        </div>
+                            <span class="shrink-0 text-[10px] sm:text-[11px] font-mono font-semibold px-1.5 sm:px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-500/30">3</span>
+                        </a>
 
-                        <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex items-center gap-3">
-                            <div class="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 shrink-0">
-                                <i class="fas fa-tools text-lg"></i>
+                        <!-- 4. Inactive -->
+                        <a href="{{ route('metrology.equipment', $isInactiveActive ? request()->except(['status', 'page']) : array_merge(request()->except(['page']), ['status' => 'inactive'])) }}"
+                           class="p-3 sm:p-4 rounded-xl border bg-white dark:bg-gray-800 shadow-sm flex items-center justify-between gap-2 sm:gap-3 hover:shadow-md transition-all duration-150 group min-w-0 {{ $isInactiveActive ? 'ring-2 ring-rose-500 border-rose-500 dark:border-rose-500 bg-rose-50/20 dark:bg-rose-500/10' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' }}">
+                            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div class="p-2 sm:p-2.5 rounded-lg bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="fas fa-ban text-base sm:text-lg"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium truncate">{{ __('Inactive') }}</div>
+                                    <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight mt-0.5">{{ $stats['inactive'] ?? 0 }}</div>
+                                </div>
                             </div>
-                            <div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ __('Work Tools') }}</div>
-                                <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $stats['work_tools'] }}</div>
-                            </div>
-                        </div>
-
-                        <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex items-center gap-3 col-span-2 sm:col-span-1">
-                            <div class="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 shrink-0">
-                                <i class="fas fa-truck-pickup text-lg"></i>
-                            </div>
-                            <div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ __('Vehicles') }}</div>
-                                <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $stats['vehicles'] }}</div>
-                            </div>
-                        </div>
+                            <span class="shrink-0 text-[10px] sm:text-[11px] font-mono font-semibold px-1.5 sm:px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/60 dark:border-rose-500/30">4</span>
+                        </a>
                     </div>
 
                     <x-table>
@@ -298,11 +314,7 @@
                                             <x-badge variant="info" size="sm" :dot="true">
                                                 {{ __('Yes') }}
                                             </x-badge>
-                                            @if($item->specifications->count() > 0)
-                                                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                                    ({{ $item->specifications->count() }} {{ __('params') }})
-                                                </span>
-                                            @endif
+                                          
                                         </div>
                                     @else
                                         <span class="text-xs text-gray-400 dark:text-gray-500">
@@ -324,15 +336,7 @@
                                             :title="__('View Details')"
                                         />
 
-                                        @if($item->requires_calibration)
-                                            <a
-                                                href="{{ route('metrology.equipment.show', $item->id) }}#charts"
-                                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-950/50 transition-colors"
-                                                title="{{ __('Calibration Curves') }}"
-                                            >
-                                                <i class="fas fa-chart-line text-sm"></i>
-                                            </a>
-                                        @endif
+                                       
 
                                         @can('edit equipment')
                                             @php
@@ -359,7 +363,7 @@
                                                     ])->values()->all(),
                                                 ];
                                                 $editJson = base64_encode(json_encode($editPayload));
-                                                $updateUrl = route('metrology.equipment.update', $item->id);
+                                                $updateUrl = route('metrology.equipment.update', array_merge(['equipment' => $item->id], request()->query()));
                                             @endphp
                                             <x-table.action-edit
                                                 type="button"
@@ -372,8 +376,7 @@
                                         @can('delete equipment')
                                             <x-table.action-delete
                                                 type="button"
-                                                data-name="{{ base64_encode(json_encode($item->full_name)) }}"
-                                                @click="openDeleteModal(JSON.parse(atob($el.dataset.name)), '{{ route('metrology.equipment.destroy', $item->id) }}')"
+                                                @click="openDeleteModal('{{ addslashes($item->full_name) }}', '{{ route('metrology.equipment.destroy', array_merge(['equipment' => $item->id], request()->query())) }}')"
                                                 :title="__('Delete Equipment')"
                                             />
                                         @endcan
@@ -432,7 +435,7 @@
                         @csrf
                         <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400">
+                                <div class="p-2 rounded-lg bg-orange-50 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 </div>
                                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">
@@ -525,7 +528,7 @@
                                         name="requires_calibration"
                                         value="1"
                                         x-model="createRequiresCalibration"
-                                        class="rounded border-gray-300 text-orange-500 shadow-sm focus:ring-orange-500 w-4 h-4"
+                                        class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-orange-500 shadow-sm focus:ring-orange-500 dark:focus:ring-offset-gray-800 w-4 h-4"
                                     >
                                     <div>
                                         <div class="font-semibold text-sm text-gray-900 dark:text-white flex items-center gap-2">
@@ -558,9 +561,9 @@
                                                     <label class="flex items-center justify-between cursor-pointer">
                                                         <span class="font-semibold text-xs text-gray-900 dark:text-white flex items-center gap-1.5">
                                                             <span>{{ $g->name }}</span>
-                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold">({{ $g->symbol }})</span>
+                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-bold">({{ $g->symbol }})</span>
                                                         </span>
-                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" class="rounded text-brand-600 focus:ring-brand-500">
+                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-brand-600 focus:ring-brand-500 dark:focus:ring-offset-gray-800">
                                                     </label>
                                                     <div class="grid grid-cols-2 gap-2">
                                                         <input type="number" step="any" name="params[{{ $g->id }}][min]" placeholder="{{ __('Min') }}" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
@@ -591,9 +594,9 @@
                                                     <label class="flex items-center justify-between cursor-pointer">
                                                         <span class="font-semibold text-xs text-gray-900 dark:text-white flex items-center gap-1.5">
                                                             <span>{{ $g->name }}</span>
-                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold">({{ $g->symbol }})</span>
+                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-bold">({{ $g->symbol }})</span>
                                                         </span>
-                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" class="rounded text-brand-600 focus:ring-brand-500">
+                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-brand-600 focus:ring-brand-500 dark:focus:ring-offset-gray-800">
                                                     </label>
                                                     <div class="grid grid-cols-2 gap-2">
                                                         <input type="number" step="any" name="params[{{ $g->id }}][min]" placeholder="{{ __('Min') }}" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
@@ -706,7 +709,7 @@
 
                         <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                                <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                 </div>
                                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">
@@ -794,7 +797,7 @@
                                         name="requires_calibration"
                                         value="1"
                                         x-model="editRequiresCalibration"
-                                        class="rounded border-gray-300 text-orange-500 shadow-sm focus:ring-orange-500 w-4 h-4"
+                                        class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-orange-500 shadow-sm focus:ring-orange-500 dark:focus:ring-offset-gray-800 w-4 h-4"
                                     >
                                     <div>
                                         <div class="font-semibold text-sm text-gray-900 dark:text-white flex items-center gap-2">
@@ -824,9 +827,9 @@
                                                     <label class="flex items-center justify-between cursor-pointer">
                                                         <span class="font-semibold text-xs text-gray-900 dark:text-white flex items-center gap-1.5">
                                                             <span>{{ $g->name }}</span>
-                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold">({{ $g->symbol }})</span>
+                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-bold">({{ $g->symbol }})</span>
                                                         </span>
-                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" :checked="editSpecs[{{ $g->id }}]?.selected" class="rounded text-brand-600 focus:ring-brand-500">
+                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" :checked="editSpecs[{{ $g->id }}]?.selected" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-brand-600 focus:ring-brand-500 dark:focus:ring-offset-gray-800">
                                                     </label>
                                                     <div class="grid grid-cols-2 gap-2">
                                                         <input type="number" step="any" name="params[{{ $g->id }}][min]" placeholder="{{ __('Min') }}" :value="editSpecs[{{ $g->id }}]?.min ?? ''" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
@@ -857,9 +860,9 @@
                                                     <label class="flex items-center justify-between cursor-pointer">
                                                         <span class="font-semibold text-xs text-gray-900 dark:text-white flex items-center gap-1.5">
                                                             <span>{{ $g->name }}</span>
-                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold">({{ $g->symbol }})</span>
+                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-bold">({{ $g->symbol }})</span>
                                                         </span>
-                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" :checked="editSpecs[{{ $g->id }}]?.selected" class="rounded text-brand-600 focus:ring-brand-500">
+                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" :checked="editSpecs[{{ $g->id }}]?.selected" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-brand-600 focus:ring-brand-500 dark:focus:ring-offset-gray-800">
                                                     </label>
                                                     <div class="grid grid-cols-2 gap-2">
                                                         <input type="number" step="any" name="params[{{ $g->id }}][min]" placeholder="{{ __('Min') }}" :value="editSpecs[{{ $g->id }}]?.min ?? ''" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
@@ -895,7 +898,7 @@
                                         <div class="mt-2 flex items-center gap-3">
                                             <img :src="editImagePreview || editImageUrl" class="w-16 h-16 object-contain p-0.5 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                                             <label class="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1 cursor-pointer">
-                                                <input type="checkbox" name="remove_image" value="1" x-model="editRemoveImage" class="rounded text-rose-600">
+                                                <input type="checkbox" name="remove_image" value="1" x-model="editRemoveImage" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-rose-600 focus:ring-rose-500 dark:focus:ring-offset-gray-800">
                                                 <span>{{ __('Remove image') }}</span>
                                             </label>
                                         </div>
@@ -918,7 +921,7 @@
                                                 <span>{{ __('View Current Certificate') }}</span>
                                             </a>
                                             <label class="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1 cursor-pointer">
-                                                <input type="checkbox" name="remove_certificate" value="1" x-model="editRemoveCertificate" class="rounded text-rose-600">
+                                                <input type="checkbox" name="remove_certificate" value="1" x-model="editRemoveCertificate" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-rose-600 focus:ring-rose-500 dark:focus:ring-offset-gray-800">
                                                 <span>{{ __('Remove') }}</span>
                                             </label>
                                         </div>
@@ -946,66 +949,11 @@
         </div>
 
         <!-- ================= DELETE CONFIRMATION MODAL ================= -->
-        <div
-            x-show="showDeleteModal"
-            x-cloak
-            class="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title"
-            role="dialog"
-            aria-modal="true"
-        >
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div
-                    x-show="showDeleteModal"
-                    x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0"
-                    x-transition:enter-end="opacity-100"
-                    x-transition:leave="ease-in duration-200"
-                    x-transition:leave-start="opacity-100"
-                    x-transition:leave-end="opacity-0"
-                    @click="showDeleteModal = false"
-                    class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"
-                ></div>
-
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-                <div
-                    x-show="showDeleteModal"
-                    x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave="ease-in duration-200"
-                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-start overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border border-gray-100 dark:border-gray-700"
-                >
-                    <form :action="deleteActionUrl" method="POST">
-                        @csrf
-                        @method('DELETE')
-                        <div class="p-6 text-center">
-                            <div class="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center text-xl mb-4">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                                {{ __('Delete Equipment?') }}
-                            </h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ __('Are you sure you want to delete this equipment?') }}
-                                <br>
-                                <strong class="text-gray-900 dark:text-white" x-text="deleteName"></strong>
-                            </p>
-                        </div>
-                        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 flex justify-center gap-3">
-                            <x-secondary-button type="button" @click="showDeleteModal = false">
-                                {{ __('Cancel') }}
-                            </x-secondary-button>
-                            <x-danger-button type="submit">
-                                {{ __('Confirm Delete') }}
-                            </x-danger-button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+        <x-crud-modal.delete
+            show="showDeleteModal"
+            action-url="deleteActionUrl"
+            item-name="deleteName"
+            :title="__('Delete Equipment')"
+        />
     </div>
 </x-app-layout>

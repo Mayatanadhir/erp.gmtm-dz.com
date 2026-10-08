@@ -386,11 +386,9 @@
         {{-- Delete Confirmation Modal --}}
         <x-crud-modal.delete
             show="showDeleteModal"
-            :alpine-action="'deleteSiteActionUrl'"
+            action-url="deleteSiteActionUrl"
+            item-name="deleteSiteName"
             :title="__('Delete Site')"
-            :message="__('Are you sure you want to delete this site? This action cannot be undone.')"
-            :target-name-variable="'deleteSiteName'"
-            icon-color="rose"
         />
     </div>
 </x-app-layout>

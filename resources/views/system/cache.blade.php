@@ -58,7 +58,7 @@
                         </x-table.td>
                         <x-table.td class="font-mono text-gray-600 dark:text-gray-400 whitespace-nowrap">
                             {{ \Carbon\Carbon::createFromTimestamp($c->expiration)->diffForHumans() }}
-                            <span class="text-gray-400">({{ \Carbon\Carbon::createFromTimestamp($c->expiration)->format('Y-m-d H:i:s') }})</span>
+                            <span class="text-gray-400">(<x-date :value="\Carbon\Carbon::createFromTimestamp($c->expiration)" format="timestamp" />)</span>
                         </x-table.td>
                         <x-table.td>
                             @if($isExpired)

@@ -11,10 +11,12 @@ use App\Observers\EquipmentObserver;
 use App\Traits\FilterableTrait;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -40,6 +42,15 @@ class Equipment extends Model
     use FilterableTrait, HasActivity, HasFactory, SoftDeletes;
 
     protected $table = 'equipment';
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'image_url',
+    ];
 
     /**
      * The attributes that are allowed for dynamic query filtering.
@@ -149,6 +160,45 @@ class Equipment extends Model
     public function calibrationCertificates(): HasMany
     {
         return $this->hasMany(CalibrationCertificate::class, 'equipment_id');
+    }
+
+    /**
+     * Latest calibration certificate registered for this equipment.
+     *
+     * @return HasOne<CalibrationCertificate, $this>
+     */
+    public function latestCertificate(): HasOne
+    {
+        return $this->hasOne(CalibrationCertificate::class, 'equipment_id')->latestOfMany(['calibration_date', 'id']);
+    }
+
+    /**
+     * Scope a query to only include equipment eligible for metrological calibration.
+     * Strictly excludes work tools, vehicles, and items not accepting calibration.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeForCalibration(Builder $query): Builder
+    {
+        return $query->where(function (Builder $q): void {
+            $q->where('requires_calibration', true)
+                ->orWhere('category', EquipmentCategory::MeasuringInstrument->value);
+        })->whereNotIn('category', [
+            EquipmentCategory::WorkTool->value,
+            EquipmentCategory::Vehicle->value,
+        ]);
+    }
+
+    /**
+     * Determine if this equipment accepts or requires metrological calibration.
+     */
+    public function isCalibrationEligible(): bool
+    {
+        $isNotExcluded = ! in_array($this->category, [EquipmentCategory::WorkTool, EquipmentCategory::Vehicle], true);
+        $requiresOrMeasuring = (bool) $this->requires_calibration || $this->category === EquipmentCategory::MeasuringInstrument;
+
+        return $isNotExcluded && $requiresOrMeasuring;
     }
 
     /**

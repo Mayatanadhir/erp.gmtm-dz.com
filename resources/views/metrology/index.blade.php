@@ -30,7 +30,7 @@
 
                 <!-- Main Content -->
                 <main class="flex-1 w-full min-w-0 space-y-6">
-                    @canany(['view measuring instruments', 'view equipment', 'view calibrator movements', 'view calibration certificates', 'view quantities units'])
+                    @canany(['view measuring instruments', 'view equipment', 'view calibrator movements', 'view calibration certificates', 'view quantities units', 'view reports'])
                     <!-- Metrics Grid -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                         <!-- Measuring Instruments Card -->
@@ -127,6 +127,25 @@
                             </div>
                         </div>
                         @endcan
+
+                        <!-- Reports Management Card -->
+                        @can('view reports')
+                        <div class="group relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-5 shadow-sm border border-gray-100 dark:border-gray-700/60 transition-all duration-200 hover:shadow-md">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ __('Reports Management') }}</p>
+                                    <h3 class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">0</h3>
+                                    <p class="mt-1 text-xs text-brand-700 dark:text-brand-400 font-medium">{{ __('Documents Ready') }}</p>
+                                </div>
+                                <x-tool-icon name="reports" class="w-12 h-12 shrink-0 transition-transform duration-200 group-hover:scale-105" />
+                            </div>
+                            <div class="mt-4 border-t border-gray-100 dark:border-gray-700/60 pt-3">
+                                <a href="{{ route('metrology.reports') }}" class="inline-flex items-center text-xs font-semibold text-brand-700 dark:text-brand-400 hover:underline">
+                                    <span>{{ __('View Explorer') }}</span> &rarr;
+                                </a>
+                            </div>
+                        </div>
+                        @endcan
                     </div>
 
                     <!-- Module Overview & Quick Access -->
@@ -166,7 +185,7 @@
                         @endcanany
 
                         <!-- Calibration & Quality Assurance Card -->
-                        @canany(['view calibrator movements', 'view calibration certificates'])
+                        @canany(['view calibrator movements', 'view calibration certificates', 'view reports'])
                         <div class="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700/60">
                             <div class="flex items-center justify-between mb-4">
                                 <div class="flex items-center gap-3">
@@ -192,6 +211,13 @@
                                 <a href="{{ route('metrology.calibration-certificates') }}">
                                     <x-primary-button type="button" class="text-xs">
                                         {{ __('Calibration Certificates') }}
+                                    </x-primary-button>
+                                </a>
+                                @endcan
+                                @can('view reports')
+                                <a href="{{ route('metrology.reports') }}">
+                                    <x-primary-button type="button" class="text-xs">
+                                        {{ __('Reports Management') }}
                                     </x-primary-button>
                                 </a>
                                 @endcan

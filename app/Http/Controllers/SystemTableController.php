@@ -115,7 +115,7 @@ class SystemTableController extends Controller
             ->log("Created new system user '{$user->name}'");
 
         return redirect()
-            ->route('system-tables.users')
+            ->route('system-tables.users', $request->query())
             ->with('status', __('User :name created successfully.', ['name' => $user->name]));
     }
 
@@ -133,14 +133,14 @@ class SystemTableController extends Controller
             $validated['status'] === AccountStatus::Suspended->value
         ) {
             return redirect()
-                ->route('system-tables.users')
+                ->route('system-tables.users', $request->query())
                 ->withErrors(['status' => __('You cannot suspend your own account.')]);
         }
 
         // Rank-lock guard: Do not allow admin to change their own role
         if ($user->id === auth()->id() && array_key_exists('role', $validated)) {
             return redirect()
-                ->route('system-tables.users')
+                ->route('system-tables.users', $request->query())
                 ->withErrors(['role' => __('You cannot change your own role.')]);
         }
 
@@ -193,7 +193,7 @@ class SystemTableController extends Controller
             ->log("Updated system user '{$user->name}'");
 
         return redirect()
-            ->route('system-tables.users')
+            ->route('system-tables.users', $request->query())
             ->with('status', __('User :name updated successfully.', ['name' => $user->name]));
     }
 
@@ -205,7 +205,7 @@ class SystemTableController extends Controller
         // Anti-lockout guard: prevent suspending own account
         if ($user->id === auth()->id()) {
             return redirect()
-                ->route('system-tables.users')
+                ->route('system-tables.users', request()->query())
                 ->withErrors(['error' => __('You cannot suspend your own account.')]);
         }
 
@@ -223,7 +223,7 @@ class SystemTableController extends Controller
             ->log("Changed user status to '{$newStatus->value}' for '{$user->name}'");
 
         return redirect()
-            ->route('system-tables.users')
+            ->route('system-tables.users', request()->query())
             ->with('status', __('User :name status changed to :status.', [
                 'name' => $user->name,
                 'status' => $newStatus->label(),
@@ -238,7 +238,7 @@ class SystemTableController extends Controller
         // Anti-lockout guard: Do not allow admin to delete their own account
         if ($user->id === auth()->id()) {
             return redirect()
-                ->route('system-tables.users')
+                ->route('system-tables.users', request()->query())
                 ->withErrors(['error' => __('You cannot delete your own account.')]);
         }
 
@@ -256,7 +256,7 @@ class SystemTableController extends Controller
         $user->delete();
 
         return redirect()
-            ->route('system-tables.users')
+            ->route('system-tables.users', request()->query())
             ->with('status', __('User :name deleted successfully.', ['name' => $userName]));
     }
 

@@ -10,7 +10,7 @@
                 </p>
             </div>
             <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-800 dark:bg-brand-950/40 dark:text-brand-400 border border-brand-200 dark:border-brand-800/60">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/70">
                     <span class="w-2 h-2 rounded-full bg-brand-600 animate-pulse"></span>
                     {{ __('Dynamic Engine Active') }}
                 </span>
@@ -117,7 +117,7 @@
                     <div class="rounded-2xl border border-gray-100 dark:border-gray-700/60 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
                         <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-400 flex items-center justify-center font-bold">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/70 flex items-center justify-center font-bold">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                                 </div>
                                 <div>
@@ -254,7 +254,7 @@
                                     {{ $setting->description ? __($setting->description) : '—' }}
                                 </x-table.td>
                                 <x-table.td class="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $setting->updated_at?->format('Y-m-d H:i') ?? '—' }}
+                                    <x-date :value="$setting->updated_at" format="datetime" />
                                 </x-table.td>
                             </x-table.tr>
                         @empty

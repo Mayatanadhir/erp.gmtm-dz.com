@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Enums\GrandeurType;
+use App\Http\Controllers\Metrology\EquipmentController;
+use App\Http\Controllers\Metrology\GrandeurUnitController;
+use App\Http\Controllers\Metrology\InstrumentController;
+use App\Http\Controllers\Metrology\ReportController;
 use App\Http\Requests\Metrology\StoreEquipmentRequest;
 use App\Http\Requests\Metrology\StoreGrandeurRequest;
+use App\Http\Requests\Metrology\StoreInstrumentRequest;
 use App\Http\Requests\Metrology\UpdateEquipmentRequest;
 use App\Http\Requests\Metrology\UpdateGrandeurRequest;
-use App\Interfaces\EquipmentRepositoryInterface;
+use App\Http\Requests\Metrology\UpdateInstrumentRequest;
 use App\Models\Equipment;
 use App\Models\Grandeur;
-use App\Services\EquipmentService;
-use App\Services\GrandeurService;
+use App\Models\Instrument;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,12 +24,6 @@ use Illuminate\Support\Facades\Gate;
 
 class MetrologyController extends Controller
 {
-    public function __construct(
-        protected EquipmentService $equipmentService,
-        protected EquipmentRepositoryInterface $equipmentRepository,
-        protected GrandeurService $grandeurService,
-    ) {}
-
     /**
      * Display the Metrology & Equipments dashboard.
      */
@@ -40,11 +37,41 @@ class MetrologyController extends Controller
     /**
      * Display the Measuring Instruments explorer.
      */
-    public function instruments(): View
+    public function instruments(Request $request): View
     {
-        Gate::authorize('view measuring instruments');
+        return app(InstrumentController::class)->index($request);
+    }
 
-        return view('metrology.instruments');
+    /**
+     * Display the specified instrument details view.
+     */
+    public function showInstrument(Instrument $instrument): View
+    {
+        return app(InstrumentController::class)->show($instrument);
+    }
+
+    /**
+     * Store a newly created instrument record.
+     */
+    public function storeInstrument(StoreInstrumentRequest $request): RedirectResponse
+    {
+        return app(InstrumentController::class)->store($request);
+    }
+
+    /**
+     * Update the specified instrument record.
+     */
+    public function updateInstrument(UpdateInstrumentRequest $request, Instrument $instrument): RedirectResponse
+    {
+        return app(InstrumentController::class)->update($request, $instrument);
+    }
+
+    /**
+     * Remove the specified instrument from storage.
+     */
+    public function destroyInstrument(Request $request, Instrument $instrument): RedirectResponse
+    {
+        return app(InstrumentController::class)->destroy($request, $instrument);
     }
 
     /**
@@ -52,14 +79,7 @@ class MetrologyController extends Controller
      */
     public function equipment(Request $request): View
     {
-        Gate::authorize('view equipment');
-
-        $equipment = $this->equipmentRepository->paginateWithFilter($request->all(), 15);
-        $stats = $this->equipmentService->getStatistics();
-        $measurementGrandeurs = Grandeur::where('type', GrandeurType::Measurement)->orderBy('name')->get();
-        $sourceGrandeurs = Grandeur::where('type', GrandeurType::Source)->orderBy('name')->get();
-
-        return view('metrology.equipment', compact('equipment', 'stats', 'measurementGrandeurs', 'sourceGrandeurs'));
+        return app(EquipmentController::class)->index($request);
     }
 
     /**
@@ -67,17 +87,7 @@ class MetrologyController extends Controller
      */
     public function showEquipment(Equipment $equipment): View
     {
-        Gate::authorize('view equipment');
-
-        $equipment->load([
-            'specifications.grandeur',
-            'grandeurs',
-            'activities.causer',
-            'calibrationCertificates.calibrationPoints',
-        ]);
-
-        return view('metrology.equipment.show', compact('equipment'));
-
+        return app(EquipmentController::class)->show($equipment);
     }
 
     /**
@@ -85,15 +95,7 @@ class MetrologyController extends Controller
      */
     public function storeEquipment(StoreEquipmentRequest $request): RedirectResponse
     {
-        $data = $request->validated();
-        $image = $request->file('image');
-        $certificate = $request->file('certificate');
-        $params = $request->input('params');
-
-        $this->equipmentService->createEquipment($data, $image, $certificate, $params);
-
-        return redirect()->route('metrology.equipment', $request->query())
-            ->with('success', __('Equipment created successfully.'));
+        return app(EquipmentController::class)->store($request);
     }
 
     /**
@@ -101,27 +103,7 @@ class MetrologyController extends Controller
      */
     public function updateEquipment(UpdateEquipmentRequest $request, Equipment $equipment): RedirectResponse
     {
-        $data = $request->validated();
-        $image = $request->file('image');
-        $certificate = $request->file('certificate');
-        $params = $request->input('params');
-        $removeImage = (bool) $request->boolean('remove_image');
-        $removeCertificate = (bool) $request->boolean('remove_certificate');
-
-        $this->equipmentService->updateEquipment(
-            $equipment,
-            $data,
-            $image,
-            $certificate,
-            $params,
-            $removeImage,
-            $removeCertificate
-        );
-
-        $redirectUrl = $request->input('_redirect') ?: route('metrology.equipment', $request->query());
-
-        return redirect($redirectUrl)
-            ->with('success', __('Equipment updated successfully.'));
+        return app(EquipmentController::class)->update($request, $equipment);
     }
 
     /**
@@ -129,12 +111,7 @@ class MetrologyController extends Controller
      */
     public function destroyEquipment(Equipment $equipment): RedirectResponse
     {
-        Gate::authorize('delete equipment');
-
-        $this->equipmentService->deleteEquipment($equipment);
-
-        return redirect()->route('metrology.equipment', request()->query())
-            ->with('success', __('Equipment deleted successfully.'));
+        return app(EquipmentController::class)->destroy($equipment);
     }
 
     /**
@@ -162,12 +139,7 @@ class MetrologyController extends Controller
      */
     public function units(Request $request): View
     {
-        Gate::authorize('view quantities units');
-
-        $grandeurs = $this->grandeurService->getPaginatedGrandeurs($request, 15);
-        $stats = $this->grandeurService->getStatistics();
-
-        return view('metrology.units', compact('grandeurs', 'stats'));
+        return app(GrandeurUnitController::class)->index($request);
     }
 
     /**
@@ -175,10 +147,7 @@ class MetrologyController extends Controller
      */
     public function storeUnit(StoreGrandeurRequest $request): RedirectResponse
     {
-        $this->grandeurService->storeGrandeur($request->validated());
-
-        return redirect()->route('metrology.units', $request->query())
-            ->with('success', __('Quantity and unit created successfully.'));
+        return app(GrandeurUnitController::class)->store($request);
     }
 
     /**
@@ -186,10 +155,7 @@ class MetrologyController extends Controller
      */
     public function updateUnit(UpdateGrandeurRequest $request, Grandeur $grandeur): RedirectResponse
     {
-        $this->grandeurService->updateGrandeur($grandeur, $request->validated());
-
-        return redirect()->route('metrology.units', $request->query())
-            ->with('success', __('Quantity and unit updated successfully.'));
+        return app(GrandeurUnitController::class)->update($request, $grandeur);
     }
 
     /**
@@ -197,16 +163,14 @@ class MetrologyController extends Controller
      */
     public function destroyUnit(Grandeur $grandeur): RedirectResponse
     {
-        Gate::authorize('delete quantities units');
+        return app(GrandeurUnitController::class)->destroy($grandeur);
+    }
 
-        try {
-            $this->grandeurService->deleteGrandeur($grandeur);
-
-            return redirect()->route('metrology.units', request()->query())
-                ->with('success', __('Quantity and unit deleted successfully.'));
-        } catch (\DomainException $e) {
-            return redirect()->route('metrology.units', request()->query())
-                ->with('error', $e->getMessage());
-        }
+    /**
+     * Display the Metrology Reports explorer.
+     */
+    public function reports(): View
+    {
+        return app(ReportController::class)->index(request());
     }
 }

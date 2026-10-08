@@ -27,8 +27,13 @@
             })();
         </script>
 
+        <!-- Font Awesome Icons -->
+        <link rel="stylesheet" href="{{ asset('assets/css/all.min.css') }}">
+
         <!-- RTL Isolated Bundle -->
         @vite(['resources/css/app-rtl.css', 'resources/js/app-rtl.js'])
+
+        @stack('styles')
     </head>
     <body class="font-sans antialiased text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -48,6 +53,9 @@
                 {{ $slot }}
             </main>
         </div>
+
+        <!-- Global Unified Delete Modal -->
+        <x-delete-modal />
 
         @stack('scripts')
     </body>

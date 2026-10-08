@@ -17,7 +17,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
@@ -95,9 +94,11 @@ class User extends Authenticatable implements MustVerifyEmail
             return null;
         }
 
-        return str_starts_with($this->profile_photo_path, 'http')
-            ? $this->profile_photo_path
-            : Storage::disk('public')->url($this->profile_photo_path);
+        if (str_starts_with($this->profile_photo_path, 'http://') || str_starts_with($this->profile_photo_path, 'https://')) {
+            return $this->profile_photo_path;
+        }
+
+        return asset('storage/'.ltrim($this->profile_photo_path, '/'));
     }
 
     /**

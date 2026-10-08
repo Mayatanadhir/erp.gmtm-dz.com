@@ -11,6 +11,11 @@ $resolvedTitle = $title ?? match($type) {
     'delete' => __('Delete'),
     'download' => __('Download'),
     'restore' => __('Restore'),
+    'pdf' => __('Download PDF'),
+    'excel', 'export' => __('Export'),
+    'import' => __('Import'),
+    'print' => __('Print'),
+    'stats', 'chart' => __('view_statistics'),
     'primary' => __('Action'),
     'success' => __('Approve'),
     default => __('View'),
@@ -18,9 +23,11 @@ $resolvedTitle = $title ?? match($type) {
 
 $themeClasses = match($type) {
     'edit', 'restore' => 'bg-amber-500/10 text-amber-700 border-amber-500/20 hover:bg-amber-500 hover:text-white hover:border-amber-500 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 dark:hover:bg-amber-500 dark:hover:text-white focus:ring-amber-500',
-    'delete' => 'bg-rose-500/10 text-rose-700 border-rose-500/20 hover:bg-rose-600 hover:text-white hover:border-rose-600 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30 dark:hover:bg-rose-600 dark:hover:text-white focus:ring-rose-500',
+    'delete', 'pdf' => 'bg-rose-500/10 text-rose-700 border-rose-500/20 hover:bg-rose-600 hover:text-white hover:border-rose-600 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30 dark:hover:bg-rose-600 dark:hover:text-white focus:ring-rose-500',
+    'excel', 'csv', 'success' => 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 dark:hover:bg-emerald-600 dark:hover:text-white focus:ring-emerald-500',
+    'print' => 'bg-slate-500/10 text-slate-700 border-slate-500/20 hover:bg-slate-700 hover:text-white hover:border-slate-700 dark:bg-slate-500/20 dark:text-slate-300 dark:border-slate-500/30 dark:hover:bg-slate-600 dark:hover:text-white focus:ring-slate-500',
     'primary' => 'bg-brand-600/10 text-brand-800 border-brand-500/20 hover:bg-brand-600 hover:text-white hover:border-brand-500 dark:bg-brand-600/20 dark:text-brand-300 dark:border-brand-500/30 dark:hover:bg-brand-600 dark:hover:text-white focus:ring-brand-600',
-    'success' => 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 dark:hover:bg-emerald-600 dark:hover:text-white focus:ring-emerald-500',
+    'stats', 'chart', 'view' => 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 dark:hover:bg-indigo-600 dark:hover:text-white focus:ring-brand-600',
     default => 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 dark:hover:bg-indigo-600 dark:hover:text-white focus:ring-brand-600',
 };
 
@@ -48,6 +55,22 @@ $baseClasses = "inline-flex items-center justify-center font-medium text-xs bord
         @elseif($type === 'restore')
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        @elseif($type === 'pdf')
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+        @elseif($type === 'excel' || $type === 'csv')
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+        @elseif($type === 'print')
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+        @elseif($type === 'stats' || $type === 'chart')
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
         @elseif($type === 'primary')
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,6 +112,22 @@ $baseClasses = "inline-flex items-center justify-center font-medium text-xs bord
         @elseif($type === 'restore')
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        @elseif($type === 'pdf')
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+        @elseif($type === 'excel' || $type === 'csv')
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+        @elseif($type === 'print')
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+        @elseif($type === 'stats' || $type === 'chart')
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
         @elseif($type === 'primary')
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

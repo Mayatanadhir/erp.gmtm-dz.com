@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -21,6 +22,7 @@ class EnsureSuperAdminExists
         'system-tables/setup*',
         'up',
         'api/*',
+        'storage/*',
         '_ignition/*',
         '_debugbar/*',
         'sanctum/csrf-cookie',
@@ -96,7 +98,7 @@ class EnsureSuperAdminExists
                 return false;
             }
 
-            return User::exists();
+            return (bool) Cache::remember('middleware_has_users', 30, fn () => User::exists());
         } catch (\Throwable) {
             return false;
         }

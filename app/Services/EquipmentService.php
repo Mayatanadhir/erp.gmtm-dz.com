@@ -181,9 +181,17 @@ class EquipmentService extends BaseService
         return [
             'total' => Equipment::count(),
             'active' => Equipment::where('status', EquipmentStatus::Active->value)->count(),
+            'has_certificate' => Equipment::where('status', EquipmentStatus::Active->value)
+                ->where(function ($q): void {
+                    $q->where('requires_calibration', true)
+                        ->orWhere('category', EquipmentCategory::MeasuringInstrument->value);
+                })->count(),
+            'work_tools' => Equipment::where('status', EquipmentStatus::Active->value)
+                ->where('category', EquipmentCategory::WorkTool->value)->count(),
+            'vehicles' => Equipment::where('status', EquipmentStatus::Active->value)
+                ->where('category', EquipmentCategory::Vehicle->value)->count(),
+            'inactive' => Equipment::where('status', EquipmentStatus::Inactive->value)->count(),
             'measuring_instruments' => Equipment::where('category', EquipmentCategory::MeasuringInstrument->value)->count(),
-            'work_tools' => Equipment::where('category', EquipmentCategory::WorkTool->value)->count(),
-            'vehicles' => Equipment::where('category', EquipmentCategory::Vehicle->value)->count(),
             'requires_calibration' => Equipment::where('requires_calibration', true)->count(),
         ];
     }

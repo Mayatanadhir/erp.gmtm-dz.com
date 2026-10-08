@@ -422,10 +422,8 @@
         <x-crud-modal.delete
             show="showDeleteModal"
             action-url="deleteCustomerActionUrl"
-            :title="__('Delete Client')"
-            :message="__('Are you sure you want to permanently delete this client record? This action cannot be undone.')"
             item-name="deleteCustomerName"
-            :submit-text="__('Delete Client')"
+            :title="__('Delete Client')"
         />
     </div>
 </x-app-layout>

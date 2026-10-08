@@ -190,8 +190,24 @@ class PermissionDiscoveryService
         $allPermissions = Permission::all();
         $pruned = [];
 
+        $configuredPerms = [];
+        foreach ((array) config('permissions.groups', []) as $group) {
+            foreach ((array) ($group['perms'] ?? []) as $perm) {
+                $configuredPerms[] = (string) $perm;
+            }
+        }
+        foreach ((array) config('permissions.modules', []) as $module) {
+            foreach ((array) ($module['perms'] ?? []) as $perm) {
+                $configuredPerms[] = (string) $perm;
+            }
+        }
+
         foreach ($allPermissions as $permission) {
             $name = (string) $permission->name;
+
+            if (in_array($name, $configuredPerms, true)) {
+                continue;
+            }
 
             if (preg_match('/^(view|create|edit|delete)\s+(.+)$/i', $name, $matches)) {
                 $entity = strtolower(trim($matches[2]));

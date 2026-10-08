@@ -123,7 +123,7 @@
                             @endif
                         </x-table.td>
                         <x-table.td class="whitespace-nowrap">
-                            {{ $act->created_at?->format('Y-m-d H:i:s') }}
+                            <x-date :value="$act->created_at" format="timestamp" />
                         </x-table.td>
                         <x-table.td class="whitespace-nowrap text-end">
                             <x-table.actions class="justify-end">

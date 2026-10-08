@@ -7,9 +7,6 @@ namespace App\Enums;
 enum EquipmentStatus: string
 {
     case Active = 'active';
-    case Maintenance = 'maintenance';
-    case Deployed = 'deployed';
-    case Retired = 'retired';
     case Inactive = 'inactive';
 
     /**
@@ -19,9 +16,6 @@ enum EquipmentStatus: string
     {
         return match ($this) {
             self::Active => __('Active'),
-            self::Maintenance => __('Under Maintenance'),
-            self::Deployed => __('Deployed on Mission'),
-            self::Retired => __('Retired'),
             self::Inactive => __('Inactive'),
         };
     }
@@ -33,9 +27,6 @@ enum EquipmentStatus: string
     {
         return match ($this) {
             self::Active => 'success',
-            self::Maintenance => 'warning',
-            self::Deployed => 'info',
-            self::Retired => 'neutral',
             self::Inactive => 'danger',
         };
     }

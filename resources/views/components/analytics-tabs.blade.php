@@ -1,4 +1,4 @@
-﻿@props(['active' => 'index'])
+@props(['active' => 'index'])
 
 @php
 $tabs = [
@@ -7,12 +7,6 @@ $tabs = [
         'route' => route('dashboard_analytics'),
         'permission' => 'view analytics',
         'tool' => 'overview',
-    ],
-    'expenses' => [
-        'name' => __('Expenses & Charges'),
-        'route' => route('analytics.expenses'),
-        'permission' => 'view expenses',
-        'tool' => 'expenses',
     ],
     'forecasts' => [
         'name' => __('Annual Forecasts'),
@@ -25,12 +19,6 @@ $tabs = [
         'route' => route('analytics.statistics'),
         'permission' => 'view company statistics',
         'tool' => 'statistics',
-    ],
-    'reports' => [
-        'name' => __('Reports Management'),
-        'route' => route('analytics.reports'),
-        'permission' => 'view reports',
-        'tool' => 'reports',
     ],
 ];
 @endphp

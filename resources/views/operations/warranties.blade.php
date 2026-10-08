@@ -81,7 +81,7 @@
 
                 {{-- Sidebar --}}
                 <aside class="w-full lg:w-64 shrink-0">
-                    <x-operations-tabs active="warranties" />
+                    <x-financial-tabs active="warranties" />
                 </aside>
 
                 {{-- Main Content --}}
@@ -89,10 +89,16 @@
 
                     {{-- Alerts --}}
                     @if(session('success'))
-                        <x-alert variant="success" :message="session('success')" />
+                        <x-alert variant="success">{{ session('success') }}</x-alert>
                     @endif
                     @if(session('error'))
-                        <x-alert variant="danger" :message="session('error')" />
+                        <x-alert variant="danger">{{ session('error') }}</x-alert>
+                    @endif
+                    @if(session('warning'))
+                        <x-alert variant="warning">{{ session('warning') }}</x-alert>
+                    @endif
+                    @if(session('info'))
+                        <x-alert variant="info">{{ session('info') }}</x-alert>
                     @endif
 
                     <x-table>
@@ -105,7 +111,7 @@
 
                                 <div class="flex flex-wrap items-center gap-3">
                                     <x-global-filter
-                                        :action="route('operations.warranties')"
+                                        :action="request()->routeIs('operations.*') ? route('operations.warranties') : route('financial.warranties')"
                                         :search="true"
                                         :search-placeholder="__('Search by reference, bank...')"
                                         :search-value="request('search')"
@@ -143,12 +149,12 @@
                         @forelse($warranties as $warranty)
                             <x-table.tr>
                                 <x-table.td class="font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                    #{{ $warranty->id }}
+                                    <bdi>#{{ $warranty->id }}</bdi>
                                 </x-table.td>
 
                                 <x-table.td>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded font-mono text-xs font-semibold bg-brand-50 dark:bg-emerald-500/20 text-brand-700 dark:text-emerald-300 border border-brand-200 dark:border-emerald-500/40">
-                                        {{ $warranty->reference }}
+                                        <bdi>{{ $warranty->reference }}</bdi>
                                     </span>
                                 </x-table.td>
 
@@ -161,8 +167,8 @@
 
                                 <x-table.td>
                                     <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">
-                                        {{ number_format((float) $warranty->amount, 2, '.', ' ') }}
-                                        <span class="text-xs font-normal text-gray-500 dark:text-gray-400 ml-0.5">DZD</span>
+                                        <bdi>{{ number_format((float) $warranty->amount, 2, '.', ' ') }}</bdi>
+                                        <span class="text-xs font-normal text-gray-500 dark:text-gray-400 ms-1">DZD</span>
                                     </span>
                                 </x-table.td>
 
@@ -170,7 +176,7 @@
                                     @if($warranty->started_at)
                                         <div class="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300">
                                             <svg class="w-3.5 h-3.5 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                            <span>{{ $warranty->started_at->format('d/m/Y') }}</span>
+                                            <span class="font-mono text-xs"><bdi>{{ $warranty->started_at->format('d/m/Y') }}</bdi></span>
                                         </div>
                                     @else
                                         <span class="text-gray-400 dark:text-gray-600 text-xs">—</span>
@@ -203,7 +209,7 @@
                                                     '{{ $warranty->started_at?->format('Y-m-d') ?? '' }}',
                                                     '{{ $warranty->status->value }}',
                                                     '{{ $warranty->type->value }}',
-                                                    '{{ route('operations.warranties.update', array_merge(['warranty' => $warranty->id], request()->query())) }}'
+                                                    '{{ route('financial.warranties.update', array_merge(['warranty' => $warranty->id], request()->query())) }}'
                                                 )"
                                             />
                                         @endcan
@@ -215,7 +221,7 @@
                                                 @click="openDeleteModal(
                                                     {{ $warranty->id }},
                                                     '{{ addslashes((string) $warranty->reference) }}',
-                                                    '{{ route('operations.warranties.destroy', array_merge(['warranty' => $warranty->id], request()->query())) }}'
+                                                    '{{ route('financial.warranties.destroy', array_merge(['warranty' => $warranty->id], request()->query())) }}'
                                                 )"
                                             />
                                         @endcan
@@ -244,10 +250,10 @@
              x-transition:leave="transition ease-in duration-150"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             class="fixed inset-0 z-50 overflow-y-auto"
-             style="display:none">
+             x-cloak
+             class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/75 backdrop-blur-sm" @click="showCreateModal = false"></div>
+                <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showCreateModal = false"></div>
 
                 <div x-show="showCreateModal"
                      x-transition:enter="transition ease-out duration-200"
@@ -269,7 +275,7 @@
                     </div>
 
                     {{-- Modal Form --}}
-                    <form method="POST" action="{{ route('operations.warranties.store', request()->query()) }}">
+                    <form method="POST" action="{{ route('financial.warranties.store', request()->query()) }}">
                         @csrf
                         <div class="px-6 py-5 space-y-4">
 
@@ -361,10 +367,10 @@
              x-transition:leave="transition ease-in duration-150"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             class="fixed inset-0 z-50 overflow-y-auto"
-             style="display:none">
+             x-cloak
+             class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/75 backdrop-blur-sm" @click="showEditModal = false"></div>
+                <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showEditModal = false"></div>
 
                 <div x-show="showEditModal"
                      x-transition:enter="transition ease-out duration-200"
@@ -468,53 +474,11 @@
         {{-- ═══════════════════════════════════════════════════════ --}}
         {{-- DELETE MODAL                                           --}}
         {{-- ═══════════════════════════════════════════════════════ --}}
-        <div x-show="showDeleteModal"
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-150"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             class="fixed inset-0 z-50 overflow-y-auto"
-             style="display:none">
-            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/75 backdrop-blur-sm" @click="showDeleteModal = false"></div>
-
-                <div x-show="showDeleteModal"
-                     x-transition:enter="transition ease-out duration-200"
-                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                     class="relative inline-block w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl text-left shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden z-10">
-
-                    <div class="p-6">
-                        <div class="flex items-start gap-4">
-                            <div class="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-500/20 flex items-center justify-center shrink-0">
-                                <svg class="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="text-base font-bold text-gray-900 dark:text-white">{{ __('Delete Guarantee') }}</h3>
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                    {{ __('Are you sure you want to delete guarantee') }}
-                                    <span class="font-mono font-semibold text-gray-900 dark:text-white" x-text="deleteWarrantyRef"></span>?
-                                    {{ __('This action cannot be undone.') }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <form method="POST" :action="deleteFormAction" class="mt-5 flex items-center justify-end gap-3">
-                            @csrf
-                            @method('DELETE')
-                            <x-secondary-button type="button" @click="showDeleteModal = false">
-                                {{ __('Cancel') }}
-                            </x-secondary-button>
-                            <x-danger-button type="submit" class="flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                {{ __('Delete') }}
-                            </x-danger-button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <x-crud-modal.delete
+            show="showDeleteModal"
+            action-url="deleteFormAction"
+            item-name="deleteWarrantyRef"
+            :title="__('Delete Guarantee')"
+        />
     </div>
 </x-app-layout>

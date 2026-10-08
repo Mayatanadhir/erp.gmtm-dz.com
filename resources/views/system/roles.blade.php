@@ -205,7 +205,7 @@
                                             {{ $permission->roles_count }}
                                         </x-table.td>
                                         <x-table.td class="whitespace-nowrap">
-                                            {{ $permission->created_at?->format('Y-m-d H:i') }}
+                                            <x-date :value="$permission->created_at" format="datetime" />
                                         </x-table.td>
                                         <x-table.td class="whitespace-nowrap text-end">
                                             <x-table.actions class="justify-end">
@@ -468,6 +468,7 @@
                                                             @elseif($module['color'] === 'amber') bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25
                                                             @elseif($module['color'] === 'blue') bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25
                                                             @elseif($module['color'] === 'emerald') bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25
+                                                            @elseif($module['color'] === 'teal') bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/25
                                                             @else bg-gray-500/15 text-gray-700 dark:text-gray-300 border border-gray-500/25
                                                             @endif">
                                                             @if($module['color'] === 'rose')
@@ -480,6 +481,8 @@
                                                                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                                                             @elseif($module['color'] === 'emerald')
                                                                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                                                            @elseif($module['color'] === 'teal')
+                                                                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                                             @endif
                                                             <span>{{ __($module['name']) }}</span>
                                                         </span>
@@ -513,6 +516,7 @@
                                                                 @elseif($module['color'] === 'amber') text-amber-700 dark:text-amber-300
                                                                 @elseif($module['color'] === 'blue') text-blue-700 dark:text-blue-300
                                                                 @elseif($module['color'] === 'emerald') text-emerald-700 dark:text-emerald-300
+                                                                @elseif($module['color'] === 'teal') text-teal-700 dark:text-teal-300
                                                                 @else text-gray-600 dark:text-gray-400
                                                                 @endif">
                                                                 <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
@@ -535,6 +539,7 @@
                                                                 @elseif($module['color'] === 'amber') bg-amber-500
                                                                 @elseif($module['color'] === 'blue') bg-blue-500
                                                                 @elseif($module['color'] === 'emerald') bg-emerald-500
+                                                                @elseif($module['color'] === 'teal') bg-teal-500
                                                                 @else bg-brand-600
                                                                 @endif"></span>
                                                             <span class="font-mono capitalize font-bold text-xs">{{ __($entityData['display_name']) }}</span>
@@ -717,6 +722,7 @@
                                                             @elseif($module['color'] === 'amber') bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25
                                                             @elseif($module['color'] === 'blue') bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25
                                                             @elseif($module['color'] === 'emerald') bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25
+                                                            @elseif($module['color'] === 'teal') bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/25
                                                             @else bg-gray-500/15 text-gray-700 dark:text-gray-300 border border-gray-500/25
                                                             @endif">
                                                             @if($module['color'] === 'rose')
@@ -729,6 +735,8 @@
                                                                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                                                             @elseif($module['color'] === 'emerald')
                                                                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                                                            @elseif($module['color'] === 'teal')
+                                                                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                                             @endif
                                                             <span>{{ __($module['name']) }}</span>
                                                         </span>
@@ -762,6 +770,7 @@
                                                                 @elseif($module['color'] === 'amber') text-amber-700 dark:text-amber-300
                                                                 @elseif($module['color'] === 'blue') text-blue-700 dark:text-blue-300
                                                                 @elseif($module['color'] === 'emerald') text-emerald-700 dark:text-emerald-300
+                                                                @elseif($module['color'] === 'teal') text-teal-700 dark:text-teal-300
                                                                 @else text-gray-600 dark:text-gray-400
                                                                 @endif">
                                                                 <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
@@ -784,6 +793,7 @@
                                                                 @elseif($module['color'] === 'amber') bg-amber-500
                                                                 @elseif($module['color'] === 'blue') bg-blue-500
                                                                 @elseif($module['color'] === 'emerald') bg-emerald-500
+                                                                @elseif($module['color'] === 'teal') bg-teal-500
                                                                 @else bg-brand-600
                                                                 @endif"></span>
                                                             <span class="font-mono capitalize font-bold text-xs">{{ __($entityData['display_name']) }}</span>
@@ -877,10 +887,8 @@
                     <x-crud-modal.delete
                         show="showDeleteRoleModal"
                         action-url="deleteRoleActionUrl"
-                        :title="__('Delete Role')"
-                        :message="__('Are you sure you want to permanently delete the role')"
                         item-name="deleteRoleName"
-                        :submit-text="__('Delete Role')"
+                        :title="__('Delete Role')"
                     />
 
                     <!-- ============================================================ -->
@@ -889,10 +897,8 @@
                     <x-crud-modal.delete
                         show="showDeletePermissionModal"
                         action-url="deletePermissionActionUrl"
-                        :title="__('Delete Permission')"
-                        :message="__('Are you sure you want to permanently delete the permission')"
                         item-name="deletePermissionName"
-                        :submit-text="__('Delete Permission')"
+                        :title="__('Delete Permission')"
                     />
 
                 </main>

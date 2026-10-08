@@ -1,0 +1,1 @@
+@include('Financial.expenses.index')

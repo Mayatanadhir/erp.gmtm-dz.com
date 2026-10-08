@@ -46,6 +46,7 @@ class BusinessModulesTest extends TestCase
             'metrology.calibrator-movements',
             'metrology.calibration-certificates',
             'metrology.units',
+            'metrology.reports',
         ];
 
         foreach ($routes as $route) {
@@ -61,8 +62,21 @@ class BusinessModulesTest extends TestCase
             'operations.missions',
             'operations.contracts',
             'operations.attachments',
-            'operations.warranties',
             'operations.article-types',
+        ];
+
+        foreach ($routes as $route) {
+            $response = $this->actingAs($this->superAdmin)->get(route($route));
+            $response->assertOk();
+            $response->assertSee(route($route));
+        }
+    }
+
+    public function test_super_admin_can_access_all_financial_pages(): void
+    {
+        $routes = [
+            'financial.warranties',
+            'financial.expenses',
         ];
 
         foreach ($routes as $route) {
@@ -75,10 +89,8 @@ class BusinessModulesTest extends TestCase
     public function test_super_admin_can_access_all_analytics_pages(): void
     {
         $routes = [
-            'analytics.expenses',
             'analytics.forecasts',
             'analytics.statistics',
-            'analytics.reports',
         ];
 
         foreach ($routes as $route) {
@@ -111,6 +123,8 @@ class BusinessModulesTest extends TestCase
             'metrology.index',
             'dashboard_operations',
             'operations.index',
+            'dashboard_financial',
+            'financial.index',
             'dashboard_analytics',
             'analytics.index',
             'dashboard_master_data',
@@ -131,6 +145,9 @@ class BusinessModulesTest extends TestCase
         $response = $this->actingAs($this->standardUser)->get(route('dashboard_operations'));
         $response->assertForbidden();
 
+        $response = $this->actingAs($this->standardUser)->get(route('dashboard_financial'));
+        $response->assertForbidden();
+
         $response = $this->actingAs($this->standardUser)->get(route('dashboard_analytics'));
         $response->assertForbidden();
 
@@ -143,7 +160,10 @@ class BusinessModulesTest extends TestCase
         $response = $this->actingAs($this->standardUser)->get(route('operations.missions'));
         $response->assertForbidden();
 
-        $response = $this->actingAs($this->standardUser)->get(route('analytics.expenses'));
+        $response = $this->actingAs($this->standardUser)->get(route('financial.warranties'));
+        $response->assertForbidden();
+
+        $response = $this->actingAs($this->standardUser)->get(route('financial.expenses'));
         $response->assertForbidden();
 
         $response = $this->actingAs($this->standardUser)->get(route('master-data.clients'));
@@ -184,7 +204,6 @@ class BusinessModulesTest extends TestCase
         $response->assertSee(route('operations.missions'));
         $response->assertSee(route('operations.contracts'));
         $response->assertSee(route('operations.attachments'));
-        $response->assertSee(route('operations.warranties'));
         $response->assertSee(route('operations.article-types'));
         $response->assertDontSee(__('No Accessible Explorers'));
 
@@ -206,7 +225,6 @@ class BusinessModulesTest extends TestCase
         $response->assertOk();
         $response->assertSee(route('operations.missions'));
         $response->assertDontSee(route('operations.contracts'));
-        $response->assertDontSee(route('operations.warranties'));
         $response->assertDontSee(route('operations.article-types'));
         $response->assertDontSee(__('No Accessible Explorers'));
     }
@@ -221,6 +239,7 @@ class BusinessModulesTest extends TestCase
         $response->assertSee(route('metrology.calibrator-movements'));
         $response->assertSee(route('metrology.calibration-certificates'));
         $response->assertSee(route('metrology.units'));
+        $response->assertSee(route('metrology.reports'));
         $response->assertDontSee(__('No Accessible Explorers'));
 
         // 2. User with only 'view metrology' sees fallback empty state
@@ -240,6 +259,37 @@ class BusinessModulesTest extends TestCase
         $response->assertOk();
         $response->assertSee(route('metrology.instruments'));
         $response->assertDontSee(route('metrology.equipment'));
+        $response->assertDontSee(route('metrology.reports'));
+        $response->assertDontSee(__('No Accessible Explorers'));
+    }
+
+    public function test_financial_dashboard_cards_adhere_to_permissions(): void
+    {
+        // 1. Super Admin sees all cards
+        $response = $this->actingAs($this->superAdmin)->get(route('dashboard_financial'));
+        $response->assertOk();
+        $response->assertSee(route('financial.warranties'));
+        $response->assertSee(route('financial.expenses'));
+        $response->assertDontSee(__('No Accessible Explorers'));
+
+        // 2. User with only 'view financial' sees fallback empty state
+        $financialPerm = Permission::findByName('view financial', 'web');
+        $this->standardUser->givePermissionTo($financialPerm);
+
+        $response = $this->actingAs($this->standardUser)->get(route('dashboard_financial'));
+        $response->assertOk();
+        $response->assertSee(__('No Accessible Explorers'));
+        $response->assertDontSee(route('financial.warranties'));
+        $response->assertDontSee(route('financial.expenses'));
+
+        // 3. User with 'view warranties' sees only warranties card
+        $warrantiesPerm = Permission::findByName('view warranties', 'web');
+        $this->standardUser->givePermissionTo($warrantiesPerm);
+
+        $response = $this->actingAs($this->standardUser)->get(route('dashboard_financial'));
+        $response->assertOk();
+        $response->assertSee(route('financial.warranties'));
+        $response->assertDontSee(route('financial.expenses'));
         $response->assertDontSee(__('No Accessible Explorers'));
     }
 
@@ -279,10 +329,8 @@ class BusinessModulesTest extends TestCase
         // 1. Super Admin sees all cards
         $response = $this->actingAs($this->superAdmin)->get(route('dashboard_analytics'));
         $response->assertOk();
-        $response->assertSee(route('analytics.expenses'));
         $response->assertSee(route('analytics.forecasts'));
         $response->assertSee(route('analytics.statistics'));
-        $response->assertSee(route('analytics.reports'));
         $response->assertDontSee(__('No Accessible Explorers'));
 
         // 2. User with only 'view analytics' sees fallback empty state
@@ -292,18 +340,17 @@ class BusinessModulesTest extends TestCase
         $response = $this->actingAs($this->standardUser)->get(route('dashboard_analytics'));
         $response->assertOk();
         $response->assertSee(__('No Accessible Explorers'));
-        $response->assertDontSee(route('analytics.expenses'));
+        $response->assertDontSee(route('analytics.forecasts'));
+        $response->assertDontSee(route('analytics.statistics'));
 
-        // 3. User with 'view expenses' sees only expenses card
-        $expensesPerm = Permission::findByName('view expenses', 'web');
-        $this->standardUser->givePermissionTo($expensesPerm);
+        // 3. User with 'view annual forecasts' sees only forecasts card
+        $forecastsPerm = Permission::findByName('view annual forecasts', 'web');
+        $this->standardUser->givePermissionTo($forecastsPerm);
 
         $response = $this->actingAs($this->standardUser)->get(route('dashboard_analytics'));
         $response->assertOk();
-        $response->assertSee(route('analytics.expenses'));
-        $response->assertDontSee(route('analytics.forecasts'));
+        $response->assertSee(route('analytics.forecasts'));
         $response->assertDontSee(route('analytics.statistics'));
-        $response->assertDontSee(route('analytics.reports'));
         $response->assertDontSee(__('No Accessible Explorers'));
     }
 }

@@ -150,10 +150,15 @@ class CalibrationCertificateService
                 $certPath = $this->mediaService->optimizePdf($file, 'equipment/certificates');
             }
 
+            $equipment = Equipment::findOrFail((int) $data['equipment_id']);
+            if (! $equipment->isCalibrationEligible()) {
+                throw new RuntimeException(__('Selected equipment is not eligible for metrological calibration.'));
+            }
+
             $certificate = CalibrationCertificate::create([
                 'reference' => $data['reference'] ?? null,
                 'certificate_type' => $data['certificate_type'] ?? 'periodic',
-                'equipment_id' => (int) $data['equipment_id'],
+                'equipment_id' => $equipment->id,
                 'laboratory_name' => $data['laboratory_name'] ?? null,
                 'calibration_date' => $calibrationDate,
                 'expiry_date' => $expiryDate,
@@ -213,10 +218,18 @@ class CalibrationCertificateService
                 ? Carbon::parse($data['expiry_date'])
                 : ($calibrationDate ? $calibrationDate->copy()->addMonths($validityMonths) : null);
 
+            $targetEquipmentId = (int) ($data['equipment_id'] ?? $certificate->equipment_id);
+            if ($targetEquipmentId !== $certificate->equipment_id) {
+                $equipment = Equipment::findOrFail($targetEquipmentId);
+                if (! $equipment->isCalibrationEligible()) {
+                    throw new RuntimeException(__('Selected equipment is not eligible for metrological calibration.'));
+                }
+            }
+
             $updateData = [
                 'reference' => $data['reference'] ?? $certificate->reference,
                 'certificate_type' => $data['certificate_type'] ?? $certificate->certificate_type,
-                'equipment_id' => (int) ($data['equipment_id'] ?? $certificate->equipment_id),
+                'equipment_id' => $targetEquipmentId,
                 'laboratory_name' => $data['laboratory_name'] ?? $certificate->laboratory_name,
                 'calibration_date' => $calibrationDate,
                 'expiry_date' => $expiryDate,
@@ -331,11 +344,41 @@ class CalibrationCertificateService
      */
     protected function syncPoints(CalibrationCertificate $certificate, array $points): void
     {
+        $specs = $certificate->equipment?->specifications;
+
         foreach ($points as $point) {
             $nominal = (float) ($point['nominal_value'] ?? 0.0);
             $correction = (float) ($point['correction'] ?? 0.0);
             $uncertainty = (float) ($point['uncertainty'] ?? 0.0);
             $specId = ! empty($point['equipment_specification_id']) ? (int) $point['equipment_specification_id'] : null;
+
+            if ($specId === null && $specs && $specs->isNotEmpty()) {
+                if ($specs->count() === 1) {
+                    $specId = $specs->first()->id;
+                } else {
+                    $exactCandidates = [];
+                    $tolCandidates = [];
+
+                    foreach ($specs as $s) {
+                        $min = (float) $s->range_min;
+                        $max = (float) $s->range_max;
+                        $span = abs($max - $min);
+                        $tol = max(1.0, $span * 0.15);
+
+                        if ($nominal >= $min && $nominal <= $max) {
+                            $exactCandidates[] = ['id' => $s->id, 'span' => $span];
+                        } elseif ($nominal >= ($min - $tol) && $nominal <= ($max + $tol)) {
+                            $tolCandidates[] = ['id' => $s->id, 'span' => $span];
+                        }
+                    }
+
+                    $pool = ! empty($exactCandidates) ? $exactCandidates : $tolCandidates;
+                    if (! empty($pool)) {
+                        usort($pool, fn (array $a, array $b): int => $a['span'] <=> $b['span']);
+                        $specId = $pool[0]['id'];
+                    }
+                }
+            }
 
             // Check tolerance status
             $status = CalibrationPointStatus::InTolerance;

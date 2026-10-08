@@ -1,4 +1,4 @@
-﻿<x-app-layout>
+<x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -30,8 +30,8 @@
                 <!-- Toolbar -->
                 <x-slot:toolbar>
                     <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                        <span>{{ __('Database Notifications') }} (<code>notifications</code>)</span>
+                        <svg class="w-5 h-5 text-brand-600 dark:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        <span>{{ __('Database Notifications') }} (<code class="text-xs font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700/80 text-gray-700 dark:text-gray-200">notifications</code>)</span>
                     </h3>
 
                     <!-- Status Filter -->
@@ -77,7 +77,7 @@
                         $notificationTitle = $data['title'] ?? null;
                     @endphp
                     <x-table.tr>
-                        <x-table.td class="font-mono text-gray-400 dark:text-gray-500">
+                        <x-table.td class="font-mono text-gray-500 dark:text-gray-400">
                             {{ substr($notif->id, 0, 8) }}...
                         </x-table.td>
                         <x-table.td>
@@ -105,13 +105,13 @@
                                         {{ __($notificationTitle) }}
                                     </span>
                                 @else
-                                    <span class="font-mono text-[11px] text-gray-400">
+                                    <span class="font-mono text-[11px] text-gray-500 dark:text-gray-400">
                                         {{ $typeBasename }}
                                     </span>
                                 @endif
                             </div>
                         </x-table.td>
-                        <x-table.td class="font-mono text-xs">
+                        <x-table.td class="font-mono text-xs text-gray-700 dark:text-gray-300">
                             {{ __(class_basename($notif->notifiable_type)) }} #{{ $notif->notifiable_id }}
                         </x-table.td>
                         <x-table.td>
@@ -125,8 +125,8 @@
                                 </x-badge>
                             @endif
                         </x-table.td>
-                        <x-table.td class="whitespace-nowrap">
-                            {{ \Carbon\Carbon::parse($notif->created_at)->format('Y-m-d H:i') }}
+                        <x-table.td class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                            <x-date :value="\Carbon\Carbon::parse($notif->created_at)" format="datetime" />
                         </x-table.td>
                         <x-table.td class="whitespace-nowrap text-end">
                             <x-table.actions class="justify-end">
@@ -162,13 +162,13 @@
                  @click.outside="modalOpen = false">
                 <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
                     <h4 class="text-base font-bold text-gray-900 dark:text-white" x-text="modalTitle"></h4>
-                    <button type="button" @click="modalOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <button type="button" @click="modalOpen = false" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700/50 transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
 
                 <div class="py-4 max-h-80 overflow-y-auto">
-                    <div class="rounded-lg bg-gray-50 dark:bg-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div class="rounded-xl bg-gray-50 dark:bg-gray-900/80 p-4 border border-gray-200 dark:border-gray-700/80 shadow-inner">
                         <pre class="text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre-wrap" x-text="JSON.stringify(modalPayload || {}, null, 2)"></pre>
                     </div>
                 </div>

@@ -116,6 +116,14 @@ class CalibrationCertificate extends Model
     }
 
     /**
+     * Standard 5-point interpolated grid points.
+     */
+    public function calibrationInterpolations(): HasMany
+    {
+        return $this->hasMany(CalibrationInterpolation::class, 'calibration_certificate_id')->orderBy('point_index', 'asc');
+    }
+
+    /**
      * Predecessor certificate for historical traceability.
      */
     public function previousCertificate(): BelongsTo

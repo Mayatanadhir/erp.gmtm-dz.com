@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\GrandeurDiscipline;
 use App\Enums\GrandeurType;
 use App\Traits\FilterableTrait;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -61,6 +62,14 @@ class Grandeur extends Model
     public function specifications(): HasMany
     {
         return $this->hasMany(EquipmentSpecification::class, 'grandeur_id');
+    }
+
+    /**
+     * Get the physical discipline / standard category.
+     */
+    public function discipline(): GrandeurDiscipline
+    {
+        return GrandeurDiscipline::detect($this->name, $this->symbol);
     }
 
     /**

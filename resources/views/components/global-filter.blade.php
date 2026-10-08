@@ -1,4 +1,4 @@
-﻿@props([
+@props([
     'action' => request()->url(),
     'method' => 'GET',
     'search' => true,
@@ -8,13 +8,14 @@
     'searchWidth' => 'w-56 sm:w-64',
     'resetUrl' => null,
     'submitText' => __('Filter'),
-    'autoSubmit' => false,
-    'showSubmit' => true,
+    'autoSubmit' => true,
+    'showSubmit' => false,
 ])
 
 @php
 $currentSearch = $searchValue ?? request($searchName, '');
 $resolvedResetUrl = $resetUrl ?? $action;
+$formId = 'gf-' . uniqid();
 
 // Detect active query filters (ignoring pagination 'page')
 $activeQueryParams = collect(request()->query())->filter(function ($val, $key) {
@@ -32,7 +33,8 @@ $hasActiveFilters = $activeQueryParams->isNotEmpty();
              this.$refs.filterForm.submit();
          }
      }">
-    <form x-ref="filterForm"
+    <form id="{{ $formId }}"
+          x-ref="filterForm"
           method="{{ strtoupper($method) === 'GET' ? 'GET' : 'POST' }}"
           action="{{ $action }}"
           class="flex flex-wrap items-center gap-2">
@@ -86,8 +88,8 @@ $hasActiveFilters = $activeQueryParams->isNotEmpty();
             </div>
         @endisset
 
-        {{-- Submit Button --}}
-        @if($showSubmit)
+        {{-- Submit Button (only when explicitly enabled) --}}
+        @if($showSubmit && !$autoSubmit)
             <x-primary-button type="submit" class="py-1.5 px-3 text-xs rounded-lg flex items-center gap-1.5 shrink-0">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
@@ -109,3 +111,17 @@ $hasActiveFilters = $activeQueryParams->isNotEmpty();
         @endif
     </form>
 </div>
+
+@if($autoSubmit)
+<script>
+(function () {
+    var form = document.getElementById('{{ $formId }}');
+    if (!form) return;
+    form.addEventListener('change', function (e) {
+        if (e.target.tagName === 'SELECT') {
+            form.submit();
+        }
+    });
+}());
+</script>
+@endif

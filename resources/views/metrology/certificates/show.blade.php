@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-3.5">
-                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 shadow-sm border border-brand-100 dark:border-brand-800">
+                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-sm border border-emerald-200 dark:border-emerald-800/70">
                     <i class="fas fa-certificate text-xl"></i>
                 </div>
                 <div>
@@ -14,15 +14,15 @@
                             {{ $certificate->status?->label() ?? ucfirst((string) $certificate->status) }}
                         </x-badge>
                         @if($certificate->is_locked)
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600" title="{{ __('Locked against modification') }}">
+                            <x-badge variant="neutral" :title="__('Locked against modification')">
                                 <i class="fas fa-lock text-[11px] text-amber-500"></i>
                                 <span>{{ __('Locked') }}</span>
-                            </span>
+                            </x-badge>
                         @else
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800" title="{{ __('Editable Draft') }}">
+                            <x-badge variant="success" :title="__('Editable Draft')">
                                 <i class="fas fa-lock-open text-[11px]"></i>
                                 <span>{{ __('Unlocked') }}</span>
-                            </span>
+                            </x-badge>
                         @endif
                     </div>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -54,9 +54,9 @@
                             <span>{{ __('Edit Certificate') }}</span>
                         </a>
 
-                        <form method="POST" action="{{ route('metrology.calibration-certificates.approve', $certificate) }}" onsubmit="return confirm('{{ __('Are you sure you want to approve and officially lock this certificate?') }}')" class="inline">
+                        <form method="POST" action="{{ route('metrology.calibration-certificates.approve', $certificate) }}" class="inline" x-data>
                             @csrf
-                            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+                            <button type="button" @click="if (confirm({{ json_encode(__('Are you sure you want to approve and officially lock this certificate?')) }})) { $el.closest('form').submit(); }" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
                                 <i class="fas fa-check-double"></i>
                                 <span>{{ __('Approve & Lock') }}</span>
                             </button>
@@ -73,7 +73,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8" x-data="{ activeTab: 'points' }">
+    <div class="py-8" x-data="{ activeTab: '{{ request('tab', 'points') }}' }">
         <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
             <!-- Flash Notifications -->
             @if(session('success'))
@@ -98,11 +98,11 @@
                         </div>
                         <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700/60">
                             <span class="text-gray-500 dark:text-gray-400">{{ __('Calibration Date') }}:</span>
-                            <span class="font-semibold text-gray-900 dark:text-white">{{ $certificate->calibration_date ? $certificate->calibration_date->format('Y-m-d') : '—' }}</span>
+                            <span class="font-semibold text-gray-900 dark:text-white"><x-date :value="$certificate->calibration_date" /></span>
                         </div>
                         <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700/60">
                             <span class="text-gray-500 dark:text-gray-400">{{ __('Expiry Date') }}:</span>
-                            <span class="font-semibold text-gray-900 dark:text-white">{{ $certificate->expiry_date ? $certificate->expiry_date->format('Y-m-d') : '—' }}</span>
+                            <span class="font-semibold text-gray-900 dark:text-white"><x-date :value="$certificate->expiry_date" /></span>
                         </div>
                         <div class="flex justify-between py-1">
                             <span class="text-gray-500 dark:text-gray-400">{{ __('Validity Period') }}:</span>
@@ -179,7 +179,7 @@
                         </div>
                         <div class="flex justify-between py-1">
                             <span class="text-gray-500 dark:text-gray-400">{{ __('Approved At') }}:</span>
-                            <span class="font-medium text-gray-900 dark:text-white">{{ $certificate->approved_at ? $certificate->approved_at->format('Y-m-d H:i') : '—' }}</span>
+                            <span class="font-medium text-gray-900 dark:text-white"><x-date :value="$certificate->approved_at" format="datetime" /></span>
                         </div>
                     </div>
                 </div>
@@ -190,9 +190,19 @@
                 <button type="button" @click="activeTab = 'points'" :class="activeTab === 'points' ? 'border-brand-600 text-brand-600 dark:text-brand-400 font-bold border-b-2' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 border-b-2 border-transparent'" class="py-3 px-1 flex items-center gap-2 transition">
                     <i class="fas fa-list-ol"></i>
                     <span>{{ __('Calibration Points') }}</span>
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    <x-badge variant="neutral" size="sm">
                         {{ $certificate->calibrationPoints->count() }}
-                    </span>
+                    </x-badge>
+                </button>
+
+                <button type="button" @click="activeTab = 'interpolation'" :class="activeTab === 'interpolation' ? 'border-brand-600 text-brand-600 dark:text-brand-400 font-bold border-b-2' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 border-b-2 border-transparent'" class="py-3 px-1 flex items-center gap-2 transition">
+                    <i class="fas fa-chart-line"></i>
+                    <span>{{ __('Interpolation & 5-Point Curves') }}</span>
+                    @if($certificate->calibrationInterpolations->isNotEmpty())
+                        <x-badge variant="success" size="sm">
+                            {{ $certificate->calibrationInterpolations->count() }}
+                        </x-badge>
+                    @endif
                 </button>
 
                 @if($certificate->certificate_path)
@@ -208,63 +218,460 @@
                 </button>
             </div>
 
-            <!-- Tab 2: Calibration Points Table -->
-            <div x-show="activeTab === 'points'" class="space-y-4">
-                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/80 dark:border-gray-700/80 overflow-hidden shadow-sm">
-                    <div class="p-4 border-b border-gray-200/80 dark:border-gray-700/80 flex items-center justify-between">
-                        <h3 class="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="fas fa-ruler text-brand-600"></i>
-                            <span>{{ __('Conformity Points & Measurement Uncertainties') }}</span>
-                        </h3>
-                    </div>
+            <!-- Tab 2: Calibration Points Tables (Sourced from Equipment Specifications & Standards) -->
+            <div x-show="activeTab === 'points'" x-data="{ pointsCategory: 'all' }" class="space-y-6">
+                @php
+                    $equipment = $certificate->equipment;
+                    $specifications = $specifications ?? ($equipment?->specifications()->with('grandeur')->get() ?? collect());
+                    $mesureSpecs = $mesureSpecs ?? $specifications->filter(fn($s) => $s->grandeur?->type === \App\Enums\GrandeurType::Measurement)->values();
+                    $sourceSpecs = $sourceSpecs ?? $specifications->filter(fn($s) => $s->grandeur?->type === \App\Enums\GrandeurType::Source)->values();
+                    $matchedPointIds = [];
+                @endphp
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs text-gray-700 dark:text-gray-200">
-                            <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-semibold border-b border-gray-200/80 dark:border-gray-700/80 uppercase">
-                                <tr>
-                                    <th class="py-3 px-4">#</th>
-                                    <th class="py-3 px-4">{{ __('Physical Quantity / Parameter') }}</th>
-                                    <th class="py-3 px-4">{{ __('Nominal Value') }}</th>
-                                    <th class="py-3 px-4">{{ __('Correction (C)') }}</th>
-                                    <th class="py-3 px-4">{{ __('Uncertainty (U)') }}</th>
-                                    <th class="py-3 px-4">{{ __('Lower Limit (C - U)') }}</th>
-                                    <th class="py-3 px-4">{{ __('Upper Limit (C + U)') }}</th>
-                                    <th class="py-3 px-4">{{ __('Tolerance Status') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
-                                @forelse($certificate->calibrationPoints as $idx => $pt)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition">
-                                        <td class="py-3 px-4 text-gray-400 font-mono">{{ $idx + 1 }}</td>
-                                        <td class="py-3 px-4 font-semibold text-gray-900 dark:text-white">
-                                            {{ $pt->equipmentSpecification?->grandeur?->name ?? __('Standard Parameter') }}
-                                            @if($pt->equipmentSpecification?->grandeur?->symbol)
-                                                <span class="text-xs text-gray-500 font-normal">({{ $pt->equipmentSpecification->grandeur->symbol }})</span>
-                                            @endif
-                                        </td>
-                                        <td class="py-3 px-4 font-bold text-gray-900 dark:text-white font-mono">{{ $pt->nominal_value }}</td>
-                                        <td class="py-3 px-4 font-mono">{{ $pt->correction }}</td>
-                                        <td class="py-3 px-4 font-mono">{{ $pt->uncertainty }}</td>
-                                        <td class="py-3 px-4 font-mono text-gray-500">{{ round($pt->lower_limit, 4) }}</td>
-                                        <td class="py-3 px-4 font-mono text-gray-500">{{ round($pt->upper_limit, 4) }}</td>
-                                        <td class="py-3 px-4">
+                @if($certificate->calibrationPoints->isEmpty())
+                    <div class="p-8 text-center rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                        <i class="fas fa-ruler-combined text-gray-400 text-3xl mb-2"></i>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('No calibration points recorded for this certificate.') }}</p>
+                    </div>
+                @else
+                    @if($mesureSpecs->isNotEmpty() && $sourceSpecs->isNotEmpty())
+                        <!-- Category Switcher / Filter Bar -->
+                        <div class="flex flex-wrap items-center justify-between gap-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                    <i class="fas fa-filter me-1 text-gray-400"></i>
+                                    {{ __('Filter by Category') }}:
+                                </span>
+                                <div class="inline-flex p-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 gap-1 text-xs">
+                                    <button type="button" @click="pointsCategory = 'all'"
+                                            :class="pointsCategory === 'all' ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 shadow-sm font-semibold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'"
+                                            class="px-3 py-1.5 rounded-md transition flex items-center gap-1.5">
+                                        <span>{{ __('All Standards') }}</span>
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono" :class="pointsCategory === 'all' ? 'bg-white/20 text-white dark:bg-gray-900/20 dark:text-gray-900' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'">
+                                            {{ $certificate->calibrationPoints->count() }}
+                                        </span>
+                                    </button>
+
+                                    <button type="button" @click="pointsCategory = 'measurement'"
+                                            :class="pointsCategory === 'measurement' ? 'bg-emerald-600 text-white shadow-sm font-semibold' : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/20'"
+                                            class="px-3 py-1.5 rounded-md transition flex items-center gap-1.5">
+                                        <i class="fas fa-sign-in-alt text-[10px]"></i>
+                                        <span>{{ __('Measurement / In') }}</span>
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono" :class="pointsCategory === 'measurement' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'">
+                                            {{ $mesureSpecs->count() }}
+                                        </span>
+                                    </button>
+
+                                    <button type="button" @click="pointsCategory = 'source'"
+                                            :class="pointsCategory === 'source' ? 'bg-amber-600 text-white shadow-sm font-semibold' : 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/20'"
+                                            class="px-3 py-1.5 rounded-md transition flex items-center gap-1.5">
+                                        <i class="fas fa-bolt text-[10px]"></i>
+                                        <span>{{ __('Source / Out') }}</span>
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono" :class="pointsCategory === 'source' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'">
+                                            {{ $sourceSpecs->count() }}
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($mesureSpecs->isNotEmpty())
+                        <!-- Section: Measurement Standards from Equipment -->
+                        <div x-show="pointsCategory === 'all' || pointsCategory === 'measurement'" class="space-y-5">
+                            <div class="flex items-center justify-between pb-2 border-b border-emerald-200/60 dark:border-emerald-800/40">
+                                <h3 class="text-sm font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                                    <i class="fas fa-sign-in-alt text-emerald-600 dark:text-emerald-400"></i>
+                                    <span>{{ __('Measurement Standards & Capabilities (Sensors / In)') }}</span>
+                                    <x-badge variant="success" class="text-[10px]">{{ __('Measurement / In') }}</x-badge>
+                                </h3>
+                                <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                                    {{ $mesureSpecs->count() }} {{ __('Standards') }}
+                                </span>
+                            </div>
+
+                            @foreach($mesureSpecs as $spec)
+                                @php
+                                    $unit = $spec->grandeur?->symbol ?: '';
+                                    $specPoints = $certificate->calibrationPoints->filter(function ($pt) use ($spec, $specifications) {
+                                        if ($pt->equipment_specification_id === $spec->id) {
+                                            return true;
+                                        }
+                                        if ($pt->equipment_specification_id === null) {
+                                            if ($specifications->count() === 1) {
+                                                return true;
+                                            }
+                                            $min = (float) $spec->range_min;
+                                            $max = (float) $spec->range_max;
+                                            $span = abs($max - $min);
+                                            $tol = max(1.0, $span * 0.15);
+                                            $nominal = (float) $pt->nominal_value;
+                                            return ($nominal >= ($min - $tol) && $nominal <= ($max + $tol));
+                                        }
+                                        return false;
+                                    })->values();
+
+                                    foreach ($specPoints as $sp) {
+                                        $matchedPointIds[] = $sp->id;
+                                    }
+                                @endphp
+
+                                <x-table class="border border-emerald-200/90 dark:border-emerald-800/70 shadow-sm ring-1 ring-emerald-500/10">
+                                    <x-slot:toolbar>
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
+                                            <div class="flex items-center gap-3">
+                                                <x-grandeur-icon :grandeur="$spec->grandeur" size="md" :withBackground="true" />
+                                                <div>
+                                                    <div class="flex items-center gap-2">
+                                                        <h4 class="text-sm font-bold text-gray-900 dark:text-white">
+                                                            {{ $spec->grandeur?->name ?? __('Standard Parameter') }}
+                                                        </h4>
+                                                        @if($unit)
+                                                            <span class="px-2 py-0.5 rounded-md font-mono text-xs font-bold border {{ $spec->discipline()->badgeClass() }}">
+                                                                {{ $unit }}
+                                                            </span>
+                                                        @endif
+                                                        <x-badge variant="success" class="text-[10px]">
+                                                            {{ __('Measurement / In') }}
+                                                        </x-badge>
+                                                    </div>
+                                                    <div class="flex flex-wrap items-center gap-3 text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                                                        @if($spec->range_min !== null && $spec->range_max !== null)
+                                                            <span class="inline-flex items-center gap-1 font-mono">
+                                                                <i class="fas fa-arrows-alt-h text-gray-400"></i>
+                                                                <span class="text-gray-400">{{ __('Measurement Range') }}:</span>
+                                                                <strong class="text-gray-700 dark:text-gray-200">{{ $spec->range_min }} → {{ $spec->range_max }} {{ $unit }}</strong>
+                                                            </span>
+                                                        @endif
+                                                        @if($spec->accuracy_value !== null)
+                                                            <span class="inline-flex items-center gap-1 font-mono">
+                                                                <i class="fas fa-bullseye text-gray-400"></i>
+                                                                <span class="text-gray-400">{{ __('Accuracy') }}:</span>
+                                                                <strong class="text-gray-700 dark:text-gray-200">±{{ $spec->accuracy_value }} {{ $spec->accuracy_type?->value ?? '%' }}</strong>
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <a href="{{ route('metrology.calibration-certificates.show', ['certificate' => $certificate, 'tab' => 'interpolation', 'spec_id' => $spec->id]) }}"
+                                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition shadow-xs">
+                                                    <i class="fas fa-chart-line text-emerald-600 dark:text-emerald-400"></i>
+                                                    <span>{{ __('View Curve') }}</span>
+                                                </a>
+                                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    {{ $specPoints->count() }} {{ __('Points') }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </x-slot:toolbar>
+
+                                    <x-slot:header>
+                                        <x-table.th class="w-12 text-emerald-900 dark:text-emerald-300">#</x-table.th>
+                                        <x-table.th class="text-emerald-900 dark:text-emerald-300">{{ __('Nominal Value') }} @if($unit)<span class="text-xs font-normal text-emerald-700 dark:text-emerald-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-emerald-900 dark:text-emerald-300">{{ __('Correction (C)') }} @if($unit)<span class="text-xs font-normal text-emerald-700 dark:text-emerald-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-emerald-900 dark:text-emerald-300">{{ __('Uncertainty (U)') }} @if($unit)<span class="text-xs font-normal text-emerald-700 dark:text-emerald-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-emerald-900 dark:text-emerald-300">{{ __('Lower Limit (C - U)') }} @if($unit)<span class="text-xs font-normal text-emerald-700 dark:text-emerald-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-emerald-900 dark:text-emerald-300">{{ __('Upper Limit (C + U)') }} @if($unit)<span class="text-xs font-normal text-emerald-700 dark:text-emerald-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-emerald-900 dark:text-emerald-300">{{ __('Tolerance Status') }}</x-table.th>
+                                    </x-slot:header>
+
+                                    @forelse($specPoints as $idx => $pt)
+                                        <x-table.tr class="hover:bg-emerald-50/50 dark:hover:bg-emerald-500/10 transition-colors">
+                                            <x-table.td class="align-middle">
+                                                <span class="inline-flex items-center justify-center px-2 py-0.5 rounded font-mono font-bold text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                                                    {{ $idx + 1 }}
+                                                </span>
+                                            </x-table.td>
+                                            <x-table.td class="font-bold text-gray-900 dark:text-white font-mono">
+                                                {{ $pt->nominal_value }}
+                                                @if($unit)
+                                                    <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td class="font-mono">
+                                                {{ ($pt->correction > 0 ? '+' : '') . $pt->correction }}
+                                                @if($unit)
+                                                    <span class="text-xs text-gray-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td class="font-mono">
+                                                ±{{ $pt->uncertainty }}
+                                                @if($unit)
+                                                    <span class="text-xs text-gray-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td class="font-mono text-gray-500 dark:text-gray-400">
+                                                {{ round($pt->lower_limit, 4) }}
+                                                @if($unit)
+                                                    <span class="text-xs text-gray-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td class="font-mono text-gray-500 dark:text-gray-400">
+                                                {{ round($pt->upper_limit, 4) }}
+                                                @if($unit)
+                                                    <span class="text-xs text-gray-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td>
+                                                <x-badge :variant="$pt->status?->badgeVariant() ?? 'neutral'">
+                                                    {{ $pt->status?->label() ?? 'In Tolerance' }}
+                                                </x-badge>
+                                            </x-table.td>
+                                        </x-table.tr>
+                                    @empty
+                                        <x-table.empty :colspan="7" :message="__('No calibration points recorded for this standard.')" />
+                                    @endforelse
+                                </x-table>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @if($sourceSpecs->isNotEmpty())
+                        <!-- Section: Source Standards from Equipment -->
+                        <div x-show="pointsCategory === 'all' || pointsCategory === 'source'" class="space-y-5">
+                            <div class="flex items-center justify-between pb-2 border-b border-amber-200/60 dark:border-amber-800/40">
+                                <h3 class="text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                                    <i class="fas fa-bolt text-amber-600 dark:text-amber-400"></i>
+                                    <span>{{ __('Source Standards & Capabilities (Generators / Out)') }}</span>
+                                    <x-badge variant="warning" class="text-[10px]">{{ __('Source / Out') }}</x-badge>
+                                </h3>
+                                <span class="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                                    {{ $sourceSpecs->count() }} {{ __('Standards') }}
+                                </span>
+                            </div>
+
+                            @foreach($sourceSpecs as $spec)
+                                @php
+                                    $unit = $spec->grandeur?->symbol ?: '';
+                                    $specPoints = $certificate->calibrationPoints->filter(function ($pt) use ($spec, $specifications) {
+                                        if ($pt->equipment_specification_id === $spec->id) {
+                                            return true;
+                                        }
+                                        if ($pt->equipment_specification_id === null) {
+                                            if (in_array($pt->id, $matchedPointIds, true)) {
+                                                return false;
+                                            }
+                                            if ($specifications->count() === 1) {
+                                                return true;
+                                            }
+                                            $min = (float) $spec->range_min;
+                                            $max = (float) $spec->range_max;
+                                            $span = abs($max - $min);
+                                            $tol = max(1.0, $span * 0.15);
+                                            $nominal = (float) $pt->nominal_value;
+                                            return ($nominal >= ($min - $tol) && $nominal <= ($max + $tol));
+                                        }
+                                        return false;
+                                    })->values();
+
+                                    foreach ($specPoints as $sp) {
+                                        $matchedPointIds[] = $sp->id;
+                                    }
+                                @endphp
+
+                                <x-table class="border border-amber-200/90 dark:border-amber-800/70 shadow-sm ring-1 ring-amber-500/10">
+                                    <x-slot:toolbar>
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
+                                            <div class="flex items-center gap-3">
+                                                <x-grandeur-icon :grandeur="$spec->grandeur" size="md" :withBackground="true" />
+                                                <div>
+                                                    <div class="flex items-center gap-2">
+                                                        <h4 class="text-sm font-bold text-gray-900 dark:text-white">
+                                                            {{ $spec->grandeur?->name ?? __('Standard Parameter') }}
+                                                        </h4>
+                                                        @if($unit)
+                                                            <span class="px-2 py-0.5 rounded-md font-mono text-xs font-bold border {{ $spec->discipline()->badgeClass() }}">
+                                                                {{ $unit }}
+                                                            </span>
+                                                        @endif
+                                                        <x-badge variant="warning" class="text-[10px]">
+                                                            {{ __('Source / Out') }}
+                                                        </x-badge>
+                                                    </div>
+                                                    <div class="flex flex-wrap items-center gap-3 text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                                                        @if($spec->range_min !== null && $spec->range_max !== null)
+                                                            <span class="inline-flex items-center gap-1 font-mono">
+                                                                <i class="fas fa-arrows-alt-h text-gray-400"></i>
+                                                                <span class="text-gray-400">{{ __('Generation Range') }}:</span>
+                                                                <strong class="text-gray-700 dark:text-gray-200">{{ $spec->range_min }} → {{ $spec->range_max }} {{ $unit }}</strong>
+                                                            </span>
+                                                        @endif
+                                                        @if($spec->accuracy_value !== null)
+                                                            <span class="inline-flex items-center gap-1 font-mono">
+                                                                <i class="fas fa-bullseye text-gray-400"></i>
+                                                                <span class="text-gray-400">{{ __('Accuracy') }}:</span>
+                                                                <strong class="text-gray-700 dark:text-gray-200">±{{ $spec->accuracy_value }} {{ $spec->accuracy_type?->value ?? '%' }}</strong>
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <a href="{{ route('metrology.calibration-certificates.show', ['certificate' => $certificate, 'tab' => 'interpolation', 'spec_id' => $spec->id]) }}"
+                                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition shadow-xs">
+                                                    <i class="fas fa-chart-line text-amber-600 dark:text-amber-400"></i>
+                                                    <span>{{ __('View Curve') }}</span>
+                                                </a>
+                                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    {{ $specPoints->count() }} {{ __('Points') }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </x-slot:toolbar>
+
+                                    <x-slot:header>
+                                        <x-table.th class="w-12 text-amber-900 dark:text-amber-300">#</x-table.th>
+                                        <x-table.th class="text-amber-900 dark:text-amber-300">{{ __('Nominal Value') }} @if($unit)<span class="text-xs font-normal text-amber-700 dark:text-amber-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-amber-900 dark:text-amber-300">{{ __('Correction (C)') }} @if($unit)<span class="text-xs font-normal text-amber-700 dark:text-amber-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-amber-900 dark:text-amber-300">{{ __('Uncertainty (U)') }} @if($unit)<span class="text-xs font-normal text-amber-700 dark:text-amber-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-amber-900 dark:text-amber-300">{{ __('Lower Limit (C - U)') }} @if($unit)<span class="text-xs font-normal text-amber-700 dark:text-amber-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-amber-900 dark:text-amber-300">{{ __('Upper Limit (C + U)') }} @if($unit)<span class="text-xs font-normal text-amber-700 dark:text-amber-400">[{{ $unit }}]</span>@endif</x-table.th>
+                                        <x-table.th class="text-amber-900 dark:text-amber-300">{{ __('Tolerance Status') }}</x-table.th>
+                                    </x-slot:header>
+
+                                    @forelse($specPoints as $idx => $pt)
+                                        <x-table.tr class="hover:bg-amber-50/50 dark:hover:bg-amber-500/10 transition-colors">
+                                            <x-table.td class="align-middle">
+                                                <span class="inline-flex items-center justify-center px-2 py-0.5 rounded font-mono font-bold text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                                                    {{ $idx + 1 }}
+                                                </span>
+                                            </x-table.td>
+                                            <x-table.td class="font-bold text-gray-900 dark:text-white font-mono">
+                                                {{ $pt->nominal_value }}
+                                                @if($unit)
+                                                    <span class="text-xs font-semibold text-amber-600 dark:text-amber-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td class="font-mono">
+                                                {{ ($pt->correction > 0 ? '+' : '') . $pt->correction }}
+                                                @if($unit)
+                                                    <span class="text-xs text-gray-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td class="font-mono">
+                                                ±{{ $pt->uncertainty }}
+                                                @if($unit)
+                                                    <span class="text-xs text-gray-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td class="font-mono text-gray-500 dark:text-gray-400">
+                                                {{ round($pt->lower_limit, 4) }}
+                                                @if($unit)
+                                                    <span class="text-xs text-gray-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td class="font-mono text-gray-500 dark:text-gray-400">
+                                                {{ round($pt->upper_limit, 4) }}
+                                                @if($unit)
+                                                    <span class="text-xs text-gray-400 ms-1">{{ $unit }}</span>
+                                                @endif
+                                            </x-table.td>
+                                            <x-table.td>
+                                                <x-badge :variant="$pt->status?->badgeVariant() ?? 'neutral'">
+                                                    {{ $pt->status?->label() ?? 'In Tolerance' }}
+                                                </x-badge>
+                                            </x-table.td>
+                                        </x-table.tr>
+                                    @empty
+                                        <x-table.empty :colspan="7" :message="__('No calibration points recorded for this standard.')" />
+                                    @endforelse
+                                </x-table>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @php
+                        $unlinkedPoints = $certificate->calibrationPoints->reject(fn($pt) => in_array($pt->id, $matchedPointIds, true))->values();
+                    @endphp
+
+                    @if($unlinkedPoints->isNotEmpty())
+                        <!-- Section: Other / Unlinked Calibration Points -->
+                        <div x-show="pointsCategory === 'all' || pointsCategory === 'other'" class="space-y-3">
+                            <x-table class="border border-gray-200/90 dark:border-gray-700/70 shadow-sm">
+                                <x-slot:toolbar>
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-xl bg-gray-500/15 text-gray-600 dark:text-gray-400 flex items-center justify-center font-bold shadow-xs">
+                                                <i class="fas fa-ruler text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <div class="flex items-center gap-2">
+                                                    <h4 class="text-sm font-bold text-gray-900 dark:text-white">
+                                                        {{ __('Other Calibration Points') }}
+                                                    </h4>
+                                                    <x-badge variant="neutral" class="text-[10px]">
+                                                        {{ __('General') }}
+                                                    </x-badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                                                {{ $unlinkedPoints->count() }} {{ __('Points') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </x-slot:toolbar>
+
+                                <x-slot:header>
+                                    <x-table.th class="w-12">#</x-table.th>
+                                    <x-table.th>{{ __('Physical Quantity / Parameter') }}</x-table.th>
+                                    <x-table.th>{{ __('Nominal Value') }}</x-table.th>
+                                    <x-table.th>{{ __('Correction (C)') }}</x-table.th>
+                                    <x-table.th>{{ __('Uncertainty (U)') }}</x-table.th>
+                                    <x-table.th>{{ __('Lower Limit (C - U)') }}</x-table.th>
+                                    <x-table.th>{{ __('Upper Limit (C + U)') }}</x-table.th>
+                                    <x-table.th>{{ __('Tolerance Status') }}</x-table.th>
+                                </x-slot:header>
+
+                                @foreach($unlinkedPoints as $idx => $pt)
+                                    <x-table.tr>
+                                        <x-table.td class="align-middle">
+                                            <span class="inline-flex items-center justify-center px-2 py-0.5 rounded font-mono font-bold text-xs bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                                {{ $idx + 1 }}
+                                            </span>
+                                        </x-table.td>
+                                        <x-table.td class="font-semibold text-gray-900 dark:text-white">
+                                            <div class="flex items-center gap-2">
+                                                <x-grandeur-icon :grandeur="$pt->equipmentSpecification?->grandeur" size="xs" :withBackground="true" />
+                                                <span>{{ $pt->equipmentSpecification?->grandeur?->name ?? __('Standard Parameter') }}</span>
+                                                @if($pt->equipmentSpecification?->grandeur?->symbol)
+                                                    <span class="inline-flex items-center font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border {{ $pt->equipmentSpecification->discipline()->badgeClass() }}">
+                                                        {{ $pt->equipmentSpecification->grandeur->symbol }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </x-table.td>
+                                        <x-table.td class="font-bold text-gray-900 dark:text-white font-mono">{{ $pt->nominal_value }}</x-table.td>
+                                        <x-table.td class="font-mono">{{ $pt->correction }}</x-table.td>
+                                        <x-table.td class="font-mono">{{ $pt->uncertainty }}</x-table.td>
+                                        <x-table.td class="font-mono text-gray-500 dark:text-gray-400">{{ round($pt->lower_limit, 4) }}</x-table.td>
+                                        <x-table.td class="font-mono text-gray-500 dark:text-gray-400">{{ round($pt->upper_limit, 4) }}</x-table.td>
+                                        <x-table.td>
                                             <x-badge :variant="$pt->status?->badgeVariant() ?? 'neutral'">
                                                 {{ $pt->status?->label() ?? 'In Tolerance' }}
                                             </x-badge>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="8" class="py-8 text-center text-gray-400 italic">
-                                            {{ __('No calibration points recorded for this certificate.') }}
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                        </x-table.td>
+                                    </x-table.tr>
+                                @endforeach
+                            </x-table>
+                        </div>
+                    @endif
+                @endif
             </div>
+
+            <!-- Tab: Interpolation & 5-Point Curves (Florian Platel Model) -->
+            <x-curve
+                :certificate="$certificate"
+                :specifications="$specifications"
+                :active-specification="$activeSpecification"
+                :five-point-grid="$fivePointGrid"
+                :comparison-data="$comparisonData"
+                :tab-condition="'activeTab === \'interpolation\''"
+            />
 
             <!-- Tab 3: Certificate Document Viewer -->
             @if($certificate->certificate_path)

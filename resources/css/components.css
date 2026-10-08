@@ -69,7 +69,7 @@
     .btn-ghost {
         @apply inline-flex items-center justify-center
                px-4 py-2.5
-               bg-transparent hover:bg-brand-50 dark:hover:bg-brand-950
+               bg-transparent hover:bg-brand-50 dark:hover:bg-brand-500/20
                text-brand-600 dark:text-brand-400 hover:text-brand-700
                border border-brand-600 dark:border-brand-500
                rounded-xl font-semibold text-xs sm:text-sm tracking-wide
@@ -197,7 +197,7 @@
 
     .icon-container-primary {
         @apply p-2 rounded-xl
-               bg-brand-50 dark:bg-brand-950
+               bg-brand-50 dark:bg-brand-500/20
                text-brand-600 dark:text-brand-400;
     }
 
@@ -224,5 +224,14 @@
                text-gray-900 dark:text-white
                focus:border-brand-600 focus:ring-1 focus:ring-brand-600
                shadow-sm;
+    }
+
+    /* ──────────────────────────────────────────────────────────
+     * 4-PILLAR KPI BAR (HORIZONTAL ROW)
+     * ──────────────────────────────────────────────────────── */
+
+    .kpi-grid-4 {
+        display: grid !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     }
 }

@@ -1,4 +1,4 @@
-﻿@props([
+@props([
     'variant' => 'neutral',
     'size' => 'sm',
     'dot' => false,
@@ -16,12 +16,12 @@
     };
 
     $variantClasses = match($normalizedVariant) {
-        'primary' => 'bg-brand-600/10 text-brand-800 dark:text-brand-300 border-brand-500/20',
-        'success' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
-        'danger' => 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20',
-        'warning' => 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
-        'info' => 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20',
-        'neutral' => 'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20 dark:border-gray-600/30',
+        'primary' => 'bg-brand-600/10 dark:bg-brand-950/50 text-brand-800 dark:text-brand-300 border-brand-500/20 dark:border-brand-500/30',
+        'success' => 'bg-emerald-500/10 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 dark:border-emerald-500/30',
+        'danger' => 'bg-rose-500/10 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-500/20 dark:border-rose-500/30',
+        'warning' => 'bg-amber-500/10 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-500/20 dark:border-amber-500/30',
+        'info' => 'bg-indigo-500/10 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 dark:border-indigo-500/30',
+        'neutral' => 'bg-gray-500/10 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-500/20 dark:border-gray-600/30',
     };
 
     $dotColors = match($normalizedVariant) {

@@ -79,7 +79,7 @@
                                     {{ $j->reserved_at ? \Carbon\Carbon::createFromTimestamp($j->reserved_at)->diffForHumans() : '-' }}
                                 </x-table.td>
                                 <x-table.td class="whitespace-nowrap">
-                                    {{ \Carbon\Carbon::createFromTimestamp($j->created_at)->format('Y-m-d H:i:s') }}
+                                    <x-date :value="\Carbon\Carbon::createFromTimestamp($j->created_at)" format="timestamp" />
                                 </x-table.td>
                                 <x-table.td class="whitespace-nowrap text-end">
                                     <x-table.actions class="justify-end">
@@ -163,7 +163,7 @@
                                 <x-table.td>{{ $b->pending_jobs }}</x-table.td>
                                 <x-table.td class="{{ $b->failed_jobs > 0 ? 'text-rose-600 font-bold' : '' }}">{{ $b->failed_jobs }}</x-table.td>
                                 <x-table.td class="whitespace-nowrap">
-                                    {{ \Carbon\Carbon::createFromTimestamp($b->created_at)->format('Y-m-d H:i') }}
+                                    <x-date :value="\Carbon\Carbon::createFromTimestamp($b->created_at)" format="datetime" />
                                 </x-table.td>
                                 <x-table.td class="whitespace-nowrap text-end">
                                     <x-table.actions class="justify-end">

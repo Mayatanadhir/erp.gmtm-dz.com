@@ -41,8 +41,8 @@ class LegacyEquipmentSeeder extends Seeder
                 default => 'none',
             };
 
-            $status = in_array($item['status'] ?? '', ['active', 'maintenance', 'deployed', 'retired', 'inactive'], true)
-                ? $item['status']
+            $status = ($item['status'] ?? '') === 'inactive' || ($item['status'] ?? '') === 'retired'
+                ? 'inactive'
                 : 'active';
 
             // Process image to WebP if present

@@ -16,15 +16,15 @@ enum EmployeePosition: string
     /**
      * Get the translated label for the position.
      */
-    public function label(): string
+    public function label(?string $locale = null): string
     {
         return match ($this) {
-            self::GeneralManager => __('General Manager'),
-            self::SeniorMeteringEngineer => __('Senior Metering Engineer'),
-            self::MeteringEngineer => __('Metering Engineer'),
-            self::SeniorInstrumentationEngineer => __('Senior Instrumentation Engineer'),
-            self::MeteringTechnician => __('Metering Technician'),
-            self::InstrumentationTechnician => __('Instrumentation Technician'),
+            self::GeneralManager => __('General Manager', [], $locale),
+            self::SeniorMeteringEngineer => __('Senior Metering Engineer', [], $locale),
+            self::MeteringEngineer => __('Metering Engineer', [], $locale),
+            self::SeniorInstrumentationEngineer => __('Senior Instrumentation Engineer', [], $locale),
+            self::MeteringTechnician => __('Metering Technician', [], $locale),
+            self::InstrumentationTechnician => __('Instrumentation Technician', [], $locale),
         };
     }
 

@@ -8,7 +8,7 @@
                         {{ __('Dashboard Operations') }}
                     </h2> 
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                        {{ __('Monitor and manage missions, contracts, attachments, bank guarantees, and article types') }}
+                    {{ __('Monitor and manage missions, contracts, attachments, and article types') }}
                     </p>
                 </div>
             </div>
@@ -30,7 +30,7 @@
 
                 <!-- Main Content -->
                 <main class="flex-1 w-full min-w-0 space-y-6">
-                    @canany(['view missions', 'view contracts', 'view attachments', 'view warranties', 'view article types'])
+                    @canany(['view missions', 'view contracts', 'view attachments', 'view article types'])
                     <!-- Metrics Grid -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                         <!-- Mission Management Card -->
@@ -84,25 +84,6 @@
                             </div>
                             <div class="mt-4 border-t border-gray-100 dark:border-gray-700/60 pt-3">
                                 <a href="{{ route('operations.attachments') }}" class="inline-flex items-center text-xs font-semibold text-brand-700 dark:text-brand-400 hover:underline">
-                                    <span>{{ __('View Explorer') }}</span> &rarr;
-                                </a>
-                            </div>
-                        </div>
-                        @endcan
-
-                        <!-- Bank Guarantees Card -->
-                        @can('view warranties')
-                        <div class="group relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-5 shadow-sm border border-gray-100 dark:border-gray-700/60 transition-all duration-200 hover:shadow-md">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ __('Bank Guarantees') }}</p>
-                                    <h3 class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">0</h3>
-                                    <p class="mt-1 text-xs text-brand-700 dark:text-brand-400 font-medium">{{ __('Guarantees Active') }}</p>
-                                </div>
-                                <x-tool-icon name="warranties" class="w-12 h-12 shrink-0 transition-transform duration-200 group-hover:scale-105" />
-                            </div>
-                            <div class="mt-4 border-t border-gray-100 dark:border-gray-700/60 pt-3">
-                                <a href="{{ route('operations.warranties') }}" class="inline-flex items-center text-xs font-semibold text-brand-700 dark:text-brand-400 hover:underline">
                                     <span>{{ __('View Explorer') }}</span> &rarr;
                                 </a>
                             </div>
@@ -165,33 +146,26 @@
                         </div>
                         @endcanany
 
-                        <!-- Legal, Bank Guarantees & Classifications Card -->
-                        @canany(['view contracts', 'view warranties', 'view article types'])
+                        <!-- Legal & Classifications Card -->
+                        @canany(['view contracts', 'view article types'])
                         <div class="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700/60">
                             <div class="flex items-center justify-between mb-4">
                                 <div class="flex items-center gap-3">
                                 <x-tool-icon name="contracts" class="w-12 h-12 shrink-0" />
                                 <div>
                                     <h3 class="text-base font-bold text-gray-900 dark:text-white">{{ __('Agreements & Classifications') }}</h3>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('Contractual obligations, bank guarantees, and item types') }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('Contractual obligations and item types') }}</p>
                                 </div>
                                 </div>
                             </div>
                             <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
-                                {{ __('Manage client and partner contracts, verify active bank guarantees, and maintain operational article type classifications.') }}
+                                {{ __('Manage client and partner contracts and maintain operational article type classifications.') }}
                             </p>
                             <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
                                 @can('view contracts')
                                 <a href="{{ route('operations.contracts') }}">
                                     <x-primary-button type="button" class="text-xs">
                                         {{ __('Contracts') }}
-                                    </x-primary-button>
-                                </a>
-                                @endcan
-                                @can('view warranties')
-                                <a href="{{ route('operations.warranties') }}">
-                                    <x-primary-button type="button" class="text-xs">
-                                        {{ __('Bank Guarantees') }}
                                     </x-primary-button>
                                 </a>
                                 @endcan

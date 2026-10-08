@@ -1,9 +1,9 @@
-﻿@props([
+@props([
     'name',
     'placeholder' => __('All'),
     'options' => [],
     'value' => null,
-    'autoSubmit' => false,
+    'autoSubmit' => true,
 ])
 
 @php

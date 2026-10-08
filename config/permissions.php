@@ -61,6 +61,13 @@ return [
             'view_permission' => 'view operations',
             'perms' => ['view operations'],
         ],
+        'financial' => [
+            'name' => 'Financial Management',
+            'icon' => 'fa-coins',
+            'color' => 'teal',
+            'view_permission' => 'view financial',
+            'perms' => ['view financial'],
+        ],
         'analytics' => [
             'name' => 'Internal and Analytical Management',
             'icon' => 'fa-chart-line',
@@ -182,6 +189,18 @@ return [
                 'delete quantities units',
             ],
         ],
+        'reports' => [
+            'module' => 'metrology',
+            'entity' => 'reports',
+            'icon' => 'fa-file-alt',
+            'lang' => 'Reports Management',
+            'perms' => [
+                'view reports',
+                'create reports',
+                'edit reports',
+                'delete reports',
+            ],
+        ],
 
         // 💼 Operations & Projects
         'missions' => [
@@ -220,18 +239,6 @@ return [
                 'delete attachments',
             ],
         ],
-        'warranties' => [
-            'module' => 'operations',
-            'entity' => 'warranties',
-            'icon' => 'fa-shield-alt',
-            'lang' => 'Bank Guarantees',
-            'perms' => [
-                'view warranties',
-                'create warranties',
-                'edit warranties',
-                'delete warranties',
-            ],
-        ],
         'article_types' => [
             'module' => 'operations',
             'entity' => 'article types',
@@ -245,9 +252,21 @@ return [
             ],
         ],
 
-        // 📈 Internal and Analytical Management
+        // 💰 Financial Management
+        'warranties' => [
+            'module' => 'financial',
+            'entity' => 'warranties',
+            'icon' => 'fa-shield-alt',
+            'lang' => 'Bank Guarantees',
+            'perms' => [
+                'view warranties',
+                'create warranties',
+                'edit warranties',
+                'delete warranties',
+            ],
+        ],
         'expenses' => [
-            'module' => 'analytics',
+            'module' => 'financial',
             'entity' => 'expenses',
             'icon' => 'fa-money-bill-wave',
             'lang' => 'Expenses & Charges',
@@ -258,6 +277,8 @@ return [
                 'delete expenses',
             ],
         ],
+
+        // 📈 Internal and Analytical Management
         'annual_forecasts' => [
             'module' => 'analytics',
             'entity' => 'annual forecasts',
@@ -280,18 +301,6 @@ return [
                 'create company statistics',
                 'edit company statistics',
                 'delete company statistics',
-            ],
-        ],
-        'reports' => [
-            'module' => 'analytics',
-            'entity' => 'reports',
-            'icon' => 'fa-file-alt',
-            'lang' => 'Reports Management',
-            'perms' => [
-                'view reports',
-                'create reports',
-                'edit reports',
-                'delete reports',
             ],
         ],
 

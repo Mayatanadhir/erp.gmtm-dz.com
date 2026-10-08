@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Metrology;
 
+use App\Enums\GrandeurDiscipline;
 use App\Enums\GrandeurType;
 use App\Models\Equipment;
 use App\Models\EquipmentSpecification;
@@ -164,5 +165,53 @@ class GrandeurFeatureTest extends TestCase
     {
         $response = $this->actingAs($this->standardUser)->get(route('metrology.units'));
         $response->assertForbidden();
+    }
+
+    public function test_grandeur_discipline_detection_and_visual_mapping(): void
+    {
+        $temp = Grandeur::create(['name' => 'Température', 'symbol' => '°C', 'type' => GrandeurType::Measurement]);
+        $press = Grandeur::create(['name' => 'Pression', 'symbol' => 'Bar', 'type' => GrandeurType::Measurement]);
+        $curr = Grandeur::create(['name' => 'Courant', 'symbol' => 'mA', 'type' => GrandeurType::Source]);
+        $volt = Grandeur::create(['name' => 'Tension', 'symbol' => 'V', 'type' => GrandeurType::Source]);
+        $res = Grandeur::create(['name' => 'Résistance', 'symbol' => 'Ω', 'type' => GrandeurType::Measurement]);
+        $freq = Grandeur::create(['name' => 'Frequence', 'symbol' => 'Hz', 'type' => GrandeurType::Source]);
+        $pulse = Grandeur::create(['name' => 'Impultion', 'symbol' => 'imp', 'type' => GrandeurType::Source]);
+
+        $this->assertSame(GrandeurDiscipline::Temperature, $temp->discipline());
+        $this->assertSame('fa-temperature-high', $temp->discipline()->icon());
+        $this->assertSame('rose', $temp->discipline()->colorKey());
+
+        $this->assertSame(GrandeurDiscipline::Pressure, $press->discipline());
+        $this->assertSame('fa-tachometer-alt', $press->discipline()->icon());
+        $this->assertSame('sky', $press->discipline()->colorKey());
+
+        $this->assertSame(GrandeurDiscipline::Current, $curr->discipline());
+        $this->assertSame('amber', $curr->discipline()->colorKey());
+
+        $this->assertSame(GrandeurDiscipline::Voltage, $volt->discipline());
+        $this->assertSame('indigo', $volt->discipline()->colorKey());
+
+        $this->assertSame(GrandeurDiscipline::Resistance, $res->discipline());
+        $this->assertSame('emerald', $res->discipline()->colorKey());
+
+        $this->assertSame(GrandeurDiscipline::Frequency, $freq->discipline());
+        $this->assertSame('fuchsia', $freq->discipline()->colorKey());
+
+        $this->assertSame(GrandeurDiscipline::Pulse, $pulse->discipline());
+        $this->assertSame('purple', $pulse->discipline()->colorKey());
+    }
+
+    public function test_units_index_renders_grandeur_icons_and_discipline_badges(): void
+    {
+        Grandeur::create(['name' => 'Température', 'symbol' => '°C', 'type' => GrandeurType::Measurement]);
+        Grandeur::create(['name' => 'Pression', 'symbol' => 'Bar', 'type' => GrandeurType::Measurement]);
+
+        $response = $this->actingAs($this->adminUser)->get(route('metrology.units'));
+
+        $response->assertOk();
+        $response->assertSee('Température');
+        $response->assertSee('Pression');
+        $response->assertSee('Bar');
+        $response->assertSee('°C');
     }
 }

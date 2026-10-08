@@ -30,7 +30,21 @@ class EquipmentRepository extends BaseRepository implements EquipmentRepositoryI
             $query->filter($filters);
         }
 
-        return $query->latest('id')->paginate($perPage, $columns)->withQueryString();
+        $hasCustomSort = ! empty($filters['sort_by']);
+
+        if (! $hasCustomSort) {
+            $query->orderByRaw("
+                CASE 
+                    WHEN status = 'inactive' THEN 4
+                    WHEN requires_calibration = 1 OR category = 'measuring_instrument' THEN 1
+                    WHEN category = 'work_tool' THEN 2
+                    WHEN category = 'vehicle' THEN 3
+                    ELSE 5
+                END ASC
+            ")->orderBy('id', 'asc');
+        }
+
+        return $query->paginate($perPage, $columns)->withQueryString();
     }
 
     /**

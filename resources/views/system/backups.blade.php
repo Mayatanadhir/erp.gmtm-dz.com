@@ -72,7 +72,7 @@
                             <div class="flex flex-wrap items-center gap-2.5">
                                 @if(!empty($backupData['oldest_backup']))
                                     <x-warning-button type="button"
-                                                      @click="openRestoreModal('{{ $backupData['oldest_backup']['file_name'] }}', '{{ $backupData['oldest_backup']['date']->format('Y-m-d H:i') }}', '{{ $backupData['oldest_backup']['size_formatted'] }}', true)">
+                                                      @click="openRestoreModal('{{ $backupData['oldest_backup']['file_name'] }}', '{{ $backupData['oldest_backup']['date']->format('d/m/Y H:i') }}', '{{ $backupData['oldest_backup']['size_formatted'] }}', true)">
                                         <svg class="w-4 h-4 me-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                         {{ __('Restore Oldest Snapshot') }}
                                     </x-warning-button>
@@ -101,7 +101,11 @@
                             <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/60">
                                 <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Oldest Snapshot Date') }}</span>
                                 <span class="text-sm font-bold font-mono text-amber-600 dark:text-amber-400">
-                                    {{ !empty($backupData['oldest_backup']) ? $backupData['oldest_backup']['date']->format('Y-m-d H:i') : __('None') }}
+                                    @if(!empty($backupData['oldest_backup']))
+                                        <x-date :value="$backupData['oldest_backup']['date']" format="datetime" />
+                                    @else
+                                        {{ __('None') }}
+                                    @endif
                                 </span>
                             </div>
                         </div>
@@ -140,7 +144,7 @@
                                 </x-table.td>
 
                                 <x-table.td class="font-mono text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                                    <span>{{ $backup['date']->format('Y-m-d H:i') }}</span>
+                                    <span><x-date :value="$backup['date']" format="datetime" /></span>
                                     <span class="text-gray-400 block text-[11px]">{{ $backup['age'] }}</span>
                                 </x-table.td>
 
@@ -176,7 +180,7 @@
 
                                         <!-- 2. Restore Backup Button -->
                                         <x-table.action-restore
-                                            @click="openRestoreModal('{{ $backup['file_name'] }}', '{{ $backup['date']->format('Y-m-d H:i') }}', '{{ $backup['size_formatted'] }}', {{ $backup['is_oldest'] ? 'true' : 'false' }})"
+                                            @click="openRestoreModal('{{ $backup['file_name'] }}', '{{ $backup['date']->format('d/m/Y H:i') }}', '{{ $backup['size_formatted'] }}', {{ $backup['is_oldest'] ? 'true' : 'false' }})"
                                             :title="__('Restore database from this snapshot')"
                                         />
 

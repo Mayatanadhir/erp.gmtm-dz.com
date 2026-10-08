@@ -1,4 +1,4 @@
-﻿<x-app-layout>
+<x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -351,7 +351,11 @@
                                                     {{ $tblKey }}
                                                 </h4>
                                                 <button type="button"
-                                                        @click="if (confirm('{{ __('Are you sure you want to remove table :table from automated pruning?', ['table' => $tblKey]) }}')) { document.getElementById('delete-table-{{ $tblKey }}').submit(); }"
+                                                        @click="$dispatch('open-delete-modal', {
+                                                            action: '{{ route('system-tables.pruning.tables.remove', $tblKey) }}',
+                                                            name: '{{ $tblKey }}',
+                                                            title: '{{ __('Remove from Pruning') }}'
+                                                        })"
                                                         class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                                                         title="{{ __('Remove table from pruning') }}">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -472,7 +476,7 @@
                                     @endif
                                 </x-table.td>
                                 <x-table.td class="font-mono text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                    {{ $item->created_at->diffForHumans() }} ({{ $item->created_at->format('Y-m-d H:i') }})
+                                    {{ $item->created_at->diffForHumans() }} (<x-date :value="$item->created_at" format="datetime" />)
                                 </x-table.td>
                             </x-table.tr>
                         @empty

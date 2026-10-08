@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -25,6 +24,16 @@ class Employee extends Model
 {
     /** @use HasFactory<EmployeeFactory> */
     use FilterableTrait, HasActivity, HasFactory, SoftDeletes;
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'profile_photo_url',
+        'initials',
+    ];
 
     /**
      * The attributes that are allowed for dynamic query filtering.
@@ -116,9 +125,11 @@ class Employee extends Model
             return null;
         }
 
-        return str_starts_with($path, 'http')
-            ? $path
-            : Storage::disk('public')->url($path);
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return asset('storage/'.ltrim($path, '/'));
     }
 
     /**

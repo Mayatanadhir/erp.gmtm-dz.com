@@ -1,4 +1,4 @@
-﻿@props(['active' => 'index'])
+@props(['active' => 'index'])
 
 @php
 $tabs = [
@@ -37,6 +37,12 @@ $tabs = [
         'route' => route('metrology.units'),
         'permission' => 'view quantities units',
         'tool' => 'units',
+    ],
+    'reports' => [
+        'name' => __('Reports Management'),
+        'route' => route('metrology.reports'),
+        'permission' => 'view reports',
+        'tool' => 'reports',
     ],
 ];
 @endphp

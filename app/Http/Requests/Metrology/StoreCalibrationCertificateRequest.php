@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Metrology;
 
+use App\Enums\EquipmentCategory;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreCalibrationCertificateRequest extends FormRequest
 {
@@ -27,7 +29,19 @@ class StoreCalibrationCertificateRequest extends FormRequest
         return [
             'reference' => ['nullable', 'string', 'max:100'],
             'certificate_type' => ['nullable', 'string', 'in:initial,periodic,after_repair,intermediate'],
-            'equipment_id' => ['required', 'integer', 'exists:equipment,id'],
+            'equipment_id' => [
+                'required',
+                'integer',
+                Rule::exists('equipment', 'id')->where(function ($query): void {
+                    $query->where(function ($q): void {
+                        $q->where('requires_calibration', true)
+                            ->orWhere('category', EquipmentCategory::MeasuringInstrument->value);
+                    })->whereNotIn('category', [
+                        EquipmentCategory::WorkTool->value,
+                        EquipmentCategory::Vehicle->value,
+                    ]);
+                }),
+            ],
             'laboratory_name' => ['nullable', 'string', 'max:255'],
             'calibration_date' => ['required', 'date'],
             'expiry_date' => ['nullable', 'date', 'after_or_equal:calibration_date'],

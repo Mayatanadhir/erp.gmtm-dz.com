@@ -32,13 +32,13 @@
         deleteUrl: '',
         openEdit(item) {
             this.editGrandeur = { id: item.id, name: item.name, symbol: item.symbol, type: item.type };
-            this.editUrl = '{{ route('metrology.units.update', ':id') }}'.replace(':id', item.id);
+            this.editUrl = '{{ route('metrology.units.update', array_merge(['grandeur' => ':id'], request()->query())) }}'.replace(':id', item.id);
             $dispatch('open-modal', 'edit-grandeur-modal');
         },
         openDelete(item) {
             this.deleteGrandeur = { id: item.id, name: item.name, symbol: item.symbol, specsCount: item.specifications_count || 0 };
-            this.deleteUrl = '{{ route('metrology.units.destroy', ':id') }}'.replace(':id', item.id);
-            $dispatch('open-modal', 'delete-grandeur-modal');
+            this.deleteUrl = '{{ route('metrology.units.destroy', array_merge(['grandeur' => ':id'], request()->query())) }}'.replace(':id', item.id);
+            this.deleteModalOpen = true;
         }
     }">
         <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
@@ -61,7 +61,7 @@
                         <p class="text-2xl font-black text-gray-900 dark:text-white mt-1.5">{{ $stats['total'] }}</p>
                         <p class="text-xs text-brand-600 dark:text-brand-400 mt-0.5 font-medium">{{ __('Standard Units Catalog') }}</p>
                     </div>
-                    <div class="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
+                    <div class="w-12 h-12 rounded-xl bg-brand-500/10 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-500/20 dark:border-brand-500/30 flex items-center justify-center shrink-0">
                         <i class="fas fa-balance-scale text-xl"></i>
                     </div>
                 </div>
@@ -70,9 +70,9 @@
                     <div>
                         <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Measurement Capabilities') }}</p>
                         <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1.5">{{ $stats['measurement'] }}</p>
-                        <p class="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 font-medium">{{ __('Sensors / Input') }}</p>
+                        <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium">{{ __('Sensors / Input') }}</p>
                     </div>
-                    <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-center shrink-0">
                         <i class="fas fa-compress-arrows-alt text-xl"></i>
                     </div>
                 </div>
@@ -81,9 +81,9 @@
                     <div>
                         <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Source Capabilities') }}</p>
                         <p class="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1.5">{{ $stats['source'] }}</p>
-                        <p class="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5 font-medium">{{ __('Generators / Output') }}</p>
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5 font-medium">{{ __('Generators / Output') }}</p>
                     </div>
-                    <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30 flex items-center justify-center shrink-0">
                         <i class="fas fa-expand-arrows-alt text-xl"></i>
                     </div>
                 </div>
@@ -92,9 +92,9 @@
                     <div>
                         <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Configured Specs') }}</p>
                         <p class="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1.5">{{ $stats['linked_specs'] }}</p>
-                        <p class="text-xs text-indigo-600/80 dark:text-indigo-400/80 mt-0.5 font-medium">{{ __('Active Metrology Limits') }}</p>
+                        <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5 font-medium">{{ __('Active Metrology Limits') }}</p>
                     </div>
-                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 dark:border-indigo-500/30 flex items-center justify-center shrink-0">
                         <i class="fas fa-cogs text-xl"></i>
                     </div>
                 </div>
@@ -160,21 +160,22 @@
                                     #{{ $item->id }}
                                 </x-table.td>
                                 <x-table.td>
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700/60 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold text-xs">
-                                            {{ mb_substr($item->name, 0, 2) }}
-                                        </div>
+                                    <div class="flex items-center gap-3">
+                                        <x-grandeur-icon :grandeur="$item" size="md" :withBackground="true" />
                                         <div>
                                             <p class="font-semibold text-gray-900 dark:text-white text-sm">
                                                 {{ $item->name }}
+                                            </p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                                {{ $item->discipline()->label() }}
                                             </p>
                                         </div>
                                     </div>
                                 </x-table.td>
                                 <x-table.td class="text-center">
-                                    <x-badge variant="neutral" class="font-mono font-bold text-xs px-2.5 py-1">
+                                    <span class="inline-flex items-center font-mono font-bold text-xs px-2.5 py-1 rounded-lg border {{ $item->discipline()->badgeClass() }}">
                                         {{ $item->symbol }}
-                                    </x-badge>
+                                    </span>
                                 </x-table.td>
                                 <x-table.td class="text-center">
                                     <x-badge :variant="$item->type->badgeVariant()">
@@ -183,13 +184,13 @@
                                     </x-badge>
                                 </x-table.td>
                                 <x-table.td class="text-center">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium {{ $item->specifications_count > 0 ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' }}">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border {{ $item->specifications_count > 0 ? 'bg-indigo-50 text-indigo-700 border-indigo-200/60 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30' : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700' }}">
                                         <i class="fas fa-link text-[10px]"></i>
                                         <span>{{ $item->specifications_count }}</span>
                                     </span>
                                 </x-table.td>
                                 <x-table.td class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $item->created_at ? $item->created_at->format('Y-m-d') : '—' }}
+                                    <x-date :value="$item->created_at" />
                                 </x-table.td>
                                 <x-table.td class="text-end">
                                     <x-table.actions>
@@ -344,50 +345,22 @@
         </x-modal>
 
         <!-- Delete Modal -->
-        <x-modal name="delete-grandeur-modal" maxWidth="md" focusable>
-            <form method="POST" :action="deleteUrl" class="p-6">
-                @csrf
-                @method('DELETE')
-                <div class="flex items-center gap-3 text-red-600 dark:text-red-400">
-                    <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
-                        <i class="fas fa-exclamation-triangle text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-base font-bold text-gray-900 dark:text-white">
-                            {{ __('Delete Quantity / Unit?') }}
-                        </h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            {{ __('This action cannot be undone.') }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="mt-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-gray-900 dark:text-white text-sm" x-text="deleteGrandeur.name"></span>
-                        <x-badge variant="neutral" x-text="deleteGrandeur.symbol"></x-badge>
-                    </div>
-                </div>
-
-                <!-- Warning if linked to equipment specs -->
-                <template x-if="deleteGrandeur.specsCount > 0">
-                    <div class="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2">
+        <x-crud-modal.delete
+            show="deleteModalOpen"
+            action-url="deleteUrl"
+            item-name="deleteGrandeur.name"
+            :title="__('Delete Quantity / Unit')"
+        >
+            <template x-if="deleteGrandeur.specsCount > 0">
+                <div class="px-6 pb-2">
+                    <div class="p-3 rounded-lg bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/20 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2">
                         <i class="fas fa-lock mt-0.5 shrink-0"></i>
                         <span>
                             {{ __('This quantity is currently linked to equipment specifications. Deleting it will be rejected by the system to prevent data corruption.') }}
                         </span>
                     </div>
-                </template>
-
-                <div class="mt-6 flex justify-end gap-3">
-                    <x-secondary-button type="button" @click="$dispatch('close')">
-                        {{ __('Cancel') }}
-                    </x-secondary-button>
-                    <x-danger-button type="submit">
-                        {{ __('Confirm Delete') }}
-                    </x-danger-button>
                 </div>
-            </form>
-        </x-modal>
+            </template>
+        </x-crud-modal.delete>
     </div>
 </x-app-layout>

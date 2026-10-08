@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -114,5 +115,25 @@ class Site extends Model
     public function getDisplayNameAttribute(): string
     {
         return (string) ($this->full_name ?: $this->short_name ?: $this->site_code ?: ('Site #'.$this->id));
+    }
+
+    /**
+     * Field missions executed on this industrial site.
+     *
+     * @return HasMany<Mission, $this>
+     */
+    public function missions(): HasMany
+    {
+        return $this->hasMany(Mission::class, 'site_id');
+    }
+
+    /**
+     * Measuring instruments installed on this site.
+     *
+     * @return HasMany<Instrument, $this>
+     */
+    public function instruments(): HasMany
+    {
+        return $this->hasMany(Instrument::class, 'site_id');
     }
 }

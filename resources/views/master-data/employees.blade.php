@@ -288,7 +288,7 @@
 
                                 <x-table.td>
                                     <div class="text-xs font-mono text-gray-700 dark:text-gray-300">
-                                        {{ $employee->join_date ? $employee->join_date->format('Y-m-d') : '—' }}
+                                        <x-date :value="$employee->join_date" />
                                     </div>
                                     @if($employee->address)
                                         <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
@@ -643,10 +643,8 @@
         <x-crud-modal.delete
             show="showDeleteModal"
             action-url="deleteEmployeeActionUrl"
-            :title="__('Delete Employee')"
-            :message="__('Are you sure you want to permanently delete this employee record?')"
             item-name="deleteEmployeeName"
-            :submit-text="__('Delete Employee')"
+            :title="__('Delete Employee')"
         />
     </div>
 </x-app-layout>

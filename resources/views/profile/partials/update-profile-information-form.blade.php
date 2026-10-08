@@ -1,4 +1,4 @@
-﻿<section>
+<section>
     <header>
         <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
             {{ __('Profile Information') }}
@@ -53,7 +53,7 @@
 
             <div class="mt-2 flex items-center gap-5">
                 <!-- Circular Avatar Preview -->
-                <div class="relative shrink-0 w-20 h-20 rounded-full overflow-hidden ring-4 ring-brand-100 dark:ring-brand-950/60 shadow-md bg-gradient-to-tr from-brand-600 to-brand-800 flex items-center justify-center">
+                <div class="relative shrink-0 w-20 h-20 rounded-full overflow-hidden ring-4 ring-brand-100 dark:ring-brand-500/30 shadow-md bg-gradient-to-tr from-brand-600 to-brand-800 flex items-center justify-center">
                     <img x-show="photoPreview" :src="photoPreview" alt="{{ $user->name }}" class="w-full h-full object-cover" x-on:error="photoPreview = null">
                     <span x-show="!photoPreview" class="text-white font-bold text-2xl select-none">
                         {{ strtoupper(substr($user->name, 0, 1)) }}

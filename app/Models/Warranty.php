@@ -10,6 +10,7 @@ use App\Traits\FilterableTrait;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -97,5 +98,33 @@ class Warranty extends Model
     public function getFormattedAmountAttribute(): string
     {
         return number_format((float) $this->amount, 2, '.', ' ').' DZD';
+    }
+
+    // ==========================================
+    // Relationships
+    // ==========================================
+
+    /**
+     * Contracts that use this warranty as a bank guarantee.
+     *
+     * @return HasMany<Contract, $this>
+     */
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class, 'garantie_id');
+    }
+
+    // ==========================================
+    // Model Events
+    // ==========================================
+
+    /**
+     * When a Warranty is deleted, nullify garantie_id on all linked contracts.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (self $warranty): void {
+            $warranty->contracts()->update(['garantie_id' => null]);
+        });
     }
 }

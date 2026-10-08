@@ -18,17 +18,17 @@ export default {
             colors: {
                 // ── GMTM Brand Scale (driven by tokens.css) ──
                 brand: {
-                    50:  'var(--color-brand-50)',
-                    100: 'var(--color-brand-100)',
-                    200: 'var(--color-brand-200)',
-                    300: 'var(--color-brand-300)',
-                    400: 'var(--color-brand-400)',
-                    500: 'var(--color-brand-500)',
-                    600: 'var(--color-brand-600)',
-                    700: 'var(--color-brand-700)',
-                    800: 'var(--color-brand-800)',
-                    900: 'var(--color-brand-900)',
-                    950: 'var(--color-brand-950)',
+                    50:  '#f0faf3',
+                    100: '#d9f2e1',
+                    200: '#b3e4c4',
+                    300: '#7dcfa0',
+                    400: '#46b576',
+                    500: '#289858',
+                    600: '#1a7a44',
+                    700: '#1a5f2a',
+                    800: '#174d24',
+                    900: '#133d1d',
+                    950: '#0a2010',
                 },
                 // ── Semantic Aliases ──────────────────────────
                 primary:  'var(--color-primary)',
@@ -43,6 +43,7 @@ export default {
     plugins: [forms],
 
     safelist: [
+        'grid-cols-4',
         'translate-x-0',
         'translate-x-7',
         // brand shades used dynamically

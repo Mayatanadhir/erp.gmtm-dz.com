@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\AccuracyType;
+use App\Enums\GrandeurDiscipline;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -55,6 +56,14 @@ class EquipmentSpecification extends Model
     public function grandeur(): BelongsTo
     {
         return $this->belongsTo(Grandeur::class, 'grandeur_id');
+    }
+
+    /**
+     * Get the physical discipline / standard category for this specification.
+     */
+    public function discipline(): GrandeurDiscipline
+    {
+        return $this->grandeur?->discipline() ?? GrandeurDiscipline::Generic;
     }
 
     /**

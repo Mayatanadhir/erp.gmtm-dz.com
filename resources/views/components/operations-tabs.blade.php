@@ -1,4 +1,4 @@
-﻿@props(['active' => 'index'])
+@props(['active' => 'index'])
 
 @php
 $tabs = [
@@ -25,12 +25,6 @@ $tabs = [
         'route' => route('operations.attachments'),
         'permission' => 'view attachments',
         'tool' => 'attachments',
-    ],
-    'warranties' => [
-        'name' => __('Bank Guarantees'),
-        'route' => route('operations.warranties'),
-        'permission' => 'view warranties',
-        'tool' => 'warranties',
     ],
     'article-types' => [
         'name' => __('Classification of Articles'),

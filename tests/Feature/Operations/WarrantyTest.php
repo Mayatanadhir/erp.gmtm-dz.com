@@ -45,7 +45,7 @@ class WarrantyTest extends TestCase
      */
     public function test_guests_are_redirected_to_login(): void
     {
-        $response = $this->get(route('operations.warranties'));
+        $response = $this->get(route('financial.warranties'));
 
         $response->assertRedirect(route('login'));
     }
@@ -55,7 +55,7 @@ class WarrantyTest extends TestCase
      */
     public function test_user_without_permission_cannot_view_warranties(): void
     {
-        $response = $this->actingAs($this->standardUser)->get(route('operations.warranties'));
+        $response = $this->actingAs($this->standardUser)->get(route('financial.warranties'));
 
         $response->assertForbidden();
     }
@@ -74,7 +74,7 @@ class WarrantyTest extends TestCase
             'type' => WarrantyType::Performance,
         ]);
 
-        $response = $this->actingAs($this->superAdmin)->get(route('operations.warranties'));
+        $response = $this->actingAs($this->superAdmin)->get(route('financial.warranties'));
 
         $response->assertOk();
         $response->assertSee('GRT-2026-001');
@@ -96,9 +96,16 @@ class WarrantyTest extends TestCase
             'type' => WarrantyType::BidBond->value,
         ];
 
-        $response = $this->actingAs($this->superAdmin)->post(route('operations.warranties.store'), $payload);
+        $response = $this->actingAs($this->superAdmin)->post(route('financial.warranties.store'), $payload);
 
-        $response->assertRedirect(route('operations.warranties'));
+        $response->assertRedirect(route('financial.warranties'));
+        $response->assertSessionHas('success');
+
+        $pageResponse = $this->actingAs($this->superAdmin)
+            ->withSession(['success' => __('Bank guarantee created successfully.')])
+            ->get(route('financial.warranties'));
+        $pageResponse->assertSee(__('Bank guarantee created successfully.'));
+
         $this->assertDatabaseHas('garanties', [
             'reference' => 'GRT-2026-NEW',
             'bank_name' => 'BEA',
@@ -127,7 +134,7 @@ class WarrantyTest extends TestCase
             'type' => WarrantyType::Retention->value,
         ];
 
-        $response = $this->actingAs($this->superAdmin)->post(route('operations.warranties.store'), $payload);
+        $response = $this->actingAs($this->superAdmin)->post(route('financial.warranties.store'), $payload);
 
         $response->assertSessionHasErrors(['reference']);
     }
@@ -154,11 +161,11 @@ class WarrantyTest extends TestCase
         ];
 
         $response = $this->actingAs($this->superAdmin)->put(
-            route('operations.warranties.update', $warranty),
+            route('financial.warranties.update', $warranty),
             $payload
         );
 
-        $response->assertRedirect(route('operations.warranties'));
+        $response->assertRedirect(route('financial.warranties'));
         $this->assertDatabaseHas('garanties', [
             'id' => $warranty->id,
             'reference' => 'GRT-UPDATED',
@@ -181,10 +188,10 @@ class WarrantyTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)->delete(
-            route('operations.warranties.destroy', $warranty)
+            route('financial.warranties.destroy', $warranty)
         );
 
-        $response->assertRedirect(route('operations.warranties'));
+        $response->assertRedirect(route('financial.warranties'));
         $this->assertDatabaseMissing('garanties', [
             'id' => $warranty->id,
         ]);
@@ -215,10 +222,39 @@ class WarrantyTest extends TestCase
             'type' => WarrantyType::Performance,
         ]);
 
-        $response = $this->actingAs($this->superAdmin)->get(route('operations.warranties'));
+        $response = $this->actingAs($this->superAdmin)->get(route('financial.warranties'));
 
         $response->assertOk();
         $warranties = $response->viewData('warranties');
         $this->assertEquals($active->id, $warranties->first()->id);
+    }
+
+    /**
+     * 9. Legacy operations.warranties routes redirect to financial.warranties.
+     */
+    public function test_legacy_operations_warranties_route_redirects_to_financial_warranties(): void
+    {
+        $response = $this->actingAs($this->superAdmin)->get(route('operations.warranties'));
+
+        $response->assertRedirect(route('financial.warranties'));
+    }
+
+    /**
+     * 10. Legacy operations.warranties.store redirects to financial.warranties.
+     */
+    public function test_legacy_operations_store_warranty_redirects_to_financial_warranties(): void
+    {
+        $payload = [
+            'reference' => 'GRT-LEGACY-OP',
+            'bank_name' => 'BNA',
+            'amount' => 120000.00,
+            'status' => WarrantyStatus::Active->value,
+            'type' => WarrantyType::Performance->value,
+        ];
+
+        $response = $this->actingAs($this->superAdmin)->post(route('operations.warranties.store'), $payload);
+
+        $response->assertRedirect(route('financial.warranties'));
+        $this->assertDatabaseHas('garanties', ['reference' => 'GRT-LEGACY-OP']);
     }
 }

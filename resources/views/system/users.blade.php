@@ -202,14 +202,14 @@
                                 </div>
                             </x-table.td>
                             <x-table.td class="whitespace-nowrap">
-                                {{ $user->created_at?->format('Y-m-d H:i') }}
+                                <x-date :value="$user->created_at" format="datetime" />
                             </x-table.td>
                             <x-table.td class="whitespace-nowrap text-end">
                                 <x-table.actions class="justify-end">
                                     {{-- Quick Toggle Account Status (Anti-lockout: exclude authenticated user) --}}
                                     @if($user->id !== auth()->id())
                                         @if($user->isActive())
-                                            <form method="POST" action="{{ route('system-tables.users.toggle-status', $user) }}" class="inline">
+                                            <form method="POST" action="{{ route('system-tables.users.toggle-status', array_merge(['user' => $user->id], request()->query())) }}" class="inline">
                                                 @csrf
                                                 <x-table.action
                                                     type="delete"
@@ -223,7 +223,7 @@
                                                 </x-table.action>
                                             </form>
                                         @else
-                                            <form method="POST" action="{{ route('system-tables.users.toggle-status', $user) }}" class="inline">
+                                            <form method="POST" action="{{ route('system-tables.users.toggle-status', array_merge(['user' => $user->id], request()->query())) }}" class="inline">
                                                 @csrf
                                                 <x-table.action
                                                     type="success"
@@ -242,13 +242,13 @@
                                     <x-table.action-edit
                                         type="button"
                                         :title="__('Edit User')"
-                                        @click="openEditModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ addslashes($user->email) }}', '{{ $user->roles->first()?->name ?? 'User' }}', '{{ $user->status?->value ?? 'active' }}', '{{ addslashes((string) $user->profile_photo_path) }}', '{{ addslashes((string) ($user->profile_photo_url ?? '')) }}', '{{ route('system-tables.users.update', $user) }}')"
+                                        @click="openEditModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ addslashes($user->email) }}', '{{ $user->roles->first()?->name ?? 'User' }}', '{{ $user->status?->value ?? 'active' }}', '{{ addslashes((string) $user->profile_photo_path) }}', '{{ addslashes((string) ($user->profile_photo_url ?? '')) }}', '{{ route('system-tables.users.update', array_merge(['user' => $user->id], request()->query())) }}')"
                                     />
                                     @if($user->id !== auth()->id())
                                         <x-table.action-delete
                                             :title="__('Delete User')"
                                             type="button"
-                                            @click="openDeleteModal('{{ addslashes($user->name) }}', '{{ route('system-tables.users.destroy', $user) }}')"
+                                            @click="openDeleteModal('{{ addslashes($user->name) }}', '{{ route('system-tables.users.destroy', array_merge(['user' => $user->id], request()->query())) }}')"
                                         />
                                     @endif
                                 </x-table.actions>
@@ -330,7 +330,7 @@
                 <!-- ============================================================ -->
                 <x-crud-modal.form
                     show="showCreateModal"
-                    :action-url="route('system-tables.users.store')"
+                    :action-url="route('system-tables.users.store', request()->query())"
                     method="POST"
                     enctype="multipart/form-data"
                     :title="__('Create New System User')"
@@ -669,10 +669,8 @@
                 <x-crud-modal.delete
                     show="showDeleteModal"
                     action-url="deleteUserActionUrl"
-                    :title="__('Delete User')"
-                    :message="__('Are you sure you want to permanently delete the user')"
                     item-name="deleteUserName"
-                    :submit-text="__('Delete User')"
+                    :title="__('Delete User')"
                 />
 
                 </main>

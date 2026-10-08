@@ -1,4 +1,4 @@
-﻿@php
+@php
     $currentLocale = app()->getLocale();
     $locales = LaravelLocalization::getSupportedLocales();
 @endphp
@@ -31,7 +31,7 @@
         <div class="p-1 space-y-0.5">
             @foreach($locales as $localeCode => $properties)
                 @php $isActive = $localeCode === $currentLocale; @endphp
-                <a href="{{ LaravelLocalization::getLocalizedURL($localeCode, null, [], true) }}"
+                <a href="{{ LaravelLocalization::getLocalizedURL($localeCode, null, request()->query(), true) }}"
                    rel="alternate"
                    hreflang="{{ $localeCode }}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-100 {{ $isActive ? 'bg-brand-50 dark:bg-gray-700/70 text-brand-700 dark:text-brand-400 font-semibold' : 'text-gray-700 dark:text-gray-200 hover:bg-brand-50 dark:hover:bg-gray-700' }}">
