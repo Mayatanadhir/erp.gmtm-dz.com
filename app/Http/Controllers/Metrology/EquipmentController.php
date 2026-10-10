@@ -67,7 +67,7 @@ class EquipmentController extends Controller
         $data = $request->validated();
         $image = $request->file('image');
         $certificate = $request->file('certificate');
-        $params = $request->input('params');
+        $params = $request->validated('params');
 
         $this->equipmentService->createEquipment($data, $image, $certificate, $params);
 
@@ -83,7 +83,7 @@ class EquipmentController extends Controller
         $data = $request->validated();
         $image = $request->file('image');
         $certificate = $request->file('certificate');
-        $params = $request->input('params');
+        $params = $request->validated('params');
         $removeImage = (bool) $request->boolean('remove_image');
         $removeCertificate = (bool) $request->boolean('remove_certificate');
 
@@ -97,9 +97,18 @@ class EquipmentController extends Controller
             $removeCertificate
         );
 
-        $redirectUrl = $request->input('_redirect') ?: route('metrology.equipment', $request->query());
+        $redirectUrl = $request->input('_redirect');
+        if (! blank($redirectUrl)) {
+            $parsedHost = parse_url((string) $redirectUrl, PHP_URL_HOST);
+            $isSafe = str_starts_with((string) $redirectUrl, '/') || $parsedHost === null || $parsedHost === $request->getHost();
+            if (! $isSafe) {
+                $redirectUrl = null;
+            }
+        }
 
-        return redirect($redirectUrl)
+        $targetUrl = $redirectUrl ?: route('metrology.equipment', $request->query());
+
+        return redirect()->to($targetUrl)
             ->with('success', __('Equipment updated successfully.'));
     }
 

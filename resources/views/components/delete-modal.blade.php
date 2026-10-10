@@ -82,7 +82,7 @@
                                 <div class="mt-1.5 space-y-1">
                                     <p class="text-sm text-gray-600 dark:text-gray-300">
                                         {{ __('Are you sure you want to delete') }}
-                                        <strong class="font-bold text-gray-900 dark:text-white font-mono break-all" x-text="itemName"></strong>؟
+                                        <strong class="font-bold text-gray-900 dark:text-white font-mono break-all" x-text="itemName"></strong>{{ app()->getLocale() === 'ar' ? '؟' : '?' }}
                                     </p>
                                     <p class="text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-1.5">
                                         <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

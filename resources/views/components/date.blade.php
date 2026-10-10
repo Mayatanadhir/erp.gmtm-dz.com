@@ -9,6 +9,17 @@
         'timestamp' => 'd/m/Y H:i:s',
         default => 'd/m/Y',
     };
+
+    $formatted = '—';
+    if ($value instanceof \DateTimeInterface) {
+        $formatted = $value->format($dateFormat);
+    } elseif (is_string($value) && trim($value) !== '') {
+        try {
+            $formatted = \Carbon\Carbon::parse($value)->format($dateFormat);
+        } catch (\Throwable) {
+            $formatted = $value;
+        }
+    }
 @endphp
 
-{{ $value?->format($dateFormat) ?? '—' }}
+{{ $formatted }}

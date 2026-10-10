@@ -7,13 +7,14 @@ paths:
 
 ## Mandatory Unified Button Components and Semantic Color System
 Enforce unified button components and semantic color tokens across all Blade views. The AI assistant must strictly use:
-1. <x-primary-button> (Orange) for main calls to action (Submit, Save, Create, Login, Filter).
-2. <x-secondary-button> (Gray Border) for Cancel, Dismiss, Close, and neutral actions.
-3. <x-danger-button> (Rose Red) for Delete, Terminate, and destructive operations.
-4. <x-success-button> (Emerald Green) for Approve, Resolve, Mark as Read.
-5. <x-warning-button> (Amber) for Retry, Pause, Cautionary actions.
-6. <x-info-button> (Indigo) for Inspect, View Changes, Payload, and Technical details.
-Never use unstyled or ad-hoc <button> elements with arbitrary colors. Zero inline style attributes.
+1. `<x-primary-button>` (Brand Green `.btn-primary`) for main calls to action (Submit, Save, Create, Login, Filter).
+2. `<x-secondary-button>` (Gray Border `.btn-secondary`) for Cancel, Dismiss, Close, Back to List, and neutral actions.
+3. `<x-edit-button>` (Solid Amber `.btn-edit`) with white pencil SVG icon for Edit and Modify actions in page headers, cards, and views.
+4. `<x-danger-button>` (Rose Red `.btn-danger`) for Delete, Terminate, and destructive operations.
+5. `<x-success-button>` (Emerald Green `.btn-success`) for Approve, Resolve, Mark as Read, Download PDF.
+6. `<x-warning-button>` (Amber `.btn-warning`) for Retry, Pause, Cautionary actions.
+7. `<x-info-button>` (Indigo `.btn-info`) for Inspect, View Changes, Payload, and Technical details.
+Never use unstyled or ad-hoc `<button>` or `<a>` elements with arbitrary colors. Zero inline style attributes.
 
 ## Mandatory Trilingual Localization & 100% English Keys Standard (AR, EN, FR)
 All translation keys across all Blade templates, components, and controllers must strictly be written in English as the single unified master key language (e.g. `__('English Key')`). In addition, ALL keys in `lang/en.json`, `lang/ar.json`, and `lang/fr.json` must strictly be in English. Writing Arabic or French dictionary keys in code or as JSON property names is strictly prohibited with zero tolerance. Arabic and French text may only appear as the translated values in `ar.json` and `fr.json`. Zero hardcoded text. Every new English key MUST immediately be registered and translated into all 3 languages maintaining 100% 1-to-1 key parity with zero missing keys or English fallbacks in Arabic/French.

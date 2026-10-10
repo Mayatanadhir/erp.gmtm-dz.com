@@ -53,7 +53,10 @@ class ContractObserver
     private function notifyGroup(Contract $contract, string $event): void
     {
         try {
-            $users = User::permission('view contracts')->get();
+            $currentUserId = auth()->id();
+            $users = User::permission('view contracts')
+                ->when($currentUserId, fn ($q) => $q->where('id', '!=', $currentUserId))
+                ->get();
 
             if ($users->isEmpty()) {
                 return;

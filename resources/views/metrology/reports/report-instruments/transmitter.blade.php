@@ -47,10 +47,10 @@
     </x-slot>
 
     @php
-        $unitSymbol = $specifications->grandeur->symbol ?? ($specifications->measurementUnit->symbol ?? '');
-        $span = (float)(($specifications->range_max ?? 100) - ($specifications->range_min ?? 0));
-        $min = (float)($specifications->range_min ?? 0);
-        $measurand = $specifications->grandeur->name ?? 'Pression';
+        $unitSymbol = $specifications?->grandeur?->symbol ?? ($specifications?->measurementUnit?->symbol ?? 'bar');
+        $span = (float)(($specifications?->range_max ?? 100) - ($specifications?->range_min ?? 0));
+        $min = (float)($specifications?->range_min ?? 0);
+        $measurand = $specifications?->grandeur?->name ?? 'Pression';
         $pressureType = $instrument->measurement_type ?? 'Relative';
         
         $isTemp = (stripos($measurand, 'Temp') !== false) || in_array(strtolower($unitSymbol), ['°c', 'c', 'k']);
@@ -60,7 +60,7 @@
         $fluidVal = $instrument->fluid_type instanceof \BackedEnum ? $instrument->fluid_type->value : (string) ($instrument->fluid_type ?? 'Liquid');
         $dummyEval = $oamService->evaluateTransmitter($span, $min, $min, 4.0, $min, $fluidVal, $instrument->technology, $measurand, $pressureType, 0.0);
         
-        $emtApproved = $dummyEval['emt'] ?? ($specifications->accuracy_value ?? 0.5);
+        $emtApproved = $dummyEval['emt'] ?? ($specifications?->accuracy_value ?? 0.5);
         $isRelativeEmt = (!$isTemp) && (($fluidVal === 'Gas' || $instrument->technology === 'SMART') || ($span > 10 && $span <= 40));
         $emtUnitDisplay = $isTemp ? '°C' : ($isRelativeEmt ? '%' : $unitSymbol);
     @endphp
@@ -94,8 +94,8 @@
                         @csrf
                         
                         <!-- Hidden calculation engine flags for JavaScript -->
-                        <input type="hidden" id="bas_echelle" value="{{ $specifications->range_min }}">
-                        <input type="hidden" id="fond_echelle" value="{{ $specifications->range_max }}">
+                        <input type="hidden" id="bas_echelle" value="{{ $specifications?->range_min ?? 0 }}">
+                        <input type="hidden" id="fond_echelle" value="{{ $specifications?->range_max ?? 100 }}">
                         <input type="hidden" id="emt_limit" value="{{ $emtApproved }}">
                         <input type="hidden" id="is_relative_emt" value="{{ $isRelativeEmt ? '1' : '0' }}">
                         <input type="hidden" id="is_absolute_pressure" value="{{ $isAbsolutePressure ? '1' : '0' }}">
@@ -180,17 +180,18 @@
                                 <!-- Lower Range Value (LRV) -->
                                 <div>
                                     <x-input-label class="text-xs mb-1">{{ __('Lower Range Value (LRV)') }} ({{ $unitSymbol }})</x-input-label>
-                                    <input type="text" value="{{ floatval($specifications->range_min) }} {{ $unitSymbol }}" disabled
+                                    <input type="text" value="{{ floatval($specifications?->range_min ?? 0) }} {{ $unitSymbol }}" disabled
                                            class="w-full text-xs rounded-md border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 text-gray-700 dark:text-gray-300 font-mono font-bold py-2 px-3 cursor-not-allowed" />
                                 </div>
 
                                 <!-- Upper Range Value (URV) -->
                                 <div>
                                     <x-input-label class="text-xs mb-1">{{ __('Upper Range Value (URV)') }} ({{ $unitSymbol }})</x-input-label>
-                                    <input type="text" value="{{ floatval($specifications->range_max) }} {{ $unitSymbol }}" disabled
+                                    <input type="text" value="{{ floatval($specifications?->range_max ?? 100) }} {{ $unitSymbol }}" disabled
                                            class="w-full text-xs rounded-md border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 text-gray-700 dark:text-gray-300 font-mono font-bold py-2 px-3 cursor-not-allowed" />
                                 </div>
 
+                                <!-- Calibrator 1: Generator -->
                                 <!-- Calibrator 1: Generator -->
                                 <div>
                                     <x-input-label for="calibrator_1" class="text-xs mb-1">
@@ -204,6 +205,7 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                    <div id="cal1-status-info" class="mt-1 text-[11px] min-h-[16px]"></div>
                                 </div>
 
                                 <!-- Calibrator 2: Multimeter mA -->
@@ -219,6 +221,7 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                    <div id="cal2-status-info" class="mt-1 text-[11px] min-h-[16px]"></div>
                                 </div>
                             </div>
                         </div>
@@ -245,16 +248,22 @@
                                     <thead class="bg-gray-50/90 dark:bg-gray-900/60 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                         <tr>
                                             <th class="px-3 py-3 text-center w-12">#</th>
-                                            <th class="px-4 py-3 text-center">{{ __('Applied (%)') }}</th>
-                                            <th class="px-4 py-3 text-center">{{ __('Applied Value') }} ({{ $unitSymbol }})</th>
+                                            <th class="px-3 py-3 text-center">{{ __('Applied (%)') }}</th>
+                                            <th class="px-3 py-3 text-center">{{ __('Applied Value') }} ({{ $unitSymbol }})</th>
+                                            <th class="px-3 py-3 text-center text-brand-700 dark:text-brand-400 bg-brand-50/60 dark:bg-brand-950/50 border-x border-brand-200/40 dark:border-brand-900/50">
+                                                {{ __('correction (Interpolated)') }} ({{ $unitSymbol }})
+                                            </th>
                                             @if($isTemp)
-                                                <th class="px-4 py-3 text-center">{{ __('Theoretical R(T) (Ω)') }}</th>
+                                                <th class="px-3 py-3 text-center">{{ __('Theoretical R(T) (Ω)') }}</th>
                                             @endif
-                                            <th class="px-4 py-3 text-center">{{ __('Measured Signal (mA)') }}</th>
-                                            <th class="px-4 py-3 text-center">{{ __('Measured Value') }} ({{ $unitSymbol }})</th>
-                                            <th class="px-4 py-3 text-center">{{ __('Error') }} ({{ $unitSymbol }})</th>
-                                            <th class="px-4 py-3 text-center">{{ __('Error (%)') }}</th>
-                                            <th class="px-4 py-3 text-center">{{ __('Verdict') }}</th>
+                                            <th class="px-3 py-3 text-center">{{ __('Measured Signal') }} (mA)</th>
+                                            <th class="px-3 py-3 text-center text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/50 border-x border-emerald-200/40 dark:border-emerald-900/50">
+                                                {{ __('correction (Interpolated)') }} (mA)
+                                            </th>
+                                            <th class="px-3 py-3 text-center">{{ __('Measured Value') }} ({{ $unitSymbol }})</th>
+                                            <th class="px-3 py-3 text-center">{{ __('Error') }} ({{ $unitSymbol }})</th>
+                                            <th class="px-3 py-3 text-center">{{ __('Error (%)') }}</th>
+                                            <th class="px-3 py-3 text-center">{{ __('Verdict') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody id="points-table-body" class="divide-y divide-gray-100 dark:divide-gray-700/60 bg-white dark:bg-gray-800">
@@ -268,42 +277,60 @@
                                                 <td class="px-3 py-2.5 text-center font-mono font-bold text-gray-500 dark:text-gray-400">
                                                     {{ $index + 1 }}
                                                 </td>
-                                                <td class="px-4 py-2.5 text-center font-mono font-bold text-brand-600 dark:text-brand-400">
+                                                <td class="px-3 py-2.5 text-center font-mono font-bold text-brand-600 dark:text-brand-400">
                                                     <input type="hidden" name="points[{{ $index }}][applied_percentage]" value="{{ $percentage }}">
                                                     <span>{{ number_format($percentage, 1) }}%</span>
                                                 </td>
-                                                <td class="px-4 py-2.5 text-center">
+                                                <!-- Applied Value Input -->
+                                                <td class="px-3 py-2.5 text-center">
                                                     <input type="number" step="0.0001" name="points[{{ $index }}][reference_value]"
                                                            value="{{ $existingPoint->reference_value ?? number_format($appliedValue, 4, '.', '') }}" required
-                                                           class="input-appliquee w-32 text-center text-xs font-mono font-bold rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-1.5 px-2 focus:ring-brand-500 focus:border-brand-500" />
+                                                           class="input-appliquee w-28 text-center text-xs font-mono font-bold rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-1.5 px-2 focus:ring-brand-500 focus:border-brand-500" />
+                                                </td>
+                                                <!-- Applied Value + Correction (Interpolated) -->
+                                                <td class="px-3 py-2.5 text-center font-mono font-bold cell-ref-corrigee text-brand-700 dark:text-brand-400 bg-brand-50/30 dark:bg-brand-950/30 border-x border-brand-100/50 dark:border-brand-900/30">
+                                                    <span class="ref-corrigee-val">{{ isset($existingPoint->corrected_reference_value) ? number_format($existingPoint->corrected_reference_value, 4, '.', '') : '-' }}</span>
+                                                    <input type="hidden" name="points[{{ $index }}][calibrator_1_correction]" class="input-cal1-correction" value="{{ $existingPoint->calibrator_1_correction ?? '' }}">
+                                                    <input type="hidden" name="points[{{ $index }}][corrected_reference_value]" class="input-corrected-reference" value="{{ $existingPoint->corrected_reference_value ?? '' }}">
                                                 </td>
                                                 @if($isTemp)
                                                     @php
                                                         $theoreticalR = $oamService->temperatureToResistance($currentRefVal);
                                                     @endphp
-                                                    <td class="px-4 py-2.5 text-center font-mono font-bold text-indigo-600 dark:text-indigo-400 cell-res-theorique">
+                                                    <td class="px-3 py-2.5 text-center font-mono font-bold text-indigo-600 dark:text-indigo-400 cell-res-theorique">
                                                         {{ number_format($theoreticalR, 3, '.', '') }} Ω
                                                     </td>
                                                 @endif
-                                                <td class="px-4 py-2.5 text-center">
+                                                <!-- Measured Signal Input (mA) -->
+                                                <td class="px-3 py-2.5 text-center">
                                                     <input type="number" step="0.0001" name="points[{{ $index }}][measured_signal]"
                                                            value="{{ $existingPoint->measured_signal ?? '' }}" required
                                                            placeholder="4.0000"
-                                                           class="input-signal w-32 text-center text-xs font-mono font-bold rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-1.5 px-2 focus:ring-brand-500 focus:border-brand-500" />
+                                                           class="input-signal w-28 text-center text-xs font-mono font-bold rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-1.5 px-2 focus:ring-brand-500 focus:border-brand-500" />
                                                 </td>
-                                                <td class="px-4 py-2.5 text-center font-mono font-semibold cell-mesuree text-gray-700 dark:text-gray-200">
+                                                <!-- Measured Signal + Correction (Interpolated) -->
+                                                <td class="px-3 py-2.5 text-center font-mono font-bold cell-signal-corrige text-emerald-700 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/30 border-x border-emerald-100/50 dark:border-emerald-900/30">
+                                                    <span class="signal-corrige-val">{{ isset($existingPoint->corrected_signal) ? number_format($existingPoint->corrected_signal, 4, '.', '') : '-' }}</span>
+                                                    <input type="hidden" name="points[{{ $index }}][calibrator_2_correction]" class="input-cal2-correction" value="{{ $existingPoint->calibrator_2_correction ?? '' }}">
+                                                    <input type="hidden" name="points[{{ $index }}][corrected_signal]" class="input-corrected-signal" value="{{ $existingPoint->corrected_signal ?? '' }}">
+                                                </td>
+                                                <!-- Calculated Value -->
+                                                <td class="px-3 py-2.5 text-center font-mono font-semibold cell-mesuree text-gray-700 dark:text-gray-200">
                                                     -
                                                 </td>
-                                                <td class="px-4 py-2.5 text-center font-mono font-bold cell-erreur">
+                                                <!-- Absolute Error -->
+                                                <td class="px-3 py-2.5 text-center font-mono font-bold cell-erreur">
                                                     -
                                                 </td>
-                                                <td class="px-4 py-2.5 text-center font-mono font-bold cell-erreur-rel text-indigo-600 dark:text-indigo-400">
+                                                <!-- Relative Error (%) -->
+                                                <td class="px-3 py-2.5 text-center font-mono font-bold cell-erreur-rel text-indigo-600 dark:text-indigo-400">
                                                     -
                                                 </td>
-                                                <td class="px-4 py-2.5 text-center cell-conformite">
+                                                <!-- Conformity Verdict -->
+                                                <td class="px-3 py-2.5 text-center cell-conformite">
                                                     -
                                                 </td>
-                                                <input type="hidden" name="points[{{ $index }}][is_conforme]" class="input-conformite" value="">
+                                                <input type="hidden" name="points[{{ $index }}][is_conforme]" class="input-conformite" value="{{ $existingPoint->is_conforme ?? '' }}">
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -331,7 +358,10 @@
         </div>
     </div>
 
-    <!-- Live Calculation Engine Script -->
+    <!-- Active Calibrators Points Data -->
+    <script id="calibrators-points-data" type="application/json">@json($calibratorsPointsMap ?? [])</script>
+
+    <!-- Live Calculation & Metrological Interpolation Engine Script -->
     @push('scripts')
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -342,6 +372,95 @@
         const isAbsolutePressure = document.getElementById('is_absolute_pressure').value === '1';
         const ambientPressureInput = document.getElementById('ambient_pressure');
         const span = fondEchelle - basEchelle;
+
+        const calibratorsDataEl = document.getElementById('calibrators-points-data');
+        let calibratorsPointsMap = {};
+        if (calibratorsDataEl) {
+            try {
+                calibratorsPointsMap = JSON.parse(calibratorsDataEl.textContent || '{}');
+            } catch (e) {
+                console.warn('Failed to parse calibrators points map', e);
+            }
+        }
+
+        /**
+         * خوارزمية الاستيفاء الخطي المترولوجي لنقاط شهادة المعايرة
+         */
+        function interpolatePoints(points, targetX) {
+            if (!points || !Array.isArray(points) || points.length === 0 || isNaN(targetX)) {
+                return { correction: 0, hasData: false };
+            }
+
+            // 1. فحص النقطة المعتمدة الدقيقة
+            for (let i = 0; i < points.length; i++) {
+                if (Math.abs(points[i].nominal - targetX) < 1e-6) {
+                    return { correction: Number(points[i].correction), hasData: true, exact: true };
+                }
+            }
+
+            // 2. ترتيب تصاعدي حسب القيمة الاسمية
+            const sorted = [...points].sort((a, b) => a.nominal - b.nominal);
+            const minNom = sorted[0].nominal;
+            const maxNom = sorted[sorted.length - 1].nominal;
+
+            // 3. حماية حدود النطاق وتثبيت أقرب نقطة معتمدة
+            if (targetX <= minNom) {
+                return { correction: Number(sorted[0].correction), hasData: true, clamped: true };
+            }
+            if (targetX >= maxNom) {
+                return { correction: Number(sorted[sorted.length - 1].correction), hasData: true, clamped: true };
+            }
+
+            // 4. استيفاء خطي بين النقطتين الحاصرتين [p1, p2]
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const p1 = sorted[i];
+                const p2 = sorted[i + 1];
+                if (targetX >= p1.nominal && targetX <= p2.nominal) {
+                    if (p2.nominal === p1.nominal) {
+                        return { correction: Number(p1.correction), hasData: true };
+                    }
+                    const ratio = (targetX - p1.nominal) / (p2.nominal - p1.nominal);
+                    const interpCorr = Number(p1.correction) + ratio * (Number(p2.correction) - Number(p1.correction));
+                    return { correction: interpCorr, hasData: true };
+                }
+            }
+
+            return { correction: 0, hasData: false };
+        }
+
+        /**
+         * تحديث شارات حالة نقاط المعايرة تحت قوائم اختيار الأجهزة
+         */
+        function updateCalibratorStatus() {
+            const cal1Select = document.getElementById('calibrator_1');
+            const cal2Select = document.getElementById('calibrator_2');
+            const cal1Info = document.getElementById('cal1-status-info');
+            const cal2Info = document.getElementById('cal2-status-info');
+
+            if (cal1Select && cal1Info) {
+                const val1 = cal1Select.value;
+                const pts1 = val1 && calibratorsPointsMap[val1] ? calibratorsPointsMap[val1] : [];
+                if (val1 && pts1.length > 0) {
+                    cal1Info.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> ${pts1.length} {{ __('points') }} ({{ __('Interpolation Active') }})</span>`;
+                } else if (val1) {
+                    cal1Info.innerHTML = `<span class="text-gray-400 dark:text-gray-500">{{ __('No certificate points (Correction = 0)') }}</span>`;
+                } else {
+                    cal1Info.innerHTML = '';
+                }
+            }
+
+            if (cal2Select && cal2Info) {
+                const val2 = cal2Select.value;
+                const pts2 = val2 && calibratorsPointsMap[val2] ? calibratorsPointsMap[val2] : [];
+                if (val2 && pts2.length > 0) {
+                    cal2Info.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> ${pts2.length} {{ __('points') }} ({{ __('Interpolation Active') }})</span>`;
+                } else if (val2) {
+                    cal2Info.innerHTML = `<span class="text-gray-400 dark:text-gray-500">{{ __('No certificate points (Correction = 0)') }}</span>`;
+                } else {
+                    cal2Info.innerHTML = '';
+                }
+            }
+        }
 
         function tempToResistance(t) {
             const r0 = 100.0;
@@ -366,6 +485,12 @@
         function calculateRow(row) {
             const inputSignal = row.querySelector('.input-signal');
             const inputAppliquee = row.querySelector('.input-appliquee');
+            const cellRefCorrigee = row.querySelector('.cell-ref-corrigee');
+            const cellSignalCorrige = row.querySelector('.cell-signal-corrige');
+            const inputCal1Corr = row.querySelector('.input-cal1-correction');
+            const inputCorrRef = row.querySelector('.input-corrected-reference');
+            const inputCal2Corr = row.querySelector('.input-cal2-correction');
+            const inputCorrSignal = row.querySelector('.input-corrected-signal');
             const cellResTheorique = row.querySelector('.cell-res-theorique');
             const cellMesuree = row.querySelector('.cell-mesuree');
             const cellErreur = row.querySelector('.cell-erreur');
@@ -380,17 +505,80 @@
             const val_appliquee = rawAppliquee !== '' ? parseFloat(rawAppliquee) : NaN;
             const ambientPressure = getAmbientPressure();
 
-            if (cellResTheorique && rawAppliquee !== '' && !isNaN(val_appliquee)) {
-                const rTheo = tempToResistance(val_appliquee);
+            const cal1Id = document.getElementById('calibrator_1')?.value;
+            const cal2Id = document.getElementById('calibrator_2')?.value;
+            const cal1Points = (cal1Id && calibratorsPointsMap[cal1Id]) ? calibratorsPointsMap[cal1Id] : [];
+            const cal2Points = (cal2Id && calibratorsPointsMap[cal2Id]) ? calibratorsPointsMap[cal2Id] : [];
+
+            // 1. استيفاء وتصحيح القيمة المرجعية المطبقة (Calibrator 1)
+            let val_appliquee_corrigee = val_appliquee;
+            let cal1_correction = 0;
+            if (!isNaN(val_appliquee)) {
+                const res1 = interpolatePoints(cal1Points, val_appliquee);
+                cal1_correction = res1.correction;
+                val_appliquee_corrigee = val_appliquee + cal1_correction;
+
+                if (cellRefCorrigee) {
+                    const spanVal = cellRefCorrigee.querySelector('.ref-corrigee-val');
+                    if (spanVal) spanVal.textContent = val_appliquee_corrigee.toFixed(4);
+                    if (res1.hasData && Math.abs(cal1_correction) > 1e-6) {
+                        cellRefCorrigee.title = `Correction Calibrator 1: ${(cal1_correction >= 0 ? '+' : '')}${cal1_correction.toFixed(5)}`;
+                    } else {
+                        cellRefCorrigee.title = '';
+                    }
+                }
+                if (inputCal1Corr) inputCal1Corr.value = cal1_correction.toFixed(6);
+                if (inputCorrRef) inputCorrRef.value = val_appliquee_corrigee.toFixed(6);
+            } else {
+                if (cellRefCorrigee) {
+                    const spanVal = cellRefCorrigee.querySelector('.ref-corrigee-val');
+                    if (spanVal) spanVal.textContent = '-';
+                }
+                if (inputCal1Corr) inputCal1Corr.value = '';
+                if (inputCorrRef) inputCorrRef.value = '';
+            }
+
+            // 2. المقاومة النظرية لمستشعر الحرارة
+            if (cellResTheorique && !isNaN(val_appliquee_corrigee)) {
+                const rTheo = tempToResistance(val_appliquee_corrigee);
                 cellResTheorique.textContent = rTheo.toFixed(3) + ' Ω';
             }
 
-            if (rawSignal !== '' && rawAppliquee !== '' && !isNaN(signal_mA) && !isNaN(val_appliquee) && span !== 0) {
-                const val_mesuree = basEchelle + ((signal_mA - 4) / 16) * span;
+            // 3. استيفاء وتصحيح الإشارة المقاسة (Calibrator 2)
+            let signal_corrige = signal_mA;
+            let cal2_correction = 0;
+            if (!isNaN(signal_mA)) {
+                const res2 = interpolatePoints(cal2Points, signal_mA);
+                cal2_correction = res2.correction;
+                signal_corrige = signal_mA + cal2_correction;
+
+                if (cellSignalCorrige) {
+                    const spanSig = cellSignalCorrige.querySelector('.signal-corrige-val');
+                    if (spanSig) spanSig.textContent = signal_corrige.toFixed(4);
+                    if (res2.hasData && Math.abs(cal2_correction) > 1e-6) {
+                        cellSignalCorrige.title = `Correction Calibrator 2: ${(cal2_correction >= 0 ? '+' : '')}${cal2_correction.toFixed(5)} mA`;
+                    } else {
+                        cellSignalCorrige.title = '';
+                    }
+                }
+                if (inputCal2Corr) inputCal2Corr.value = cal2_correction.toFixed(6);
+                if (inputCorrSignal) inputCorrSignal.value = signal_corrige.toFixed(6);
+            } else {
+                if (cellSignalCorrige) {
+                    const spanSig = cellSignalCorrige.querySelector('.signal-corrige-val');
+                    if (spanSig) spanSig.textContent = '-';
+                }
+                if (inputCal2Corr) inputCal2Corr.value = '';
+                if (inputCorrSignal) inputCorrSignal.value = '';
+            }
+
+            // 4. الحساب المترولوجي النهائي للقيمة المقاسة والخطأ
+            if (!isNaN(signal_corrige) && !isNaN(val_appliquee_corrigee) && span !== 0) {
+                const val_mesuree = basEchelle + ((signal_corrige - 4) / 16) * span;
                 cellMesuree.textContent = val_mesuree.toFixed(3);
 
-                const val_ref_corrige = val_appliquee + ambientPressure;
-                const erreurAbs = val_mesuree - val_ref_corrige;
+                const val_ref_finale = val_appliquee_corrigee + ambientPressure;
+                const erreurAbs = val_mesuree - val_ref_finale;
                 cellErreur.textContent = (erreurAbs >= 0 ? '+' : '') + erreurAbs.toFixed(4);
                 cellErreur.className = 'px-4 py-2.5 text-center font-mono font-bold cell-erreur ' + (Math.abs(erreurAbs) <= emtLimit + 0.000001 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400');
 
@@ -425,10 +613,28 @@
             row.querySelector('.input-appliquee')?.addEventListener('input', () => calculateRow(row));
         });
 
+        const cal1Select = document.getElementById('calibrator_1');
+        const cal2Select = document.getElementById('calibrator_2');
+
+        if (cal1Select) {
+            cal1Select.addEventListener('change', function() {
+                updateCalibratorStatus();
+                calculateAll();
+            });
+        }
+
+        if (cal2Select) {
+            cal2Select.addEventListener('change', function() {
+                updateCalibratorStatus();
+                calculateAll();
+            });
+        }
+
         if (ambientPressureInput) {
             ambientPressureInput.addEventListener('input', calculateAll);
         }
 
+        updateCalibratorStatus();
         calculateAll();
     });
     </script>

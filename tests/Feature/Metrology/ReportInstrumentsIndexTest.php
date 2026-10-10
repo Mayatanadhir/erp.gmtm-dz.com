@@ -60,7 +60,7 @@ class ReportInstrumentsIndexTest extends TestCase
 
         $proverResponse = $this->actingAs($user)->get('/en/metrology/reports/report-prover');
         $proverResponse->assertStatus(200);
-        $proverResponse->assertViewIs('metrology.reports.report-Prover.index');
+        $proverResponse->assertViewIs('metrology.reports.report-prover.index');
 
         $chromatoResponse = $this->actingAs($user)->get('/en/metrology/reports/report-chromatograph');
         $chromatoResponse->assertStatus(200);
@@ -249,6 +249,145 @@ class ReportInstrumentsIndexTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('PT-SAISIE-01');
+    }
+
+    public function test_transmitter_without_specifications_is_redirected_with_error(): void
+    {
+        $this->artisan('permissions:sync-tables');
+        $superRole = Role::firstOrCreate(['name' => 'Super-Admin', 'guard_name' => 'web']);
+        $user = User::factory()->create();
+        $user->assignRole($superRole);
+
+        $site = Site::create([
+            'name' => 'Station In Salah No Specs Test',
+            'short_name' => 'INS-NOSPECS',
+            'site_code' => 'INS-NS',
+        ]);
+
+        $mission = Mission::create([
+            'reference' => 'MS-TEST-NS-01',
+            'site_id' => $site->id,
+            'status' => 'active',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDays(5)->toDateString(),
+        ]);
+
+        $instrument = Instrument::create([
+            'tag_number' => 'PT-NOSPECS-01',
+            'serial_number' => 'SN-NOSPECS-01',
+            'instrument_type' => 'transmitter',
+            'fluid_type' => FluidType::Gas,
+            'status' => 'active',
+            'site_id' => $site->id,
+        ]);
+
+        $report = Report::create([
+            'report_number' => 'RPT-2026-NOSPECS-01',
+            'mission_id' => $mission->id,
+            'category' => 'instruments',
+            'status' => 'progress',
+            'created_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('metrology.reports.saisie', [
+            'report' => $report->id,
+            'instrument' => $instrument->id,
+        ]));
+
+        $response->assertRedirect(route('metrology.instruments.show', $instrument->id));
+        $response->assertSessionHas('error');
+    }
+
+    public function test_probe_without_specifications_is_redirected_with_error(): void
+    {
+        $this->artisan('permissions:sync-tables');
+        $superRole = Role::firstOrCreate(['name' => 'Super-Admin', 'guard_name' => 'web']);
+        $user = User::factory()->create();
+        $user->assignRole($superRole);
+
+        $site = Site::create([
+            'name' => 'Station In Salah Probe No Specs Test',
+            'short_name' => 'INS-PROBE-NS',
+            'site_code' => 'INS-PR-NS',
+        ]);
+
+        $mission = Mission::create([
+            'reference' => 'MS-TEST-PR-NS-01',
+            'site_id' => $site->id,
+            'status' => 'active',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDays(5)->toDateString(),
+        ]);
+
+        $instrument = Instrument::create([
+            'tag_number' => 'TT-NOSPECS-01',
+            'serial_number' => 'SN-PR-NOSPECS-01',
+            'instrument_type' => 'probe',
+            'status' => 'active',
+            'site_id' => $site->id,
+        ]);
+
+        $report = Report::create([
+            'report_number' => 'RPT-2026-PR-NOSPECS-01',
+            'mission_id' => $mission->id,
+            'category' => 'instruments',
+            'status' => 'progress',
+            'created_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('metrology.reports.saisie', [
+            'report' => $report->id,
+            'instrument' => $instrument->id,
+        ]));
+
+        $response->assertRedirect(route('metrology.instruments.show', $instrument->id));
+        $response->assertSessionHas('error');
+    }
+
+    public function test_flow_computer_without_specifications_is_exempted_and_accessible(): void
+    {
+        $this->artisan('permissions:sync-tables');
+        $superRole = Role::firstOrCreate(['name' => 'Super-Admin', 'guard_name' => 'web']);
+        $user = User::factory()->create();
+        $user->assignRole($superRole);
+
+        $site = Site::create([
+            'name' => 'Station In Salah FC Test',
+            'short_name' => 'INS-FC-TEST',
+            'site_code' => 'INS-FC',
+        ]);
+
+        $mission = Mission::create([
+            'reference' => 'MS-TEST-FC-01',
+            'site_id' => $site->id,
+            'status' => 'active',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDays(5)->toDateString(),
+        ]);
+
+        $fc = Instrument::create([
+            'tag_number' => 'FC-EXEMPT-01',
+            'serial_number' => 'SN-FC-EXEMPT-01',
+            'instrument_type' => 'flow_computer',
+            'status' => 'active',
+            'site_id' => $site->id,
+        ]);
+
+        $report = Report::create([
+            'report_number' => 'RPT-2026-FC-EXEMPT-01',
+            'mission_id' => $mission->id,
+            'category' => 'instruments',
+            'status' => 'progress',
+            'created_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('metrology.reports.saisie', [
+            'report' => $report->id,
+            'instrument' => $fc->id,
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertSee('FC-EXEMPT-01');
     }
 
     public function test_user_can_generate_detailed_and_summary_pdf_with_enum_casts(): void

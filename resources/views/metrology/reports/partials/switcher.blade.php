@@ -10,17 +10,17 @@
             'tool' => 'reports',
         ],
         'instruments' => [
-            'name' => __('Rapport Table Instruments'),
+            'name' => __('Instruments Reports Table'),
             'route' => route('metrology.reports.report-instruments.index'),
             'tool' => 'instruments',
         ],
         'prover' => [
-            'name' => __('Rapport Table Provers'),
+            'name' => __('Provers Reports Table'),
             'route' => route('metrology.reports.report-prover.index'),
             'tool' => 'prover',
         ],
         'chromatograph' => [
-            'name' => __('Rapport Table Chromatographes'),
+            'name' => __('Chromatographs Reports Table'),
             'route' => route('metrology.reports.report-chromatograph.index'),
             'tool' => 'chromatograph',
         ],

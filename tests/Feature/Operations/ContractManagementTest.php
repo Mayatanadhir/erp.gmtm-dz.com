@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Operations;
 
+use App\Enums\ExpenseAffiliation;
+use App\Enums\MissionStatus;
 use App\Models\Attachment;
 use App\Models\Contract;
 use App\Models\Customer;
+use App\Models\Expense;
+use App\Models\Mission;
 use App\Models\User;
 use App\Models\Warranty;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -257,8 +263,8 @@ class ContractManagementTest extends TestCase
         $response = $this->actingAs($this->superAdmin)->delete(route('operations.contracts.destroy', $contract));
 
         $response->assertRedirect(route('operations.contracts'));
-        $this->assertDatabaseMissing('contracts', ['id' => $contract->id]);
-        $this->assertDatabaseMissing('contract_items', ['contract_id' => $contract->id]);
+        $this->assertSoftDeleted('contracts', ['id' => $contract->id]);
+        $this->assertSoftDeleted('contract_items', ['contract_id' => $contract->id]);
     }
 
     public function test_unauthorized_user_cannot_access_contracts(): void
@@ -483,5 +489,233 @@ class ContractManagementTest extends TestCase
         $this->assertEquals('service', $viewContract->items->first()->type);
         $this->assertEquals($supply->id, $viewContract->items->last()->id);
         $this->assertEquals('supply', $viewContract->items->last()->type);
+    }
+
+    public function test_consumed_item_unit_price_cannot_be_modified_on_contract_update(): void
+    {
+        $contract = Contract::create([
+            'reference' => 'CTR-LOCKED-PRICE',
+            'object' => 'Locked Price Test',
+            'customer_id' => $this->customer->id,
+            'date_signature' => '2026-01-01',
+            'duree' => 12,
+        ]);
+
+        $item = $contract->items()->create([
+            'designation' => 'Critical Calibration',
+            'quantity' => 10,
+            'unit_price' => 5000.00,
+            'unit_cost' => 2000.00,
+            'type' => 'service',
+        ]);
+
+        $attachment = Attachment::create([
+            'code_ref' => 'ATT-LOCK-001',
+            'status' => 'draft',
+            'type' => 'service',
+        ]);
+
+        $attachment->items()->create([
+            'contract_item_id' => $item->id,
+            'actual_quantity' => 3,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)->put(route('operations.contracts.update', $contract), [
+            'reference' => 'CTR-LOCKED-PRICE',
+            'object' => 'Locked Price Test Updated',
+            'customer_id' => $this->customer->id,
+            'date_signature' => '2026-01-01',
+            'duree' => 12,
+            'items' => [
+                [
+                    'id' => $item->id,
+                    'designation' => 'Critical Calibration',
+                    'quantity' => 10,
+                    'unit_price' => 9999.00,
+                    'unit_cost' => 2000.00,
+                    'type' => 'service',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('operations.contracts.show', $contract));
+        $item->refresh();
+
+        $this->assertEquals(5000.00, (float) $item->unit_price);
+    }
+
+    public function test_consumed_item_quantity_cannot_be_reduced_below_consumed_amount(): void
+    {
+        $contract = Contract::create([
+            'reference' => 'CTR-CLAMP-QTY',
+            'object' => 'Clamp Quantity Test',
+            'customer_id' => $this->customer->id,
+            'date_signature' => '2026-01-01',
+            'duree' => 12,
+        ]);
+
+        $item = $contract->items()->create([
+            'designation' => 'Piping Maintenance',
+            'quantity' => 10,
+            'unit_price' => 1000.00,
+            'type' => 'service',
+        ]);
+
+        $attachment = Attachment::create([
+            'code_ref' => 'ATT-CLAMP-001',
+            'status' => 'draft',
+            'type' => 'service',
+        ]);
+
+        $attachment->items()->create([
+            'contract_item_id' => $item->id,
+            'actual_quantity' => 6,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)->put(route('operations.contracts.update', $contract), [
+            'reference' => 'CTR-CLAMP-QTY',
+            'object' => 'Clamp Quantity Test',
+            'customer_id' => $this->customer->id,
+            'date_signature' => '2026-01-01',
+            'duree' => 12,
+            'items' => [
+                [
+                    'id' => $item->id,
+                    'designation' => 'Piping Maintenance',
+                    'quantity' => 2,
+                    'unit_price' => 1000.00,
+                    'type' => 'service',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('operations.contracts.show', $contract));
+        $item->refresh();
+
+        $this->assertEquals(6, $item->quantity);
+    }
+
+    public function test_contract_deletion_is_blocked_when_linked_missions_exist(): void
+    {
+        $contract = Contract::create([
+            'reference' => 'CTR-DEL-MISSION',
+            'object' => 'Delete Mission Guard',
+            'customer_id' => $this->customer->id,
+        ]);
+
+        Mission::create([
+            'reference' => 'M-CTR-DEL-001',
+            'contract_id' => $contract->id,
+            'status' => MissionStatus::Planned,
+            'start_date' => now(),
+            'end_date' => now()->addDays(2),
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->from(route('operations.contracts'))
+            ->delete(route('operations.contracts.destroy', $contract));
+
+        $response->assertRedirect(route('operations.contracts'));
+        $response->assertSessionHas('error');
+        $this->assertDatabaseHas('contracts', ['id' => $contract->id]);
+    }
+
+    public function test_contract_deletion_is_blocked_when_linked_charges_exist(): void
+    {
+        $contract = Contract::create([
+            'reference' => 'CTR-DEL-CHARGE',
+            'object' => 'Delete Charge Guard',
+            'customer_id' => $this->customer->id,
+        ]);
+
+        Expense::create([
+            'amount' => 15000.00,
+            'date' => '2026-05-10',
+            'description' => 'Contract testing fee',
+            'type' => ExpenseAffiliation::Contract,
+            'contract_id' => $contract->id,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->from(route('operations.contracts'))
+            ->delete(route('operations.contracts.destroy', $contract));
+
+        $response->assertRedirect(route('operations.contracts'));
+        $response->assertSessionHas('error');
+        $this->assertDatabaseHas('contracts', ['id' => $contract->id]);
+    }
+
+    public function test_warranty_cannot_be_assigned_to_multiple_contracts(): void
+    {
+        $warranty = Warranty::create([
+            'reference' => 'GAR-UNIQUE-001',
+            'amount' => 50000.00,
+            'bank_name' => 'BNA',
+            'status' => 'active',
+            'type' => 'performance',
+        ]);
+
+        Contract::create([
+            'reference' => 'CTR-WRN-1',
+            'object' => 'First Contract',
+            'customer_id' => $this->customer->id,
+            'garantie_id' => $warranty->id,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)->post(route('operations.contracts.store'), [
+            'reference' => 'CTR-WRN-2',
+            'object' => 'Second Contract',
+            'customer_id' => $this->customer->id,
+            'garantie_id' => $warranty->id,
+        ]);
+
+        $response->assertSessionHasErrors('garantie_id');
+    }
+
+    public function test_month_end_date_calculation_does_not_overflow(): void
+    {
+        $contract = new Contract([
+            'reference' => 'CTR-DATE-OVERFLOW',
+            'object' => 'Month Overflow Test',
+            'customer_id' => $this->customer->id,
+            'date_signature' => Carbon::parse('2026-01-31'),
+            'duree' => 1,
+        ]);
+
+        Carbon::setTestNow(Carbon::parse('2026-02-01 00:00:00'));
+
+        $this->assertSame(27, $contract->remain_days);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_contract_item_consumption_percentage_avoids_n_plus_one_queries(): void
+    {
+        $contract = Contract::create([
+            'reference' => 'CTR-N1-TEST',
+            'object' => 'N+1 Query Prevention Test',
+            'customer_id' => $this->customer->id,
+        ]);
+
+        $contract->items()->create(['designation' => 'Item 1', 'quantity' => 10, 'unit_price' => 100]);
+        $contract->items()->create(['designation' => 'Item 2', 'quantity' => 20, 'unit_price' => 200]);
+        $contract->items()->create(['designation' => 'Item 3', 'quantity' => 30, 'unit_price' => 300]);
+
+        $items = $contract->items()
+            ->withSum('attachmentItems as attachment_items_sum_quantity', 'actual_quantity')
+            ->get();
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        foreach ($items as $item) {
+            $percentage = $item->consumption_percentage;
+            $this->assertSame(0.0, $percentage);
+        }
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $this->assertCount(0, $queries, 'Accessing consumption_percentage executed unexpected database queries.');
     }
 }

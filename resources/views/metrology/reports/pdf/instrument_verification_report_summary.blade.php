@@ -672,11 +672,12 @@
                     <tbody>
                         @foreach($verification->points->sortBy('step_order') as $point)
                             @php
-                                $mA = (float) ($point->measured_signal ?? 4.0);
+                                $mA = (float) ($point->corrected_signal ?? $point->measured_signal ?? 4.0);
+                                $refVal = (float) ($point->corrected_reference_value ?? $point->reference_value);
                                 $calcVal = ($point->indicated_value !== null && $point->indicated_value !== '')
                                     ? (float) $point->indicated_value
-                                    : ($span !== 0.0 ? ($rangeMin + (($mA - 4.0) / 16.0) * $span) : (float) $point->reference_value);
-                                $absErr = $calcVal - (float) $point->reference_value;
+                                    : ($span !== 0.0 ? ($rangeMin + (($mA - 4.0) / 16.0) * $span) : $refVal);
+                                $absErr = $point->absolute_error ?? ($calcVal - $refVal);
                                 $relError = ($span !== 0.0) ? (($absErr / $span) * 100.0) : 0.0;
                                 $displayError = $isRelative
                                     ? (($relError >= 0 ? '+' : '') . number_format($relError, 4) . ' %')
@@ -685,8 +686,18 @@
                             <tr>
                                 <td>{{ $point->step_order }}</td>
                                 <td class="text-bold">{{ number_format($point->applied_percentage, 1) }} %</td>
-                                <td>{{ number_format($point->reference_value, 4) }}</td>
-                                <td>{{ number_format($point->measured_signal, 4) }}</td>
+                                <td>
+                                    {{ number_format($point->reference_value, 4) }}
+                                    @if(isset($point->calibrator_1_correction) && abs((float)$point->calibrator_1_correction) > 0.00001)
+                                        <div style="font-size: 7.5px; color: #475569;">Corr: {{ number_format($point->corrected_reference_value, 4) }}</div>
+                                    @endif
+                                </td>
+                                <td>
+                                    {{ $point->measured_signal !== null ? number_format($point->measured_signal, 4) : '---' }}
+                                    @if(isset($point->calibrator_2_correction) && abs((float)$point->calibrator_2_correction) > 0.00001)
+                                        <div style="font-size: 7.5px; color: #475569;">Corr: {{ number_format($point->corrected_signal, 4) }}</div>
+                                    @endif
+                                </td>
                                 <td>{{ number_format($calcVal, 4) }}</td>
                                 <td class="text-bold">{{ $displayError }}</td>
                             </tr>
@@ -844,8 +855,18 @@
                     @foreach($verification->points->sortBy('step_order') as $point)
                         <tr>
                             <td>{{ $point->step_order }}</td>
-                            <td class="text-bold">{{ number_format($point->reference_temperature, 3) }}</td>
-                            <td>{{ number_format($point->measured_resistance, 4) }}</td>
+                            <td class="text-bold">
+                                {{ number_format($point->reference_temperature, 3) }}
+                                @if(isset($point->calibrator_1_correction) && abs((float)$point->calibrator_1_correction) > 0.00001)
+                                    <div style="font-size: 7.5px; color: #475569;">Corr: {{ number_format($point->corrected_reference_temperature ?? ($point->reference_temperature + $point->calibrator_1_correction), 3) }}</div>
+                                @endif
+                            </td>
+                            <td>
+                                {{ number_format($point->measured_resistance, 4) }}
+                                @if(isset($point->calibrator_2_correction) && abs((float)$point->calibrator_2_correction) > 0.00001)
+                                    <div style="font-size: 7.5px; color: #475569;">Corr: {{ number_format($point->corrected_measured_resistance ?? ($point->measured_resistance + $point->calibrator_2_correction), 4) }}</div>
+                                @endif
+                            </td>
                             <td class="text-bold" style="color:#1d4ed8;">{{ number_format($point->indicated_temperature, 3) }}
                             </td>
                             <td class="text-bold">
@@ -1029,8 +1050,18 @@
                         <tr>
                             <td>{{ $point->step_order }}</td>
                             <td class="text-bold">{{ number_format($point->applied_percentage, 1) }} %</td>
-                            <td>{{ number_format($point->measured_signal, 4) }}</td>
-                            <td>{{ number_format($point->expected_value, 4) }}</td>
+                            <td>
+                                {{ number_format($point->measured_signal, 4) }}
+                                @if(isset($point->calibrator_1_correction) && abs((float)$point->calibrator_1_correction) > 0.00001)
+                                    <div style="font-size: 7.5px; color: #475569;">Corr: {{ number_format($point->corrected_signal ?? ($point->measured_signal + $point->calibrator_1_correction), 4) }}</div>
+                                @endif
+                            </td>
+                            <td>
+                                {{ number_format($point->expected_value, 4) }}
+                                @if(isset($point->calibrator_2_correction) && abs((float)$point->calibrator_2_correction) > 0.00001)
+                                    <div style="font-size: 7.5px; color: #475569;">Corr: {{ number_format($point->corrected_expected_value ?? ($point->expected_value + $point->calibrator_2_correction), 4) }}</div>
+                                @endif
+                            </td>
                             <td class="text-bold" style="color:#0f766e;">{{ number_format($point->indicated_value, 4) }}</td>
                             <td class="text-bold">{{ $displayErrorADC }}</td>
                         </tr>

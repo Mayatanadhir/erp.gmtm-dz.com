@@ -12,6 +12,7 @@ use App\Models\ChromatographVerification;
 use App\Models\FlowComputerVerification;
 use App\Models\FlowComputerVerificationPoint;
 use App\Models\Instrument;
+use App\Models\InstrumentSpecification;
 use App\Models\Mission;
 use App\Models\ProbeVerification;
 use App\Models\ProbeVerificationPoint;
@@ -19,6 +20,7 @@ use App\Models\Report;
 use App\Models\TransmitterVerification;
 use App\Models\TransmitterVerificationPoint;
 use App\Services\CalibratorResolutionService;
+use App\Services\InterpolationService;
 use App\Services\OamMetrologyService;
 use App\Services\SvgChartService;
 use Illuminate\Database\Eloquent\Model;
@@ -35,7 +37,8 @@ final class CalibrationInstrumentsController extends Controller
     public function __construct(
         protected CalibratorResolutionService $calibratorService,
         protected OamMetrologyService $oamService,
-        protected SvgChartService $chartService
+        protected SvgChartService $chartService,
+        protected InterpolationService $interpolationService
     ) {}
 
     /**
@@ -452,16 +455,10 @@ final class CalibrationInstrumentsController extends Controller
 
         $typeVal = strtolower($instrument->instrument_type instanceof \BackedEnum ? $instrument->instrument_type->value : (string) $instrument->instrument_type);
 
-        $hasSpecifications = match ($typeVal) {
-            'transmitter', 'probe', 'flowcomputer', 'flow_computer' => $instrument->specifications->isNotEmpty(),
-            'testmeasure', 'standardgauge', 'standard_gauge' => $instrument->standardGaugeSpecification !== null,
-            'chromatograph' => true,
-            default => false,
-        };
-
-        if (! $hasSpecifications) {
+        // إلزامية المواصفات الفنية لمرسلات الضغط والحرارة ومجسات Pt100
+        if (in_array($typeVal, ['transmitter', 'probe'], true) && $instrument->specifications->isEmpty()) {
             return redirect()->route('metrology.instruments.show', $instrument->id)
-                ->with('error', __('لا يمكن بدء المعايرة. يرجى إدخال المواصفات الفنية للجهاز أولاً لضمان صحة الحسابات المترولوجية.'));
+                ->with('error', __('Calibration cannot be started. Please enter the instrument technical specifications first to ensure metrological calculation accuracy.'));
         }
 
         return match ($typeVal) {
@@ -469,6 +466,7 @@ final class CalibrationInstrumentsController extends Controller
             'probe' => $this->createProbeSaisie($report, $instrument),
             'flowcomputer', 'flow_computer' => $this->createFlowComputerSaisie($report, $instrument),
             'chromatograph' => $this->redirectToChromatographSaisie($report, $instrument),
+            'prover', 'testmeasure', 'standardgauge', 'standard_gauge' => redirect()->route('metrology.reports.report-prover.index'),
             default => abort(404, 'Interface de saisie non implémentée pour ce type d\'instrument.'),
         };
     }
@@ -496,6 +494,13 @@ final class CalibrationInstrumentsController extends Controller
     private function createTransmitterSaisie(Report $report, Instrument $instrument): View
     {
         $specifications = $instrument->specifications->first();
+        if (! $specifications) {
+            $specifications = new InstrumentSpecification([
+                'range_min' => 0.0,
+                'range_max' => 100.0,
+                'accuracy_value' => 0.5,
+            ]);
+        }
 
         $verification = TransmitterVerification::with('points', 'calibrators')
             ->where('report_mission_id', $report->id)
@@ -529,7 +534,20 @@ final class CalibrationInstrumentsController extends Controller
         $pressureType = $instrument->measurement_type ?? 'Relative';
         $fluidType = $instrument->fluid_type instanceof \BackedEnum ? $instrument->fluid_type->value : (string) ($instrument->fluid_type ?? 'Liquid');
 
-        DB::transaction(function () use ($validated, $report, $instrument, $span, $min, $measurand, $pressureType, $fluidType) {
+        $cal1Id = ! empty($validated['calibrator_1']) ? (int) $validated['calibrator_1'] : null;
+        $cal2Id = ! empty($validated['calibrator_2']) ? (int) $validated['calibrator_2'] : null;
+
+        $prepPoints = fn (array $pts) => array_map(fn ($p) => [
+            'nominal' => (float) ($p['nominal'] ?? 0),
+            'value' => (float) ($p['value'] ?? $p['correction'] ?? 0),
+            'correction' => (float) ($p['correction'] ?? $p['value'] ?? 0),
+            'uncertainty' => (float) ($p['uncertainty'] ?? 0),
+        ], $pts);
+
+        $cal1Points = $cal1Id ? $prepPoints($this->calibratorService->getActiveCertificatePoints($cal1Id)) : [];
+        $cal2Points = $cal2Id ? $prepPoints($this->calibratorService->getActiveCertificatePoints($cal2Id)) : [];
+
+        DB::transaction(function () use ($validated, $report, $instrument, $span, $min, $measurand, $pressureType, $fluidType, $cal1Points, $cal2Points) {
             $verification = TransmitterVerification::updateOrCreate(
                 ['report_mission_id' => $report->id, 'instrument_id' => $instrument->id],
                 [
@@ -556,9 +574,49 @@ final class CalibrationInstrumentsController extends Controller
             $allConforme = true;
 
             foreach ($validated['points'] as $index => $point) {
+                $rawRef = (float) $point['reference_value'];
+                $rawSignal = isset($point['measured_signal']) && $point['measured_signal'] !== '' && $point['measured_signal'] !== null
+                    ? (float) $point['measured_signal']
+                    : null;
+
+                // 1. استيفاء تصحيح المعيار 1 (مولد الضغط / الحرارة المرجعي)
+                $cal1Correction = null;
+                $correctedRef = $rawRef;
+                if (! empty($cal1Points)) {
+                    try {
+                        $interp1 = $this->interpolationService->interpolate($cal1Points, $rawRef);
+                        $cal1Correction = (float) $interp1['interpolated_value'];
+                        $correctedRef = $rawRef + $cal1Correction;
+                    } catch (\Throwable $e) {
+                        $cal1Correction = isset($point['calibrator_1_correction']) && $point['calibrator_1_correction'] !== '' ? (float) $point['calibrator_1_correction'] : null;
+                        $correctedRef = $cal1Correction !== null ? $rawRef + $cal1Correction : $rawRef;
+                    }
+                } elseif (isset($point['calibrator_1_correction']) && $point['calibrator_1_correction'] !== '') {
+                    $cal1Correction = (float) $point['calibrator_1_correction'];
+                    $correctedRef = $rawRef + $cal1Correction;
+                }
+
+                // 2. استيفاء تصحيح المعيار 2 (ملتيميتر قياس التيار 4-20 mA)
+                $cal2Correction = null;
+                $correctedSignal = $rawSignal;
+                if ($rawSignal !== null && ! empty($cal2Points)) {
+                    try {
+                        $interp2 = $this->interpolationService->interpolate($cal2Points, $rawSignal);
+                        $cal2Correction = (float) $interp2['interpolated_value'];
+                        $correctedSignal = $rawSignal + $cal2Correction;
+                    } catch (\Throwable $e) {
+                        $cal2Correction = isset($point['calibrator_2_correction']) && $point['calibrator_2_correction'] !== '' ? (float) $point['calibrator_2_correction'] : null;
+                        $correctedSignal = $cal2Correction !== null ? $rawSignal + $cal2Correction : $rawSignal;
+                    }
+                } elseif (isset($point['calibrator_2_correction']) && $point['calibrator_2_correction'] !== '') {
+                    $cal2Correction = (float) $point['calibrator_2_correction'];
+                    $correctedSignal = $rawSignal !== null ? $rawSignal + $cal2Correction : null;
+                }
+
+                // 3. التقييم المترولوجي باستخدام القيمة المرجعية المصححة والإشارة المصححة
                 $eval = $this->oamService->evaluateTransmitter(
-                    $span, $min, (float) $point['reference_value'],
-                    isset($point['measured_signal']) ? (float) $point['measured_signal'] : null,
+                    $span, $min, $correctedRef,
+                    $correctedSignal,
                     isset($point['indicated_value']) ? (float) $point['indicated_value'] : null,
                     $fluidType, $instrument->technology,
                     $measurand, $pressureType, $ambientP
@@ -573,8 +631,12 @@ final class CalibrationInstrumentsController extends Controller
                     'step_order' => $index + 1,
                     'cycle_phase' => ($index + 1 <= 5) ? 'Ascending' : 'Descending',
                     'applied_percentage' => (float) $point['applied_percentage'],
-                    'reference_value' => (float) $point['reference_value'],
-                    'measured_signal' => $point['measured_signal'] ?? null,
+                    'reference_value' => $rawRef,
+                    'calibrator_1_correction' => $cal1Correction,
+                    'corrected_reference_value' => $correctedRef,
+                    'measured_signal' => $rawSignal,
+                    'calibrator_2_correction' => $cal2Correction,
+                    'corrected_signal' => $correctedSignal,
                     'indicated_value' => $point['indicated_value'] ?? null,
                     'absolute_error' => $eval['error'],
                     'emt_limit' => $eval['emt'],
@@ -625,7 +687,20 @@ final class CalibrationInstrumentsController extends Controller
     {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($validated, $report, $instrument) {
+        $cal1Id = ! empty($validated['calibrator_1']) ? (int) $validated['calibrator_1'] : null;
+        $cal2Id = ! empty($validated['calibrator_2']) ? (int) $validated['calibrator_2'] : null;
+
+        $prepPoints = fn (array $pts) => array_map(fn ($p) => [
+            'nominal' => (float) ($p['nominal'] ?? 0),
+            'value' => (float) ($p['value'] ?? $p['correction'] ?? 0),
+            'correction' => (float) ($p['correction'] ?? $p['value'] ?? 0),
+            'uncertainty' => (float) ($p['uncertainty'] ?? 0),
+        ], $pts);
+
+        $cal1Points = $cal1Id ? $prepPoints($this->calibratorService->getActiveCertificatePoints($cal1Id)) : [];
+        $cal2Points = $cal2Id ? $prepPoints($this->calibratorService->getActiveCertificatePoints($cal2Id)) : [];
+
+        DB::transaction(function () use ($validated, $report, $instrument, $cal1Points, $cal2Points) {
             $verification = ProbeVerification::updateOrCreate(
                 ['report_mission_id' => $report->id, 'instrument_id' => $instrument->id],
                 [
@@ -651,8 +726,45 @@ final class CalibrationInstrumentsController extends Controller
             $allConforme = true;
 
             foreach ($validated['points'] as $index => $point) {
+                $rawRef = (float) $point['reference_temperature'];
+                $rawResistance = isset($point['measured_resistance']) && $point['measured_resistance'] !== '' ? (float) $point['measured_resistance'] : null;
+
+                // 1. استيفاء وتصحيح القيمة المرجعية المطبقة (Calibrator 1)
+                $cal1Correction = null;
+                $correctedRef = $rawRef;
+                if (! empty($cal1Points)) {
+                    try {
+                        $interp1 = $this->interpolationService->interpolate($cal1Points, $rawRef);
+                        $cal1Correction = (float) $interp1['interpolated_value'];
+                        $correctedRef = $rawRef + $cal1Correction;
+                    } catch (\Throwable $e) {
+                        $cal1Correction = isset($point['calibrator_1_correction']) && $point['calibrator_1_correction'] !== '' ? (float) $point['calibrator_1_correction'] : null;
+                        $correctedRef = $cal1Correction !== null ? $rawRef + $cal1Correction : $rawRef;
+                    }
+                } elseif (isset($point['calibrator_1_correction']) && $point['calibrator_1_correction'] !== '') {
+                    $cal1Correction = (float) $point['calibrator_1_correction'];
+                    $correctedRef = $rawRef + $cal1Correction;
+                }
+
+                // 2. استيفاء وتصحيح المقاومة المقاسة (Calibrator 2)
+                $cal2Correction = null;
+                $correctedResistance = $rawResistance;
+                if ($rawResistance !== null && ! empty($cal2Points)) {
+                    try {
+                        $interp2 = $this->interpolationService->interpolate($cal2Points, $rawResistance);
+                        $cal2Correction = (float) $interp2['interpolated_value'];
+                        $correctedResistance = $rawResistance + $cal2Correction;
+                    } catch (\Throwable $e) {
+                        $cal2Correction = isset($point['calibrator_2_correction']) && $point['calibrator_2_correction'] !== '' ? (float) $point['calibrator_2_correction'] : null;
+                        $correctedResistance = $cal2Correction !== null ? $rawResistance + $cal2Correction : $rawResistance;
+                    }
+                } elseif (isset($point['calibrator_2_correction']) && $point['calibrator_2_correction'] !== '') {
+                    $cal2Correction = (float) $point['calibrator_2_correction'];
+                    $correctedResistance = $rawResistance !== null ? $rawResistance + $cal2Correction : null;
+                }
+
                 $eval = $this->oamService->evaluateProbePt100(
-                    (float) $point['reference_temperature'],
+                    $correctedRef,
                     (float) $point['indicated_temperature']
                 );
 
@@ -664,8 +776,12 @@ final class CalibrationInstrumentsController extends Controller
                     'verification_id' => $verification->id,
                     'step_order' => $index + 1,
                     'cycle_phase' => 'Ascending',
-                    'reference_temperature' => (float) $point['reference_temperature'],
-                    'measured_resistance' => (float) $point['measured_resistance'],
+                    'reference_temperature' => $rawRef,
+                    'calibrator_1_correction' => $cal1Correction,
+                    'corrected_reference_temperature' => $correctedRef,
+                    'measured_resistance' => $rawResistance,
+                    'calibrator_2_correction' => $cal2Correction,
+                    'corrected_measured_resistance' => $correctedResistance,
                     'indicated_temperature' => (float) $point['indicated_temperature'],
                     'absolute_error' => $eval['error'],
                     'emt_limit' => $eval['emt'],
@@ -764,7 +880,20 @@ final class CalibrationInstrumentsController extends Controller
     {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($validated, $report, $instrument) {
+        $cal1Id = ! empty($validated['calibrator_1']) ? (int) $validated['calibrator_1'] : null;
+        $cal2Id = ! empty($validated['calibrator_2']) ? (int) $validated['calibrator_2'] : null;
+
+        $prepPoints = fn (array $pts) => array_map(fn ($p) => [
+            'nominal' => (float) ($p['nominal'] ?? 0),
+            'value' => (float) ($p['value'] ?? $p['correction'] ?? 0),
+            'correction' => (float) ($p['correction'] ?? $p['value'] ?? 0),
+            'uncertainty' => (float) ($p['uncertainty'] ?? 0),
+        ], $pts);
+
+        $cal1Points = $cal1Id ? $prepPoints($this->calibratorService->getActiveCertificatePoints($cal1Id)) : [];
+        $cal2Points = $cal2Id ? $prepPoints($this->calibratorService->getActiveCertificatePoints($cal2Id)) : [];
+
+        DB::transaction(function () use ($validated, $report, $instrument, $cal1Points, $cal2Points) {
             $verification = FlowComputerVerification::updateOrCreate(
                 [
                     'report_mission_id' => $report->id,
@@ -803,9 +932,47 @@ final class CalibrationInstrumentsController extends Controller
             $allConforme = true;
 
             foreach ($validated['points'] as $index => $point) {
+                $rawSignal = (float) $point['measured_signal'];
+                $rawExpectedValue = (float) $point['expected_value'];
+
+                // 1. استيفاء وتصحيح إشارة التيار المحقونة (Calibrator 1)
+                $cal1Correction = null;
+                $correctedSignal = $rawSignal;
+                if (! empty($cal1Points)) {
+                    try {
+                        $interp1 = $this->interpolationService->interpolate($cal1Points, $rawSignal);
+                        $cal1Correction = (float) $interp1['interpolated_value'];
+                        $correctedSignal = $rawSignal + $cal1Correction;
+                    } catch (\Throwable $e) {
+                        $cal1Correction = isset($point['calibrator_1_correction']) && $point['calibrator_1_correction'] !== '' ? (float) $point['calibrator_1_correction'] : null;
+                        $correctedSignal = $cal1Correction !== null ? $rawSignal + $cal1Correction : $rawSignal;
+                    }
+                } elseif (isset($point['calibrator_1_correction']) && $point['calibrator_1_correction'] !== '') {
+                    $cal1Correction = (float) $point['calibrator_1_correction'];
+                    $correctedSignal = $rawSignal + $cal1Correction;
+                }
+
+                // 2. استيفاء وتصحيح القيمة الفيزيائية المتوقعة (Calibrator 2)
+                $cal2Correction = null;
+                $correctedExpectedValue = $rawExpectedValue;
+                if (! empty($cal2Points)) {
+                    try {
+                        $interp2 = $this->interpolationService->interpolate($cal2Points, $rawExpectedValue);
+                        $cal2Correction = (float) $interp2['interpolated_value'];
+                        $correctedExpectedValue = $rawExpectedValue + $cal2Correction;
+                    } catch (\Throwable $e) {
+                        $cal2Correction = isset($point['calibrator_2_correction']) && $point['calibrator_2_correction'] !== '' ? (float) $point['calibrator_2_correction'] : null;
+                        $correctedExpectedValue = $cal2Correction !== null ? $rawExpectedValue + $cal2Correction : $rawExpectedValue;
+                    }
+                } elseif (isset($point['calibrator_2_correction']) && $point['calibrator_2_correction'] !== '') {
+                    $cal2Correction = (float) $point['calibrator_2_correction'];
+                    $correctedExpectedValue = $rawExpectedValue + $cal2Correction;
+                }
+
+                // التقييم باستخدام الإشارة المصححة
                 $eval = $this->oamService->evaluateADC(
                     $tSpan, $tMin,
-                    (float) $point['measured_signal'],
+                    $correctedSignal,
                     $rShunt,
                     (float) $point['indicated_value'],
                     $channelFluid,
@@ -822,8 +989,12 @@ final class CalibrationInstrumentsController extends Controller
                     'cycle_phase' => ($index + 1 <= 5) ? 'Ascending' : 'Descending',
                     'applied_percentage' => (float) $point['applied_percentage'],
                     'expected_signal' => (float) $point['expected_signal'],
-                    'measured_signal' => (float) $point['measured_signal'],
-                    'expected_value' => (float) $point['expected_value'],
+                    'measured_signal' => $rawSignal,
+                    'calibrator_1_correction' => $cal1Correction,
+                    'corrected_signal' => $correctedSignal,
+                    'expected_value' => $rawExpectedValue,
+                    'calibrator_2_correction' => $cal2Correction,
+                    'corrected_expected_value' => $correctedExpectedValue,
                     'indicated_value' => (float) $point['indicated_value'],
                     'absolute_error' => $eval['error'],
                     'emt_limit' => $eval['emt'],
@@ -946,11 +1117,7 @@ final class CalibrationInstrumentsController extends Controller
         $emt = $firstCurve['emt'] ?? 0.0;
         $conformity = $firstCurve['conformity'] ?? null;
 
-        $viewName = view()->exists('metrology.reports.curve')
-            ? 'metrology.reports.curve'
-            : (view()->exists('admin.reports.curve') ? 'admin.reports.curve' : 'metrology.reports.curve');
-
-        return view($viewName, compact(
+        return view('metrology.reports.curve', compact(
             'report', 'instrument', 'title',
             'curves', 'svgCurve', 'emt', 'conformity'
         ));

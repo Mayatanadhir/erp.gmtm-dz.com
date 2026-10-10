@@ -31,6 +31,36 @@
         </div>
     </x-slot>
 
+    @php
+        $oldPutSpecs = [];
+        if (old('_method') === 'PUT') {
+            if (is_array(old('params'))) {
+                foreach (old('params') as $gid => $p) {
+                    if (! empty($p['selected'])) {
+                        $oldPutSpecs[(int) $gid] = [
+                            'selected' => true,
+                            'min'      => isset($p['min']) && $p['min'] !== '' ? (float) $p['min'] : '',
+                            'max'      => isset($p['max']) && $p['max'] !== '' ? (float) $p['max'] : '',
+                            'acc'      => isset($p['acc']) && $p['acc'] !== '' ? (float) $p['acc'] : '',
+                            'acc_type' => $p['acc_type'] ?? '%',
+                        ];
+                    }
+                }
+            } elseif (old('edit_id')) {
+                $prevEq = \App\Models\Equipment::with('specifications')->find(old('edit_id'));
+                if ($prevEq) {
+                    $oldPutSpecs = $prevEq->specifications->keyBy('grandeur_id')->map(fn($s) => [
+                        'selected' => true,
+                        'min'      => (float) $s->range_min,
+                        'max'      => (float) $s->range_max,
+                        'acc'      => (float) $s->accuracy_value,
+                        'acc_type' => $s->accuracy_type->value ?? '%',
+                    ])->all();
+                }
+            }
+        }
+    @endphp
+
     <div class="py-8"
         @open-create-equipment-modal.window="openCreateModal()"
         x-data="{
@@ -45,23 +75,23 @@
 
             // Edit state
             editId: {{ old('_method') === 'PUT' ? (int) old('edit_id', 0) : 'null' }},
-            editFullName: '{{ old('_method') === 'PUT' ? addslashes((string) old('full_name', '')) : '' }}',
-            editShortName: '{{ old('_method') === 'PUT' ? addslashes((string) old('short_name', '')) : '' }}',
-            editInternalCode: '{{ old('_method') === 'PUT' ? addslashes((string) old('internal_code', '')) : '' }}',
-            editSerialNumber: '{{ old('_method') === 'PUT' ? addslashes((string) old('serial_number', '')) : '' }}',
-            editCategory: '{{ old('_method') === 'PUT' ? addslashes((string) old('category', 'measuring_instrument')) : 'measuring_instrument' }}',
-            editPackage: '{{ old('_method') === 'PUT' ? addslashes((string) old('package', 'none')) : 'none' }}',
-            editStatus: '{{ old('_method') === 'PUT' ? addslashes((string) old('status', 'active')) : 'active' }}',
-            editRequiresCalibration: {{ old('_method') === 'PUT' && old('requires_calibration') ? 'true' : 'false' }},
-            editDesignation: '{{ old('_method') === 'PUT' ? addslashes((string) old('designation', '')) : '' }}',
-            editNotes: '{{ old('_method') === 'PUT' ? addslashes((string) old('notes', '')) : '' }}',
+            editFullName: {{ Js::from(old('_method') === 'PUT' ? (string) old('full_name', '') : '') }},
+            editShortName: {{ Js::from(old('_method') === 'PUT' ? (string) old('short_name', '') : '') }},
+            editInternalCode: {{ Js::from(old('_method') === 'PUT' ? (string) old('internal_code', '') : '') }},
+            editSerialNumber: {{ Js::from(old('_method') === 'PUT' ? (string) old('serial_number', '') : '') }},
+            editCategory: {{ Js::from(old('_method') === 'PUT' ? (string) old('category', 'measuring_instrument') : 'measuring_instrument') }},
+            editPackage: {{ Js::from(old('_method') === 'PUT' ? (string) old('package', 'none') : 'none') }},
+            editStatus: {{ Js::from(old('_method') === 'PUT' ? (string) old('status', 'active') : 'active') }},
+            editRequiresCalibration: {{ old('_method') === 'PUT' ? (old('requires_calibration') ? 'true' : 'false') : 'false' }},
+            editDesignation: {{ Js::from(old('_method') === 'PUT' ? (string) old('designation', '') : '') }},
+            editNotes: {{ Js::from(old('_method') === 'PUT' ? (string) old('notes', '') : '') }},
             editImageUrl: '',
             editCertificateUrl: '',
             editImagePreview: null,
             editRemoveImage: false,
             editRemoveCertificate: false,
             editActionUrl: '{{ old('_method') === 'PUT' && old('edit_id') ? route('metrology.equipment.update', (int) old('edit_id')) : '' }}',
-            editSpecs: {},
+            editSpecs: {{ json_encode((object) $oldPutSpecs) }},
 
             // Delete state
             deleteName: '',
@@ -722,6 +752,16 @@
                         </div>
 
                         <div class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+                            @if($errors->any() && old('_method') === 'PUT')
+                                <x-alert variant="danger">
+                                    <ul class="list-disc list-inside text-xs space-y-1">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </x-alert>
+                            @endif
+
                             <!-- Basic Information -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="sm:col-span-2">
@@ -743,6 +783,7 @@
                                 <div>
                                     <x-input-label for="edit_serial_number" :value="__('Serial Number (S/N)')" />
                                     <x-text-input id="edit_serial_number" name="serial_number" type="text" class="mt-1 block w-full font-mono" x-model="editSerialNumber" />
+                                    <x-input-error :messages="$errors->get('serial_number')" class="mt-1" />
                                 </div>
 
                                 <div>
@@ -818,26 +859,57 @@
                                 <!-- Measurement Parameters -->
                                 @if($measurementGrandeurs->count() > 0)
                                     <div>
-                                        <div class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2">
-                                            <i class="fas fa-signal me-1"></i> {{ __('Measurement Capabilities') }}
+                                        <div class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5">
+                                                <i class="fas fa-signal"></i>
+                                                <span>{{ __('Measurement Capabilities') }}</span>
+                                            </span>
                                         </div>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             @foreach($measurementGrandeurs as $g)
-                                                <div class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm space-y-2">
-                                                    <label class="flex items-center justify-between cursor-pointer">
-                                                        <span class="font-semibold text-xs text-gray-900 dark:text-white flex items-center gap-1.5">
+                                                <div
+                                                    :class="editSpecs[{{ $g->id }}]?.selected
+                                                        ? 'p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50/75 dark:bg-emerald-950/30 shadow-md ring-2 ring-emerald-500/20'
+                                                        : 'p-3 rounded-xl border border-gray-200 dark:border-gray-700/80 bg-gray-50/40 dark:bg-gray-800/40 shadow-xs opacity-75 hover:opacity-100'"
+                                                    class="space-y-2.5 transition-all duration-200"
+                                                >
+                                                    <label class="flex items-center justify-between cursor-pointer select-none">
+                                                        <span class="font-semibold text-xs flex items-center gap-1.5 flex-wrap"
+                                                              :class="editSpecs[{{ $g->id }}]?.selected ? 'text-emerald-950 dark:text-emerald-100 font-bold' : 'text-gray-700 dark:text-gray-300'">
                                                             <span>{{ $g->name }}</span>
-                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-bold">({{ $g->symbol }})</span>
+                                                            <span :class="editSpecs[{{ $g->id }}]?.selected
+                                                                      ? 'bg-emerald-600 text-white border-emerald-600 font-black shadow-xs'
+                                                                      : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 font-bold'"
+                                                                  class="text-[11px] px-1.5 py-0.5 rounded border transition-colors">
+                                                                ({{ $g->symbol }})
+                                                            </span>
+                                                            <template x-if="editSpecs[{{ $g->id }}]?.selected">
+                                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/90 dark:bg-emerald-900/90 text-emerald-900 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-700 shadow-xs">
+                                                                    <svg class="w-2.5 h-2.5 text-emerald-700 dark:text-emerald-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                                                    <span>{{ __('Active') }}</span>
+                                                                </span>
+                                                            </template>
                                                         </span>
-                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" :checked="editSpecs[{{ $g->id }}]?.selected" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-brand-600 focus:ring-brand-500 dark:focus:ring-offset-gray-800">
+                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1"
+                                                            :checked="editSpecs[{{ $g->id }}]?.selected"
+                                                            @change="editSpecs = { ...editSpecs, [{{ $g->id }}]: { ...(editSpecs[{{ $g->id }}] || {}), selected: $el.checked } }"
+                                                            class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-emerald-600 focus:ring-emerald-500 dark:focus:ring-offset-gray-800 w-4 h-4 cursor-pointer">
                                                     </label>
-                                                    <div class="grid grid-cols-2 gap-2">
-                                                        <input type="number" step="any" name="params[{{ $g->id }}][min]" placeholder="{{ __('Min') }}" :value="editSpecs[{{ $g->id }}]?.min ?? ''" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                        <input type="number" step="any" name="params[{{ $g->id }}][max]" placeholder="{{ __('Max') }}" :value="editSpecs[{{ $g->id }}]?.max ?? ''" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                                    <div class="grid grid-cols-2 gap-2" :class="editSpecs[{{ $g->id }}]?.selected ? 'opacity-100' : 'opacity-65'">
+                                                        <input type="number" step="any" name="params[{{ $g->id }}][min]" placeholder="{{ __('Min') }}" :value="editSpecs[{{ $g->id }}]?.min ?? ''"
+                                                            :class="editSpecs[{{ $g->id }}]?.selected ? 'bg-white dark:bg-gray-900 border-emerald-300 dark:border-emerald-700 focus:ring-emerald-500 font-medium' : 'bg-gray-100/60 dark:bg-gray-800/60 border-gray-300 dark:border-gray-600'"
+                                                            class="py-1 px-2 text-xs rounded border dark:text-white transition-colors">
+                                                        <input type="number" step="any" name="params[{{ $g->id }}][max]" placeholder="{{ __('Max') }}" :value="editSpecs[{{ $g->id }}]?.max ?? ''"
+                                                            :class="editSpecs[{{ $g->id }}]?.selected ? 'bg-white dark:bg-gray-900 border-emerald-300 dark:border-emerald-700 focus:ring-emerald-500 font-medium' : 'bg-gray-100/60 dark:bg-gray-800/60 border-gray-300 dark:border-gray-600'"
+                                                            class="py-1 px-2 text-xs rounded border dark:text-white transition-colors">
                                                     </div>
-                                                    <div class="grid grid-cols-2 gap-2">
-                                                        <input type="number" step="any" name="params[{{ $g->id }}][acc]" placeholder="{{ __('Accuracy') }}" :value="editSpecs[{{ $g->id }}]?.acc ?? ''" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                        <select name="params[{{ $g->id }}][acc_type]" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                                    <div class="grid grid-cols-2 gap-2" :class="editSpecs[{{ $g->id }}]?.selected ? 'opacity-100' : 'opacity-65'">
+                                                        <input type="number" step="any" name="params[{{ $g->id }}][acc]" placeholder="{{ __('Accuracy') }}" :value="editSpecs[{{ $g->id }}]?.acc ?? ''"
+                                                            :class="editSpecs[{{ $g->id }}]?.selected ? 'bg-white dark:bg-gray-900 border-emerald-300 dark:border-emerald-700 focus:ring-emerald-500 font-medium' : 'bg-gray-100/60 dark:bg-gray-800/60 border-gray-300 dark:border-gray-600'"
+                                                            class="py-1 px-2 text-xs rounded border dark:text-white transition-colors">
+                                                        <select name="params[{{ $g->id }}][acc_type]"
+                                                            :class="editSpecs[{{ $g->id }}]?.selected ? 'bg-white dark:bg-gray-900 border-emerald-300 dark:border-emerald-700 focus:ring-emerald-500 font-medium' : 'bg-gray-100/60 dark:bg-gray-800/60 border-gray-300 dark:border-gray-600'"
+                                                            class="py-1 px-2 text-xs rounded border dark:text-white transition-colors">
                                                             <option value="%" :selected="editSpecs[{{ $g->id }}]?.acc_type === '%'">%</option>
                                                             <option value="abs" :selected="editSpecs[{{ $g->id }}]?.acc_type === 'abs'">Abs</option>
                                                         </select>
@@ -851,26 +923,57 @@
                                 <!-- Source Parameters -->
                                 @if($sourceGrandeurs->count() > 0)
                                     <div>
-                                        <div class="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2 mt-4">
-                                            <i class="fas fa-bolt me-1"></i> {{ __('Source Capabilities') }}
+                                        <div class="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2 mt-4 flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5">
+                                                <i class="fas fa-bolt"></i>
+                                                <span>{{ __('Source Capabilities') }}</span>
+                                            </span>
                                         </div>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             @foreach($sourceGrandeurs as $g)
-                                                <div class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm space-y-2">
-                                                    <label class="flex items-center justify-between cursor-pointer">
-                                                        <span class="font-semibold text-xs text-gray-900 dark:text-white flex items-center gap-1.5">
+                                                <div
+                                                    :class="editSpecs[{{ $g->id }}]?.selected
+                                                        ? 'p-3 rounded-xl border-2 border-amber-500 bg-amber-50/75 dark:bg-amber-950/30 shadow-md ring-2 ring-amber-500/20'
+                                                        : 'p-3 rounded-xl border border-gray-200 dark:border-gray-700/80 bg-gray-50/40 dark:bg-gray-800/40 shadow-xs opacity-75 hover:opacity-100'"
+                                                    class="space-y-2.5 transition-all duration-200"
+                                                >
+                                                    <label class="flex items-center justify-between cursor-pointer select-none">
+                                                        <span class="font-semibold text-xs flex items-center gap-1.5 flex-wrap"
+                                                              :class="editSpecs[{{ $g->id }}]?.selected ? 'text-amber-950 dark:text-amber-100 font-bold' : 'text-gray-700 dark:text-gray-300'">
                                                             <span>{{ $g->name }}</span>
-                                                            <span class="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-bold">({{ $g->symbol }})</span>
+                                                            <span :class="editSpecs[{{ $g->id }}]?.selected
+                                                                      ? 'bg-amber-600 text-white border-amber-600 font-black shadow-xs'
+                                                                      : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 font-bold'"
+                                                                  class="text-[11px] px-1.5 py-0.5 rounded border transition-colors">
+                                                                ({{ $g->symbol }})
+                                                            </span>
+                                                            <template x-if="editSpecs[{{ $g->id }}]?.selected">
+                                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/90 dark:bg-amber-900/90 text-amber-900 dark:text-amber-100 border border-amber-300 dark:border-amber-700 shadow-xs">
+                                                                    <svg class="w-2.5 h-2.5 text-amber-700 dark:text-amber-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                                                    <span>{{ __('Active') }}</span>
+                                                                </span>
+                                                            </template>
                                                         </span>
-                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1" :checked="editSpecs[{{ $g->id }}]?.selected" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-brand-600 focus:ring-brand-500 dark:focus:ring-offset-gray-800">
+                                                        <input type="checkbox" name="params[{{ $g->id }}][selected]" value="1"
+                                                            :checked="editSpecs[{{ $g->id }}]?.selected"
+                                                            @change="editSpecs = { ...editSpecs, [{{ $g->id }}]: { ...(editSpecs[{{ $g->id }}] || {}), selected: $el.checked } }"
+                                                            class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-amber-600 focus:ring-amber-500 dark:focus:ring-offset-gray-800 w-4 h-4 cursor-pointer">
                                                     </label>
-                                                    <div class="grid grid-cols-2 gap-2">
-                                                        <input type="number" step="any" name="params[{{ $g->id }}][min]" placeholder="{{ __('Min') }}" :value="editSpecs[{{ $g->id }}]?.min ?? ''" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                        <input type="number" step="any" name="params[{{ $g->id }}][max]" placeholder="{{ __('Max') }}" :value="editSpecs[{{ $g->id }}]?.max ?? ''" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                                    <div class="grid grid-cols-2 gap-2" :class="editSpecs[{{ $g->id }}]?.selected ? 'opacity-100' : 'opacity-65'">
+                                                        <input type="number" step="any" name="params[{{ $g->id }}][min]" placeholder="{{ __('Min') }}" :value="editSpecs[{{ $g->id }}]?.min ?? ''"
+                                                            :class="editSpecs[{{ $g->id }}]?.selected ? 'bg-white dark:bg-gray-900 border-amber-300 dark:border-amber-700 focus:ring-amber-500 font-medium' : 'bg-gray-100/60 dark:bg-gray-800/60 border-gray-300 dark:border-gray-600'"
+                                                            class="py-1 px-2 text-xs rounded border dark:text-white transition-colors">
+                                                        <input type="number" step="any" name="params[{{ $g->id }}][max]" placeholder="{{ __('Max') }}" :value="editSpecs[{{ $g->id }}]?.max ?? ''"
+                                                            :class="editSpecs[{{ $g->id }}]?.selected ? 'bg-white dark:bg-gray-900 border-amber-300 dark:border-amber-700 focus:ring-amber-500 font-medium' : 'bg-gray-100/60 dark:bg-gray-800/60 border-gray-300 dark:border-gray-600'"
+                                                            class="py-1 px-2 text-xs rounded border dark:text-white transition-colors">
                                                     </div>
-                                                    <div class="grid grid-cols-2 gap-2">
-                                                        <input type="number" step="any" name="params[{{ $g->id }}][acc]" placeholder="{{ __('Accuracy') }}" :value="editSpecs[{{ $g->id }}]?.acc ?? ''" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                        <select name="params[{{ $g->id }}][acc_type]" class="py-1 px-2 text-xs rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                                    <div class="grid grid-cols-2 gap-2" :class="editSpecs[{{ $g->id }}]?.selected ? 'opacity-100' : 'opacity-65'">
+                                                        <input type="number" step="any" name="params[{{ $g->id }}][acc]" placeholder="{{ __('Accuracy') }}" :value="editSpecs[{{ $g->id }}]?.acc ?? ''"
+                                                            :class="editSpecs[{{ $g->id }}]?.selected ? 'bg-white dark:bg-gray-900 border-amber-300 dark:border-amber-700 focus:ring-amber-500 font-medium' : 'bg-gray-100/60 dark:bg-gray-800/60 border-gray-300 dark:border-gray-600'"
+                                                            class="py-1 px-2 text-xs rounded border dark:text-white transition-colors">
+                                                        <select name="params[{{ $g->id }}][acc_type]"
+                                                            :class="editSpecs[{{ $g->id }}]?.selected ? 'bg-white dark:bg-gray-900 border-amber-300 dark:border-amber-700 focus:ring-amber-500 font-medium' : 'bg-gray-100/60 dark:bg-gray-800/60 border-gray-300 dark:border-gray-600'"
+                                                            class="py-1 px-2 text-xs rounded border dark:text-white transition-colors">
                                                             <option value="%" :selected="editSpecs[{{ $g->id }}]?.acc_type === '%'">%</option>
                                                             <option value="abs" :selected="editSpecs[{{ $g->id }}]?.acc_type === 'abs'">Abs</option>
                                                         </select>

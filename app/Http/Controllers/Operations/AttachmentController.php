@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Operations;
 
+use App\Actions\Attachments\CreateAttachmentAction;
+use App\Actions\Attachments\UpdateAttachmentAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Attachment\StoreAttachmentRequest;
+use App\Http\Requests\Attachment\UpdateAttachmentRequest;
 use App\Models\Attachment;
-use App\Models\AttachmentItem;
 use App\Models\Contract;
 use App\Models\Mission;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -61,9 +65,15 @@ class AttachmentController extends Controller
             });
         }
 
-        $totalCount = Attachment::count();
-        $approvedCount = Attachment::where('status', 'approved')->count();
-        $draftCount = Attachment::where('status', 'draft')->count();
+        // Consolidated single-query count aggregation
+        $counts = DB::table('attachments')
+            ->selectRaw("COUNT(*) as total, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved, SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft")
+            ->first();
+
+        $totalCount = (int) ($counts->total ?? 0);
+        $approvedCount = (int) ($counts->approved ?? 0);
+        $draftCount = (int) ($counts->draft ?? 0);
+
         $totalInvoiced = (float) (DB::table('attachment_items')
             ->join('attachments', 'attachment_items.attachment_id', '=', 'attachments.id')
             ->join('contract_items', 'attachment_items.contract_item_id', '=', 'contract_items.id')
@@ -71,20 +81,31 @@ class AttachmentController extends Controller
             ->selectRaw('SUM(attachment_items.actual_quantity * contract_items.unit_price) as total')
             ->value('total') ?? 0);
 
+        $driver = DB::getDriverName();
+        $yearCol = match ($driver) {
+            'sqlite' => "strftime('%Y', attachments.date)",
+            'pgsql' => "to_char(attachments.date, 'YYYY')",
+            default => 'YEAR(attachments.date)',
+        };
         $yearlyInvoicedRaw = DB::table('attachment_items')
             ->join('attachments', 'attachment_items.attachment_id', '=', 'attachments.id')
             ->join('contract_items', 'attachment_items.contract_item_id', '=', 'contract_items.id')
             ->where('attachments.status', 'approved')
             ->whereNotNull('attachments.date')
-            ->selectRaw('YEAR(attachments.date) as yr, SUM(attachment_items.actual_quantity * contract_items.unit_price) as total')
+            ->selectRaw("{$yearCol} as yr, SUM(attachment_items.actual_quantity * contract_items.unit_price) as total")
             ->groupBy('yr')
             ->orderByDesc('yr')
             ->pluck('total', 'yr')
             ->toArray();
 
+        $yearDate = match ($driver) {
+            'sqlite' => "strftime('%Y', date)",
+            'pgsql' => "to_char(date, 'YYYY')",
+            default => 'YEAR(date)',
+        };
         $yearlyCountsRaw = DB::table('attachments')
             ->whereNotNull('date')
-            ->selectRaw("YEAR(date) as yr, COUNT(*) as total, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved, SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft")
+            ->selectRaw("{$yearDate} as yr, COUNT(*) as total, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved, SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft")
             ->groupBy('yr')
             ->orderByDesc('yr')
             ->get()
@@ -156,8 +177,10 @@ class AttachmentController extends Controller
             'items.itemType',
         ])->orderBy('reference')->get();
 
-        $contracts->each(function ($contract) {
-            $siteMissions = $contract->customer?->sites?->flatMap->missions ?? collect();
+        $contracts->each(function ($contract): void {
+            // Only merge missions that belong to THIS contract or have no contract assigned yet
+            $siteMissions = $contract->customer?->sites?->flatMap->missions
+                ->filter(fn ($m): bool => is_null($m->contract_id) || (int) $m->contract_id === (int) $contract->id) ?? collect();
             $directMissions = $contract->missions ?? collect();
             $merged = $directMissions->concat($siteMissions)->unique('id')->values();
             $contract->setRelation('missions', $merged);
@@ -169,68 +192,11 @@ class AttachmentController extends Controller
     /**
      * Store a newly created attachment in storage.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreAttachmentRequest $request, CreateAttachmentAction $action): RedirectResponse
     {
         Gate::authorize('create attachments');
 
-        $validated = $request->validate([
-            'date' => ['required', 'date'],
-            'contract_id' => ['nullable', 'exists:contracts,id'],
-            'mission_id' => ['required', 'exists:missions,id'],
-            'ods' => ['nullable', 'string', 'max:100'],
-            'code_ref' => ['nullable', 'string', 'max:100'],
-            'type' => ['required', 'string', 'in:service,supply'],
-            'status' => ['required', 'string', 'in:draft,approved'],
-            'frequency' => ['nullable', 'string', 'in:annuelle,semestrielle'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.contract_item_id' => ['required', 'exists:contract_items,id'],
-            'items.*.actual_quantity' => ['required', 'numeric', 'min:0'],
-            'items.*.planned_quantity' => ['nullable', 'numeric', 'min:0'],
-        ]);
-
-        $mission = Mission::findOrFail($validated['mission_id']);
-
-        if (! $mission->contract_id && ! empty($validated['contract_id'])) {
-            $mission->update(['contract_id' => (int) $validated['contract_id']]);
-        }
-
-        DB::transaction(function () use ($validated, $mission): void {
-            // Auto generate code_ref if not provided: ATT-GMTM-{YEAR}-{NUM3}
-            $codeRef = trim((string) ($validated['code_ref'] ?? ''));
-            if ($codeRef === '') {
-                $year = date('Y', strtotime($validated['date']));
-                $latest = Attachment::whereYear('date', $year)->orderByDesc('id')->first();
-                $nextNumber = 1;
-                if ($latest && $latest->code_ref && preg_match('/-(\d+)$/', (string) $latest->code_ref, $matches)) {
-                    $nextNumber = (int) $matches[1] + 1;
-                }
-                $codeRef = 'ATT-GMTM-'.$year.'-'.str_pad((string) $nextNumber, 3, '0', STR_PAD_LEFT);
-            }
-
-            $attachment = Attachment::create([
-                'mission_id' => $mission->id,
-                'date' => $validated['date'],
-                'ods' => $validated['ods'] ?? null,
-                'code_ref' => $codeRef,
-                'type' => $validated['type'],
-                'status' => $validated['status'],
-                'frequency' => $validated['frequency'] ?? null,
-            ]);
-
-            foreach ($validated['items'] as $itemData) {
-                // Only insert if actual quantity or planned quantity > 0
-                $actual = (float) ($itemData['actual_quantity'] ?? 0);
-                $planned = (float) ($itemData['planned_quantity'] ?? 0);
-                if ($actual > 0 || $planned > 0) {
-                    AttachmentItem::create([
-                        'attachment_id' => $attachment->id,
-                        'contract_item_id' => (int) $itemData['contract_item_id'],
-                        'actual_quantity' => $actual,
-                        'planned_quantity' => $planned,
-                    ]);
-                }
-            }
-        });
+        $action->execute($request->validated());
 
         return redirect()->route('operations.attachments', $request->query())
             ->with('success', __('Attachment created successfully.'));
@@ -257,9 +223,14 @@ class AttachmentController extends Controller
     /**
      * Show the form for editing the specified attachment.
      */
-    public function edit(Attachment $attachment): View
+    public function edit(Attachment $attachment): View|RedirectResponse
     {
         Gate::authorize('edit attachments');
+
+        if ($attachment->status === 'approved') {
+            return redirect()->route('operations.attachments.show', $attachment->id)
+                ->with('warning', __('Cannot modify an approved attachment. Please revert it to draft first.'));
+        }
 
         $attachment->load([
             'mission.site',
@@ -271,7 +242,10 @@ class AttachmentController extends Controller
 
         // If selectedContractId is still null, try finding it via the customer of the mission's site
         if (! $selectedContractId && $attachment->mission?->site?->customer_id) {
-            $selectedContractId = Contract::where('customer_id', $attachment->mission->site->customer_id)->value('id');
+            $selectedContractId = Contract::active()
+                ->where('customer_id', $attachment->mission->site->customer_id)
+                ->orderByDesc('id')
+                ->value('id');
         }
 
         // Enforce Active Contracts Invariant — retain selected contract if already assigned
@@ -286,8 +260,10 @@ class AttachmentController extends Controller
             'items.itemType',
         ])->orderBy('reference')->get();
 
-        $contracts->each(function ($contract) use ($attachment, $selectedContractId) {
-            $siteMissions = $contract->customer?->sites?->flatMap->missions ?? collect();
+        $contracts->each(function ($contract) use ($attachment, $selectedContractId): void {
+            // Only merge missions that belong to THIS contract or have no contract assigned yet
+            $siteMissions = $contract->customer?->sites?->flatMap->missions
+                ->filter(fn ($m): bool => is_null($m->contract_id) || (int) $m->contract_id === (int) $contract->id) ?? collect();
             $directMissions = $contract->missions ?? collect();
             $merged = $directMissions->concat($siteMissions);
 
@@ -305,58 +281,15 @@ class AttachmentController extends Controller
     /**
      * Update the specified attachment in storage.
      */
-    public function update(Request $request, Attachment $attachment): RedirectResponse
+    public function update(UpdateAttachmentRequest $request, Attachment $attachment, UpdateAttachmentAction $action): RedirectResponse
     {
         Gate::authorize('edit attachments');
 
-        $validated = $request->validate([
-            'date' => ['required', 'date'],
-            'contract_id' => ['nullable', 'exists:contracts,id'],
-            'mission_id' => ['required', 'exists:missions,id'],
-            'ods' => ['nullable', 'string', 'max:100'],
-            'code_ref' => ['nullable', 'string', 'max:100'],
-            'type' => ['required', 'string', 'in:service,supply'],
-            'status' => ['required', 'string', 'in:draft,approved'],
-            'frequency' => ['nullable', 'string', 'in:annuelle,semestrielle'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.contract_item_id' => ['required', 'exists:contract_items,id'],
-            'items.*.actual_quantity' => ['required', 'numeric', 'min:0'],
-            'items.*.planned_quantity' => ['nullable', 'numeric', 'min:0'],
-        ]);
-
-        $mission = Mission::findOrFail($validated['mission_id']);
-
-        if (! $mission->contract_id && ! empty($validated['contract_id'])) {
-            $mission->update(['contract_id' => (int) $validated['contract_id']]);
+        try {
+            $action->execute($attachment, $request->validated());
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage())->withInput();
         }
-
-        DB::transaction(function () use ($validated, $attachment, $mission): void {
-            $attachment->update([
-                'mission_id' => $mission->id,
-                'date' => $validated['date'],
-                'ods' => $validated['ods'] ?? null,
-                'code_ref' => $validated['code_ref'] ?: $attachment->code_ref,
-                'type' => $validated['type'],
-                'status' => $validated['status'],
-                'frequency' => $validated['frequency'] ?? null,
-            ]);
-
-            // Replace line items
-            $attachment->items()->delete();
-
-            foreach ($validated['items'] as $itemData) {
-                $actual = (float) ($itemData['actual_quantity'] ?? 0);
-                $planned = (float) ($itemData['planned_quantity'] ?? 0);
-                if ($actual > 0 || $planned > 0) {
-                    AttachmentItem::create([
-                        'attachment_id' => $attachment->id,
-                        'contract_item_id' => (int) $itemData['contract_item_id'],
-                        'actual_quantity' => $actual,
-                        'planned_quantity' => $planned,
-                    ]);
-                }
-            }
-        });
 
         return redirect()->route('operations.attachments.show', $attachment->id)
             ->with('success', __('Attachment updated successfully.'));
@@ -369,8 +302,18 @@ class AttachmentController extends Controller
     {
         Gate::authorize('delete attachments');
 
+        if ($attachment->status === 'approved') {
+            return back()->with('error', __('Cannot delete an approved attachment. Please revert it to draft first.'));
+        }
+
+        if ($attachment->items()->whereHas('charges')->exists()) {
+            return back()->with('error', __('Cannot delete attachment because one or more line items have associated expense charges.'));
+        }
+
         DB::transaction(function () use ($attachment): void {
-            $attachment->items()->delete();
+            foreach ($attachment->items as $item) {
+                $item->delete();
+            }
             $attachment->delete();
         });
 
@@ -385,6 +328,10 @@ class AttachmentController extends Controller
     {
         Gate::authorize('edit attachments');
 
+        if ($attachment->status === 'approved') {
+            return back()->with('info', __('Attachment is already approved.'));
+        }
+
         $attachment->update(['status' => 'approved']);
 
         return back()->with('success', __('Attachment status updated to Approved successfully.'));
@@ -396,6 +343,10 @@ class AttachmentController extends Controller
     public function revertToDraft(Attachment $attachment): RedirectResponse
     {
         Gate::authorize('edit attachments');
+
+        if ($attachment->status === 'draft') {
+            return back()->with('info', __('Attachment is already in draft status.'));
+        }
 
         $attachment->update(['status' => 'draft']);
 

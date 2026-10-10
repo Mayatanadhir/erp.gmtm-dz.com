@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -26,7 +27,7 @@ use Spatie\Activitylog\Support\LogOptions;
 ])]
 class ContractItem extends Model
 {
-    use FilterableTrait, HasActivity, HasFactory;
+    use FilterableTrait, HasActivity, HasFactory, SoftDeletes;
 
     /**
      * The table associated with the model.
@@ -151,7 +152,10 @@ class ContractItem extends Model
      */
     public function getConsumptionPercentageAttribute(): float
     {
-        $actual = (float) ($this->attachment_items_sum_quantity ?? $this->attachmentItems()->sum('actual_quantity'));
+        $actual = array_key_exists('attachment_items_sum_quantity', $this->attributes)
+            ? (float) ($this->attributes['attachment_items_sum_quantity'] ?? 0.0)
+            : (float) $this->attachmentItems()->sum('actual_quantity');
+
         $planned = (int) $this->quantity;
 
         if ($planned <= 0) {

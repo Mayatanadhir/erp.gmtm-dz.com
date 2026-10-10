@@ -575,7 +575,7 @@
                                 <th>Coef. Dilatation (Gcm)</th>
                                 <td>{{ sprintf('%.2e', $standard_gauge_specifications?->cubical_expansion_coef_gcm ?? 0) }} 1/°C</td>
                                 <th>Temp. Réf. Jauge</th>
-                                <td>15 °C</td>
+                                <td> {{ $standard_gauge_specifications?->base_reference_temperature ?? 15 }} °C</td>
                             </tr>
                             <tr>
                                 <th>Sensibilité Col (Scol)</th>
@@ -627,7 +627,7 @@
                     <tr>
                         <td class="text-bold">{{ $runIndex + 1 }}</td>
                         <td>
-                            {{ number_format($run->indicated_volume, 3) }}
+                            {{ number_format($run->indicated_volume, 4) }}
                             @if($run->scale_reading_mm !== null)
                                 <br><span style="font-size: 6.5px; color: #64748b;">({{ number_format($run->scale_reading_mm, 1) }} mm)</span>
                             @endif

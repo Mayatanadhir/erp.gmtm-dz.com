@@ -12,6 +12,7 @@ use App\Http\Controllers\Metrology\ChromatographVerificationController;
 use App\Http\Controllers\Metrology\EquipmentController;
 use App\Http\Controllers\Metrology\GrandeurUnitController;
 use App\Http\Controllers\Metrology\InstrumentController;
+use App\Http\Controllers\Metrology\ProverVerificationController;
 use App\Http\Controllers\Metrology\ReportController as MetrologyReportController;
 use App\Http\Controllers\MetrologyController;
 use App\Http\Controllers\Operations\AttachmentController;
@@ -114,7 +115,20 @@ $routes = function (): void {
 
             // Specialized Domain Pillar Hubs (MUST BE BEFORE wildcard /{report})
             Route::get('/report-instruments', [CalibrationInstrumentsController::class, 'index'])->name('report-instruments.index');
-            Route::get('/report-prover', [MetrologyReportController::class, 'proverIndex'])->name('report-prover.index');
+
+            // Prover & Standard Gauges Domain Routes (MUST BE BEFORE wildcard /{report})
+            Route::prefix('report-prover')->name('report-prover.')->group(function () {
+                Route::get('/', [ProverVerificationController::class, 'index'])->name('index');
+                Route::get('/create', [ProverVerificationController::class, 'create'])->name('create');
+                Route::post('/', [ProverVerificationController::class, 'store'])->name('store');
+                Route::post('/calculate-preview', [ProverVerificationController::class, 'calculatePreview'])->name('preview');
+                Route::get('/{proverVerification}', [ProverVerificationController::class, 'show'])->name('show')->whereNumber('proverVerification');
+                Route::get('/{proverVerification}/edit', [ProverVerificationController::class, 'edit'])->name('edit')->whereNumber('proverVerification');
+                Route::put('/{proverVerification}', [ProverVerificationController::class, 'update'])->name('update')->whereNumber('proverVerification');
+                Route::delete('/{proverVerification}', [ProverVerificationController::class, 'destroy'])->name('destroy')->whereNumber('proverVerification');
+                Route::get('/{proverVerification}/pdf', [ProverVerificationController::class, 'generatePdf'])->name('pdf')->whereNumber('proverVerification');
+                Route::get('/{proverVerification}/pdf-not-emt', [ProverVerificationController::class, 'generatePdfNotEmt'])->name('pdf-not-emt')->whereNumber('proverVerification');
+            });
 
             // Chromatograph (CPG) Domain Routes
             Route::prefix('report-chromatograph')->name('report-chromatograph.')->group(function () {
@@ -152,7 +166,18 @@ $routes = function (): void {
     Route::middleware(['auth', 'verified'])->prefix('admin/reports')->name('admin.reports.')->group(function () {
         Route::get('/', [MetrologyReportController::class, 'index'])->name('index');
         Route::get('/report-instruments', [CalibrationInstrumentsController::class, 'index'])->name('report-instruments.index');
-        Route::get('/report-prover', [MetrologyReportController::class, 'proverIndex'])->name('report-prover.index');
+        Route::prefix('report-prover')->name('report-prover.')->group(function () {
+            Route::get('/', [ProverVerificationController::class, 'index'])->name('index');
+            Route::get('/create', [ProverVerificationController::class, 'create'])->name('create');
+            Route::post('/', [ProverVerificationController::class, 'store'])->name('store');
+            Route::post('/calculate-preview', [ProverVerificationController::class, 'calculatePreview'])->name('preview');
+            Route::get('/{proverVerification}', [ProverVerificationController::class, 'show'])->name('show')->whereNumber('proverVerification');
+            Route::get('/{proverVerification}/edit', [ProverVerificationController::class, 'edit'])->name('edit')->whereNumber('proverVerification');
+            Route::put('/{proverVerification}', [ProverVerificationController::class, 'update'])->name('update')->whereNumber('proverVerification');
+            Route::delete('/{proverVerification}', [ProverVerificationController::class, 'destroy'])->name('destroy')->whereNumber('proverVerification');
+            Route::get('/{proverVerification}/pdf', [ProverVerificationController::class, 'generatePdf'])->name('pdf')->whereNumber('proverVerification');
+            Route::get('/{proverVerification}/pdf-not-emt', [ProverVerificationController::class, 'generatePdfNotEmt'])->name('pdf-not-emt')->whereNumber('proverVerification');
+        });
         Route::prefix('report-chromatograph')->name('report-chromatograph.')->group(function () {
             Route::get('/', [ChromatographVerificationController::class, 'index'])->name('index');
             Route::get('/create', [ChromatographVerificationController::class, 'create'])->name('create');
@@ -196,6 +221,19 @@ $routes = function (): void {
         Route::get('/{chromatographVerification}/pdf-not-emt', [ChromatographVerificationController::class, 'generatePdfNotEmt'])->name('pdf_not_emt')->whereNumber('chromatographVerification');
         Route::get('/{chromatographVerification}/excel', [ChromatographVerificationController::class, 'exportExcel'])->name('excel')->whereNumber('chromatographVerification');
         Route::get('/instruments/{instrument}/excel-template', [ChromatographVerificationController::class, 'exportTemplate'])->name('excel_template')->whereNumber('instrument');
+    });
+
+    // Compatibility Alias for legacy admin.prover_verifications.* routes
+    Route::middleware(['auth', 'verified'])->prefix('admin/prover-verifications')->name('admin.prover_verifications.')->group(function () {
+        Route::get('/', [ProverVerificationController::class, 'index'])->name('index');
+        Route::get('/create', [ProverVerificationController::class, 'create'])->name('create');
+        Route::get('/session/create', [ProverVerificationController::class, 'create']);
+        Route::post('/', [ProverVerificationController::class, 'store'])->name('store');
+        Route::post('/calculate-preview', [ProverVerificationController::class, 'calculatePreview'])->name('preview');
+        Route::get('/{proverVerification}', [ProverVerificationController::class, 'show'])->name('show')->whereNumber('proverVerification');
+        Route::delete('/{proverVerification}', [ProverVerificationController::class, 'destroy'])->name('destroy')->whereNumber('proverVerification');
+        Route::get('/{proverVerification}/pdf', [ProverVerificationController::class, 'generatePdf'])->name('pdf')->whereNumber('proverVerification');
+        Route::get('/{proverVerification}/pdf-not-emt', [ProverVerificationController::class, 'generatePdfNotEmt'])->name('pdf_not_emt')->whereNumber('proverVerification');
     });
     Route::middleware(['auth', 'verified'])->get('/dashboard/metrology', [MetrologyController::class, 'index'])->name('dashboard_metrology');
 
@@ -356,6 +394,16 @@ $routes = function (): void {
         Route::post('/pruning/reset', [SystemTableController::class, 'resetPruningSettings'])->name('pruning.reset');
         Route::post('/pruning/tables', [SystemTableController::class, 'addPruningTable'])->name('pruning.tables.add');
         Route::delete('/pruning/tables/{table}', [SystemTableController::class, 'removePruningTable'])->name('pruning.tables.remove');
+        Route::get('/trashed', [SystemTableController::class, 'trashedIndex'])->name('trashed');
+        Route::get('/trashed/{table}/records', [SystemTableController::class, 'getTrashedRecords'])->name('trashed.records');
+        Route::get('/trashed/{table}', [SystemTableController::class, 'trashedShow'])->name('trashed.show');
+        Route::post('/trashed/{table}/purge-single/{id}', [SystemTableController::class, 'purgeSingleTrashedRecord'])->name('trashed.purge-single');
+        Route::post('/trashed/{table}/purge', [SystemTableController::class, 'purgeTableTrashed'])->name('trashed.purge-table');
+        Route::post('/trashed/purge-all', [SystemTableController::class, 'purgeAllTrashed'])->name('trashed.purge-all');
+        Route::get('/pruning/trashed/{table}', [SystemTableController::class, 'getTrashedRecords'])->name('pruning.trashed.records');
+        Route::post('/pruning/trashed/{table}/purge-single/{id}', [SystemTableController::class, 'purgeSingleTrashedRecord'])->name('pruning.trashed.purge-single');
+        Route::post('/pruning/trashed/{table}/purge', [SystemTableController::class, 'purgeTableTrashed'])->name('pruning.trashed.purge-table');
+        Route::post('/pruning/trashed/purge-all', [SystemTableController::class, 'purgeAllTrashed'])->name('pruning.trashed.purge-all');
         Route::get('/backups', [SystemTableController::class, 'backups'])->name('backups');
         Route::post('/backups/create', [SystemTableController::class, 'createBackup'])->name('backups.create');
         Route::get('/backups/download/{file}', [SystemTableController::class, 'downloadBackup'])->name('backups.download');

@@ -28,8 +28,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -527,7 +529,10 @@ class SystemTableController extends Controller
             $counts[$tblKey] = $this->systemTableService->safeCount($tblKey);
         }
 
-        return view('system.pruning', compact('effectiveConfig', 'hasCustomSettings', 'history', 'counts', 'eligibleTables'));
+        return view('system.pruning', array_merge(
+            compact('effectiveConfig', 'hasCustomSettings', 'history', 'counts', 'eligibleTables'),
+            $this->trashedOverview()
+        ));
     }
 
     /**
@@ -538,7 +543,7 @@ class SystemTableController extends Controller
         $validated = $request->validated();
 
         $data = [
-            'enabled' => $request->boolean('enabled'),
+            'enabled' => $request->has('enabled') ? $request->boolean('enabled') : true,
             'chunk_size' => (int) $validated['chunk_size'],
             'tables' => [],
         ];
@@ -555,7 +560,13 @@ class SystemTableController extends Controller
             }
         }
 
-        $this->dataPruningService->saveCustomSettings($data);
+        try {
+            $this->dataPruningService->saveCustomSettings($data);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()
+                ->route('system-tables.pruning')
+                ->withErrors(['tables' => $e->getMessage()]);
+        }
 
         return redirect()
             ->route('system-tables.pruning')
@@ -638,6 +649,182 @@ class SystemTableController extends Controller
                 ->route('system-tables.pruning')
                 ->withErrors(['table' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Trashed tables + their total, computed once for every view that needs it.
+     *
+     * @return array{trashedTables: array<int, array<string, mixed>>, totalTrashedCount: int}
+     */
+    private function trashedOverview(): array
+    {
+        $trashedTables = $this->dataPruningService->getTablesWithTrashedData();
+
+        return [
+            'trashedTables' => $trashedTables,
+            'totalTrashedCount' => (int) array_sum(array_column($trashedTables, 'trashed_count')),
+        ];
+    }
+
+    /**
+     * Optional permission gate for the trashed-records tooling.
+     * Set config('pruning.purge_permission') to a permission name to enforce it; null disables the check
+     * (route middleware may already protect these routes).
+     */
+    private function authorizePurge(): void
+    {
+        $permission = config('pruning.purge_permission');
+
+        if (is_string($permission) && $permission !== '') {
+            abort_unless(Auth::user()?->can($permission), 403);
+        }
+    }
+
+    private function backToTrashed(?string $status = null, ?string $error = null): RedirectResponse
+    {
+        $response = redirect()->back(fallback: route('system-tables.trashed'));
+
+        if ($status !== null) {
+            $response->with('status', $status);
+        }
+
+        if ($error !== null) {
+            $response->withErrors(['trashed' => $error]);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Display dedicated Trashed Records & Hard Purge dashboard.
+     */
+    public function trashedIndex(): View
+    {
+        $this->authorizePurge();
+
+        return view('system.trashed', $this->trashedOverview());
+    }
+
+    /**
+     * Inspect soft-deleted records for a given database table via JSON.
+     */
+    public function getTrashedRecords(Request $request, string $table): JsonResponse
+    {
+        $this->authorizePurge();
+
+        try {
+            $limit = min(100, max(1, (int) $request->input('limit', 50)));
+            $offset = max(0, (int) $request->input('offset', 0));
+
+            return response()->json($this->dataPruningService->getTrashedRecords($table, $limit, $offset));
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            Log::error("Trashed records inspection failed for '{$table}': {$e->getMessage()}");
+
+            return response()->json(['error' => __('Failed to retrieve soft-deleted records.')], 500);
+        }
+    }
+
+    /**
+     * Display dedicated full-page preview for soft-deleted records of a specific table.
+     */
+    public function trashedShow(Request $request, string $table): View|RedirectResponse
+    {
+        $this->authorizePurge();
+
+        try {
+            $trashedData = $this->dataPruningService->getTrashedRecords($table, 100);
+
+            return view('system.trashed-show', compact('trashedData'));
+        } catch (\InvalidArgumentException $e) {
+            return redirect()
+                ->route('system-tables.trashed')
+                ->withErrors(['trashed' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Permanently purge a single soft-deleted record.
+     */
+    public function purgeSingleTrashedRecord(Request $request, string $table, string|int $id): JsonResponse|RedirectResponse
+    {
+        $this->authorizePurge();
+
+        try {
+            $result = $this->dataPruningService->forceDeleteSingleTrashedRecord($table, $id);
+        } catch (\InvalidArgumentException $e) {
+            $result = ['success' => false, 'message' => $e->getMessage()];
+        } catch (\Throwable $e) {
+            Log::error("Single trashed purge failed for '{$table}' #{$id}: {$e->getMessage()}");
+            $result = ['success' => false, 'message' => __('Request failed. Check server logs.')];
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(
+                $result + ['error' => $result['success'] ? null : $result['message']],
+                $result['success'] ? 200 : 422
+            );
+        }
+
+        return $result['success']
+            ? $this->backToTrashed(status: $result['message'])
+            : $this->backToTrashed(error: $result['message']);
+    }
+
+    /**
+     * Permanently purge ALL soft-deleted records for a specific table.
+     */
+    public function purgeTableTrashed(Request $request, string $table): RedirectResponse
+    {
+        $this->authorizePurge();
+
+        $confirmation = strtoupper(trim((string) $request->input('confirmation', '')));
+        if ($confirmation !== 'PURGE') {
+            return $this->backToTrashed(error: __('Security confirmation failed: You must type :expected to confirm table purge.', ['expected' => 'PURGE']));
+        }
+
+        try {
+            $result = $this->dataPruningService->forceDeleteAllTrashedForTable($table);
+        } catch (\InvalidArgumentException $e) {
+            return $this->backToTrashed(error: $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error("Table trashed purge failed for '{$table}': {$e->getMessage()}");
+
+            return $this->backToTrashed(error: __('Request failed. Check server logs.'));
+        }
+
+        // Partial results (rows kept because of foreign keys) are shown as a warning, not as a success.
+        return ($result['success'] && $result['blocked_count'] === 0)
+            ? $this->backToTrashed(status: $result['message'])
+            : $this->backToTrashed(error: $result['message']);
+    }
+
+    /**
+     * Permanently purge ALL soft-deleted records across all database tables.
+     */
+    public function purgeAllTrashed(Request $request): RedirectResponse
+    {
+        $this->authorizePurge();
+
+        $confirmation = strtoupper(trim((string) $request->input('confirmation', '')));
+        if ($confirmation !== 'FORCE DELETE') {
+            return $this->backToTrashed(error: __('Security confirmation failed: You must type :expected to confirm system-wide purge.', ['expected' => 'FORCE DELETE']));
+        }
+
+        try {
+            $result = $this->dataPruningService->forceDeleteAllTrashedAcrossAllTables();
+        } catch (\Throwable $e) {
+            Log::error("System-wide trashed purge failed: {$e->getMessage()}");
+
+            return $this->backToTrashed(error: __('Request failed. Check server logs.'));
+        }
+
+        $warnings = $result['warnings'] === [] ? null : implode(' | ', $result['warnings']);
+
+        return $result['success']
+            ? $this->backToTrashed(status: $result['message'], error: $warnings)
+            : $this->backToTrashed(error: $warnings ?? $result['message']);
     }
 
     /**
@@ -866,6 +1053,18 @@ class SystemTableController extends Controller
         ]);
 
         $key = $validated['key'];
+
+        // Keys managed by dedicated, validated flows can never be overwritten through this generic endpoint.
+        $reservedKeys = ['data_pruning_settings'];
+        /** @var array<int, string> $editableKeys */
+        $editableKeys = (array) config('system.editable_settings', []);
+
+        if (in_array($key, $reservedKeys, true) || ($editableKeys !== [] && ! in_array($key, $editableKeys, true))) {
+            throw ValidationException::withMessages([
+                'key' => __('This setting cannot be modified through this form.'),
+            ]);
+        }
+
         $value = $validated['value'];
         $group = $validated['group'] ?? 'general';
         $description = $validated['description'] ?? null;

@@ -14,19 +14,22 @@
 
 @php
 $currentSearch = $searchValue ?? request($searchName, '');
-$resolvedResetUrl = $resetUrl ?? $action;
 $formId = 'gf-' . uniqid();
 
-// Detect active query filters (ignoring pagination 'page')
+// Detect active query filters (ignoring pagination 'page' and navigation 'tab')
 $activeQueryParams = collect(request()->query())->filter(function ($val, $key) {
-    return $key !== 'page' && $val !== null && $val !== '' && $val !== [];
+    return ! in_array($key, ['page', 'tab'], true) && $val !== null && $val !== '' && $val !== [];
 });
 $hasActiveFilters = $activeQueryParams->isNotEmpty();
+
+$preservedParams = collect(request()->only(['tab']))->filter(fn ($v) => $v !== null && $v !== '')->all();
+$defaultResetUrl = ! empty($preservedParams) ? url($action . '?' . http_build_query($preservedParams)) : $action;
+$resolvedResetUrl = $resetUrl ?? $defaultResetUrl;
 @endphp
 
 <div class="w-full sm:w-auto"
      x-data="{
-         searchQuery: '{{ addslashes((string) $currentSearch) }}',
+         searchQuery: {{ Js::from((string) $currentSearch) }},
          hasActiveFilters: {{ $hasActiveFilters ? 'true' : 'false' }},
          clearSearch() {
              this.searchQuery = '';
@@ -118,7 +121,7 @@ $hasActiveFilters = $activeQueryParams->isNotEmpty();
     var form = document.getElementById('{{ $formId }}');
     if (!form) return;
     form.addEventListener('change', function (e) {
-        if (e.target.tagName === 'SELECT') {
+        if (e.target.tagName === 'SELECT' && !e.target.hasAttribute('data-no-auto-submit') && !e.target.closest('[data-no-auto-submit]')) {
             form.submit();
         }
     });

@@ -158,7 +158,7 @@ class GrandeurFeatureTest extends TestCase
 
         $response->assertRedirect(route('metrology.units'));
         $response->assertSessionHas('success');
-        $this->assertDatabaseMissing('grandeurs', ['id' => $grandeur->id]);
+        $this->assertSoftDeleted('grandeurs', ['id' => $grandeur->id]);
     }
 
     public function test_standard_user_cannot_access_units_management_without_permission(): void

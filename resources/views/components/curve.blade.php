@@ -10,11 +10,19 @@
 @php
     $specifications = $specifications ?? ($certificate->equipment?->specifications()->with('grandeur')->get() ?? collect());
     $activeSpecification = $activeSpecification ?? $specifications->first();
+    $gridConfig = [
+        'minBound' => $fivePointGrid['span_min'] ?? 0,
+        'maxBound' => $fivePointGrid['span_max'] ?? 0,
+        'p1' => $fivePointGrid['points'][0]['target_x'] ?? 0,
+        'p2' => $fivePointGrid['points'][1]['target_x'] ?? 0,
+        'p3' => $fivePointGrid['points'][2]['target_x'] ?? 0,
+        'p4' => $fivePointGrid['points'][3]['target_x'] ?? 0,
+        'p5' => $fivePointGrid['points'][4]['target_x'] ?? 0,
+    ];
 @endphp
 
 <div @if($tabCondition) x-show="{{ $tabCondition }}" @endif
-     x-data="interpolationViewer({{ Js::from($fivePointGrid['chart_data'] ?? []) }}, {{ Js::from($comparisonData ?? []) }})"
-     x-init="init()"
+     x-data="interpolationViewer({{ Js::from($fivePointGrid['chart_data'] ?? []) }}, {{ Js::from($comparisonData ?? []) }}, {{ Js::from($gridConfig) }})"
      @if($tabCondition) x-effect="if ({{ $tabCondition }}) { $nextTick(() => { handleTabSwitch(); }); }" @endif
      {{ $attributes->merge(['class' => 'space-y-6']) }}>
 
@@ -266,7 +274,7 @@
 
             @if(!empty($fivePointGrid['has_data']))
                 <div class="relative w-full h-80 sm:h-96">
-                    <canvas id="singleCurveChart" class="w-full h-full"></canvas>
+                    <canvas x-ref="singleCurveCanvas" id="singleCurveChart" class="w-full h-full"></canvas>
                 </div>
             @else
                 <div class="flex flex-col items-center justify-center p-12 text-center text-xs text-gray-500 dark:text-gray-400 space-y-3 bg-gray-50 dark:bg-gray-700/20 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
@@ -311,7 +319,7 @@
 
             @if(!empty($comparisonData['has_data']) && count($comparisonData['labels'] ?? []) > 1)
                 <div class="relative w-full h-80 sm:h-96">
-                    <canvas id="comparisonCurveChart" class="w-full h-full"></canvas>
+                    <canvas x-ref="comparisonCurveCanvas" id="comparisonCurveChart" class="w-full h-full"></canvas>
                 </div>
             @else
                 <div class="flex flex-col items-center justify-center p-12 text-center text-xs text-gray-500 dark:text-gray-400 space-y-3 bg-gray-50 dark:bg-gray-700/20 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
@@ -336,26 +344,31 @@
     @push('scripts')
         <script src="{{ asset('js/chart.umd.min.js') }}"></script>
         <script>
-            function interpolationViewer(singleChartData, comparisonChartData) {
+            function interpolationViewer(singleChartData, comparisonChartData, gridConfig = {}) {
                 return {
                     singleChart: null,
                     comparisonChart: null,
-                    minBound: {{ json_encode($fivePointGrid['span_min'] ?? 0) }},
-                    maxBound: {{ json_encode($fivePointGrid['span_max'] ?? 0) }},
-                    p1: {{ json_encode($fivePointGrid['points'][0]['target_x'] ?? 0) }},
-                    p2: {{ json_encode($fivePointGrid['points'][1]['target_x'] ?? 0) }},
-                    p3: {{ json_encode($fivePointGrid['points'][2]['target_x'] ?? 0) }},
-                    p4: {{ json_encode($fivePointGrid['points'][3]['target_x'] ?? 0) }},
-                    p5: {{ json_encode($fivePointGrid['points'][4]['target_x'] ?? 0) }},
+                    minBound: gridConfig.minBound ?? 0,
+                    maxBound: gridConfig.maxBound ?? 0,
+                    p1: gridConfig.p1 ?? 0,
+                    p2: gridConfig.p2 ?? 0,
+                    p3: gridConfig.p3 ?? 0,
+                    p4: gridConfig.p4 ?? 0,
+                    p5: gridConfig.p5 ?? 0,
                     init() {
                         this.$nextTick(() => {
                             if (this.isTabVisible()) {
                                 this.renderCharts();
                             }
                         });
+                        window.addEventListener('theme-changed', () => {
+                            if (this.isTabVisible()) {
+                                this.renderCharts();
+                            }
+                        });
                     },
                     isTabVisible() {
-                        const canvas = document.getElementById('singleCurveChart');
+                        const canvas = this.$refs.singleCurveCanvas || document.getElementById('singleCurveChart');
                         return Boolean(canvas && canvas.offsetParent !== null);
                     },
                     handleTabSwitch() {
@@ -399,7 +412,7 @@
                         this.renderComparisonChart();
                     },
                     renderSingleChart() {
-                        const canvas = document.getElementById('singleCurveChart');
+                        const canvas = this.$refs.singleCurveCanvas || document.getElementById('singleCurveChart');
                         if (!canvas || !singleChartData || !singleChartData.labels || singleChartData.labels.length === 0) {
                             return;
                         }
@@ -514,7 +527,7 @@
                         });
                     },
                     renderComparisonChart() {
-                        const canvas = document.getElementById('comparisonCurveChart');
+                        const canvas = this.$refs.comparisonCurveCanvas || document.getElementById('comparisonCurveChart');
                         if (!canvas || !comparisonChartData || !comparisonChartData.labels || comparisonChartData.labels.length === 0) {
                             return;
                         }

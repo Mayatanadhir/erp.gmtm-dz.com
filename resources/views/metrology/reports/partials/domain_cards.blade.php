@@ -7,5 +7,5 @@
     @include('metrology.reports.report-chromatograph.partials.domain_card')
 
     <!-- 3. Standard Provers & Test Measures Domain Card -->
-    @include('metrology.reports.report-Prover.partials.domain_card')
+    @include('metrology.reports.report-prover.partials.domain_card')
 </div>

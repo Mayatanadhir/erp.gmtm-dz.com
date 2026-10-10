@@ -41,4 +41,29 @@ final class MetrologyConstants
      * Regulatory Repeatability Limit (OAM / API MPMS Ch. 4)
      */
     public const string MAX_REPEATABILITY_PERCENT = '0.020';
+
+    /**
+     * Water Density Constants (ISO 8222 / Tanaka 2001)
+     * rho(t) = A5 * [1 - ((t + A1)^2 * (t + A2)) / (A3 * (t + A4))]
+     */
+    public const string WATER_DENS_A1 = '-3.983035';
+
+    public const string WATER_DENS_A2 = '301.797';
+
+    public const string WATER_DENS_A3 = '522528.9';
+
+    public const string WATER_DENS_A4 = '69.34881';
+
+    public const string WATER_DENS_A5 = '999.974950';
+
+    /**
+     * Precision Scales for Calculations
+     */
+    public const int INTERNAL_CALCULATION_SCALE = 12;
+
+    public const int DEFAULT_FACTOR_SCALE = 8;
+
+    public const int DEFAULT_VOLUME_SCALE = 5;
+
+    public const int DEFAULT_PERCENT_SCALE = 4;
 }

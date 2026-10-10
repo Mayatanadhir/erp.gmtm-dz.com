@@ -22,14 +22,14 @@
 
     <div class="py-8" x-data="{
         equipmentsData: {{ Js::from($equipmentsData ?? []) }},
-        selectedEquipmentId: '{{ old('equipment_id', request('equipment_id', '')) }}',
+        selectedEquipmentId: @js((string) old('equipment_id', request('equipment_id', ''))),
         activeSpecId: null,
         points: {{ Js::from(old('points', [
             ['nominal_value' => '', 'correction' => '', 'uncertainty' => '', 'equipment_specification_id' => '']
         ])) }},
-        calDate: '{{ old('calibration_date', now()->format('Y-m-d')) }}',
-        validityMonths: {{ old('validity_period_months', 12) }},
-        expiryDate: '{{ old('expiry_date', '') }}',
+        calDate: @js((string) old('calibration_date', now()->format('Y-m-d'))),
+        validityMonths: @js((int) old('validity_period_months', 12)),
+        expiryDate: @js((string) old('expiry_date', '')),
 
         aiState: {
             loading: false,
@@ -145,6 +145,9 @@
         },
 
         clearCurrentSpecPoints() {
+            if ((this.points.length > 1 || this.points.some(p => p.nominal_value || p.correction || p.uncertainty)) && !confirm(@js(__('Are you sure you want to clear all points for this standard?')))) {
+                return;
+            }
             if (this.activeSpecId === 'all' || this.currentSpecs.length === 0) {
                 this.points = [{
                     nominal_value: '',
@@ -160,9 +163,13 @@
 
         updateExpiry() {
             if (!this.calDate) return;
-            const d = new Date(this.calDate);
-            d.setMonth(d.getMonth() + parseInt(this.validityMonths || 12));
-            this.expiryDate = d.toISOString().split('T')[0];
+            const parts = this.calDate.split('-').map(Number);
+            if (parts.length !== 3 || parts.some(isNaN)) return;
+            const [y, m, d] = parts;
+            const months = parseInt(this.validityMonths) || 12;
+            const lastDayOfTargetMonth = new Date(Date.UTC(y, m - 1 + months + 1, 0)).getUTCDate();
+            const targetDay = Math.min(d, lastDayOfTargetMonth);
+            this.expiryDate = new Date(Date.UTC(y, m - 1 + months, targetDay)).toISOString().slice(0, 10);
         },
 
         init() {
@@ -221,10 +228,10 @@
                                 {{ __('Certificate Type') }}
                             </label>
                             <select name="certificate_type" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-brand-500 focus:border-brand-500">
-                                <option value="periodic">{{ __('Periodic Calibration (Annual)') }}</option>
-                                <option value="initial">{{ __('Initial Calibration') }}</option>
-                                <option value="after_repair">{{ __('Recalibration After Maintenance') }}</option>
-                                <option value="intermediate">{{ __('Intermediate Verification') }}</option>
+                                <option value="periodic" @selected(old('certificate_type', 'periodic') === 'periodic')>{{ __('Periodic Calibration (Annual)') }}</option>
+                                <option value="initial" @selected(old('certificate_type') === 'initial')>{{ __('Initial Calibration') }}</option>
+                                <option value="after_repair" @selected(old('certificate_type') === 'after_repair')>{{ __('Recalibration After Maintenance') }}</option>
+                                <option value="intermediate" @selected(old('certificate_type') === 'intermediate')>{{ __('Intermediate Verification') }}</option>
                             </select>
                         </div>
                     </div>
@@ -287,21 +294,21 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Temperature (°C)') }}</label>
-                            <input type="number" step="0.1" name="environmental_conditions[temperature_celsius]" placeholder="20.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
+                            <input type="number" step="0.1" name="environmental_conditions[temperature_celsius]" value="{{ old('environmental_conditions.temperature_celsius') }}" placeholder="20.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Relative Humidity (%)') }}</label>
-                            <input type="number" step="0.1" min="0" max="100" name="environmental_conditions[humidity_percent]" placeholder="50.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
+                            <input type="number" step="0.1" min="0" max="100" name="environmental_conditions[humidity_percent]" value="{{ old('environmental_conditions.humidity_percent') }}" placeholder="50.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Atmospheric Pressure (hPa)') }}</label>
-                            <input type="number" step="0.1" name="environmental_conditions[atmospheric_pressure_hpa]" placeholder="1013.2" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
+                            <input type="number" step="0.1" name="environmental_conditions[atmospheric_pressure_hpa]" value="{{ old('environmental_conditions.atmospheric_pressure_hpa') }}" placeholder="1013.2" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Metrologist Remarks') }}</label>
-                        <textarea name="remarks" rows="2" placeholder="{{ __('Optional laboratory notes or environmental remarks...') }}" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white"></textarea>
+                        <textarea name="remarks" rows="2" placeholder="{{ __('Optional laboratory notes or environmental remarks...') }}" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white">{{ old('remarks') }}</textarea>
                     </div>
                 </div>
 
@@ -430,7 +437,7 @@
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs font-bold text-gray-900 dark:text-white">{{ __('All Standards Overview') }}</span>
                                     <x-badge variant="neutral" class="text-[10px]">
-                                        <span x-text="currentSpecs.length + ' {{ __('Standards') }}'"></span>
+                                        <span x-text="currentSpecs.length + ' ' + @js(__('Standards'))"></span>
                                     </x-badge>
                                 </div>
                             </template>
@@ -501,13 +508,13 @@
                                         <td class="py-2 px-3 text-center font-mono text-gray-400" x-text="idx + 1"></td>
                                         <td class="py-2 px-3">
                                             <input type="hidden" :name="'points[' + idx + '][equipment_specification_id]'" x-model="pt.equipment_specification_id">
-                                            <input type="number" step="any" :name="'points[' + idx + '][nominal_value]'" x-model="pt.nominal_value" required placeholder="0.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono font-bold focus:ring-brand-500 focus:border-brand-500">
+                                            <input type="number" step="any" :name="'points[' + idx + '][nominal_value]'" x-model="pt.nominal_value" placeholder="0.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono font-bold focus:ring-brand-500 focus:border-brand-500">
                                         </td>
                                         <td class="py-2 px-3">
-                                            <input type="number" step="any" :name="'points[' + idx + '][correction]'" x-model="pt.correction" required placeholder="0.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono focus:ring-brand-500 focus:border-brand-500">
+                                            <input type="number" step="any" :name="'points[' + idx + '][correction]'" x-model="pt.correction" placeholder="0.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono focus:ring-brand-500 focus:border-brand-500">
                                         </td>
                                         <td class="py-2 px-3">
-                                            <input type="number" step="any" min="0" :name="'points[' + idx + '][uncertainty]'" x-model="pt.uncertainty" required placeholder="0.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono focus:ring-brand-500 focus:border-brand-500">
+                                            <input type="number" step="any" min="0" :name="'points[' + idx + '][uncertainty]'" x-model="pt.uncertainty" placeholder="0.0" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white font-mono focus:ring-brand-500 focus:border-brand-500">
                                         </td>
                                         <td x-show="activeSpecId === 'all'" class="py-2 px-3">
                                             <select x-model="pt.equipment_specification_id" class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white">

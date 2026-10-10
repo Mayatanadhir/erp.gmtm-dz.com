@@ -173,7 +173,7 @@
                                                 {{ $cert->reference ?: ('CERT-#' . $cert->id) }}
                                             </a>
                                             <p class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ ucfirst($cert->certificate_type) }}
+                                                {{ ucwords(str_replace('_', ' ', (string) $cert->certificate_type)) }}
                                                 @if($cert->laboratory_name)
                                                     <span>• {{ $cert->laboratory_name }}</span>
                                                 @endif
@@ -277,7 +277,7 @@
                                             @if(! $cert->is_locked)
                                                 <x-table.action-delete
                                                     :action-url="route('metrology.calibration-certificates.destroy', $cert)"
-                                                    :item-name="$cert->certificate_number"
+                                                    :item-name="$cert->reference ?: ('CERT-#' . $cert->id)"
                                                     :title="__('Delete Certificate')"
                                                 />
                                             @endif
@@ -286,7 +286,7 @@
                                 </x-table.td>
                             </x-table.tr>
                         @empty
-                            <x-table.empty :colspan="7" :message="__('No calibration certificates matching criteria.')" />
+                            <x-table.empty :colspan="6" :message="__('No calibration certificates matching criteria.')" />
                         @endforelse
 
                         <x-slot:pagination>

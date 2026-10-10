@@ -40,7 +40,13 @@ final class ReportController extends Controller
         $perPageInput = $request->input('per_page', 10);
         $perPage = in_array((int) $perPageInput, [10, 25, 50], true) ? (int) $perPageInput : 10;
 
-        $reports = Report::with('mission.site.instruments')
+        $reports = Report::with([
+            'mission.site.instruments',
+            'transmitterVerifications',
+            'probeVerifications',
+            'flowComputerVerifications',
+            'chromatographVerifications',
+        ])
             ->filter($filters)
             ->orderByDesc('created_at')
             ->paginate($perPage)
@@ -126,7 +132,7 @@ final class ReportController extends Controller
         $calibratorsData = $this->getReportAvailableCalibrators(null, $selectedMission);
 
         $viewMap = [
-            'prover' => 'metrology.reports.report-Prover.create',
+            'prover' => 'metrology.reports.report-prover.create',
             'chromatograph' => 'metrology.reports.report-chromatograph.create',
             'instruments' => 'metrology.reports.report-instruments.create',
         ];
@@ -272,7 +278,7 @@ final class ReportController extends Controller
 
         $category = $report->category ?? 'instruments';
         $viewMap = [
-            'prover' => 'metrology.reports.report-Prover.show',
+            'prover' => 'metrology.reports.report-prover.show',
             'chromatograph' => 'metrology.reports.report-chromatograph.show',
             'instruments' => 'metrology.reports.report-instruments.show',
         ];
@@ -300,7 +306,7 @@ final class ReportController extends Controller
 
         $category = $report->category ?? 'instruments';
         $viewMap = [
-            'prover' => 'metrology.reports.report-Prover.edit',
+            'prover' => 'metrology.reports.report-prover.edit',
             'chromatograph' => 'metrology.reports.report-chromatograph.edit',
             'instruments' => 'metrology.reports.report-instruments.edit',
         ];
@@ -571,9 +577,9 @@ final class ReportController extends Controller
 
         $sites = Site::orderBy('full_name')->get(['id', 'full_name', 'short_name', 'site_code']);
 
-        $viewName = view()->exists('metrology.reports.report-Prover.index')
-            ? 'metrology.reports.report-Prover.index'
-            : 'admin.reports.report-Prover.index';
+        $viewName = view()->exists('metrology.reports.report-prover.index')
+            ? 'metrology.reports.report-prover.index'
+            : 'admin.reports.report-prover.index';
 
         return view($viewName, [
             'provers' => $paginatedProvers,

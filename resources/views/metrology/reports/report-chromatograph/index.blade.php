@@ -86,7 +86,7 @@
                         <div class="rounded-xl bg-white dark:bg-gray-800 p-5 border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    {{ __('Conformes') }}
+                                    {{ __('Compliant') }}
                                 </p>
                                 <h3 class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
                                     {{ $conformeCount ?? 0 }}
@@ -104,7 +104,7 @@
                         <div class="rounded-xl bg-white dark:bg-gray-800 p-5 border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    {{ __('Non Conformes') }}
+                                    {{ __('Non-Compliant') }}
                                 </p>
                                 <h3 class="text-2xl font-extrabold text-rose-600 dark:text-rose-400 mt-1">
                                     {{ $nonConformeCount ?? 0 }}
@@ -140,7 +140,7 @@
                     <!-- Unified Global Filter -->
                     <x-global-filter
                         :action="route('metrology.reports.report-chromatograph.index')"
-                        :search-placeholder="__('Tag Instrument, N° Série, Bouteille...')"
+                        :search-placeholder="__('Instrument Tag, Serial No., Cylinder...')"
                         :search-value="request('search')"
                         :search-width="'w-64 sm:w-80'"
                     >
@@ -180,8 +180,8 @@
                             :value="request('status')"
                         >
                             <option value="">{{ __('All Statuses') }}</option>
-                            <option value="conforme" @selected(request('status') === 'conforme')>{{ __('Compliant (Conforme)') }}</option>
-                            <option value="non_conforme" @selected(request('status') === 'non_conforme')>{{ __('Non-Compliant (Non-Conforme)') }}</option>
+                            <option value="conforme" @selected(request('status') === 'conforme')>{{ __('Compliant') }}</option>
+                            <option value="non_conforme" @selected(request('status') === 'non_conforme')>{{ __('Non-Compliant') }}</option>
                         </x-global-filter.select>
                     </x-global-filter>                    <!-- Table of Chromatograph Verifications -->
                     <x-table>
@@ -293,11 +293,11 @@
                                 <x-table.td class="text-center">
                                     @if($v->overall_status)
                                         <x-badge variant="success" size="md" :dot="true">
-                                            {{ __('CONFORME (OIML R 140)') }}
+                                            {{ __('COMPLIANT (OIML R 140)') }}
                                         </x-badge>
                                     @else
                                         <x-badge variant="danger" size="md" :dot="true">
-                                            {{ __('Non-Conforme') }}
+                                            {{ __('Non-Compliant') }}
                                         </x-badge>
                                     @endif
                                 </x-table.td>

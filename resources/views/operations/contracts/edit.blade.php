@@ -158,10 +158,21 @@
         const existingItems = @json($contract->items);
         let itemIndex = 0;
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         function buildItemTypeOptions(selected = '') {
             let opts = `<option value="">— {{ __('Type') }} —</option>`;
             itemTypes.forEach(t => {
-                opts += `<option value="${t.id}" ${t.id == selected ? 'selected' : ''}>${t.designation}</option>`;
+                const sel = String(t.id) === String(selected) ? 'selected' : '';
+                opts += `<option value="${escapeHtml(t.id)}" ${sel}>${escapeHtml(t.designation)}</option>`;
             });
             return opts;
         }
@@ -173,21 +184,42 @@
             
             const isExisting = Boolean(data.id);
             const frequencyVal = data.frequency ? (typeof data.frequency === 'object' ? data.frequency.value : data.frequency) : '';
+            const consumedCount = Number(data.attachment_items_count ?? 0);
+            const isConsumed = consumedCount > 0;
+
+            const removeBtn = isConsumed
+                ? `<button type="button" disabled class="p-1 text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-60" title="{{ __('Item cannot be removed because recorded consumptions exist') }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                   </button>`
+                : `<button type="button" onclick="this.closest('.item-row').remove()" class="p-1 text-gray-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" title="{{ __('Remove Item') }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                   </button>`;
+
+            const statusBadge = isExisting
+                ? `<span class="ms-1 px-1.5 py-0.5 rounded text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">${isConsumed ? '{{ __("Consumed") }}' : '{{ __("Existing") }}'}</span>`
+                : `<span class="ms-1 px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/70">{{ __("New") }}</span>`;
+
+            const unitPriceField = isConsumed
+                ? `<div class="relative">
+                    <input type="number" step="0.01" min="0" max="999999999999.99" name="items[${i}][unit_price]" readonly class="w-full py-1.5 ps-3 pe-8 text-sm rounded-lg border border-amber-300 dark:border-amber-600/60 bg-amber-50/60 dark:bg-amber-950/20 text-gray-600 dark:text-gray-300 cursor-not-allowed focus:ring-0 focus:border-amber-300" value="${escapeHtml(data.unit_price ?? '')}" placeholder="0.00" title="{{ __('Unit price is locked because recorded consumptions exist') }}">
+                    <span class="absolute end-2.5 top-1/2 -translate-y-1/2 text-amber-500 pointer-events-none" title="{{ __('Unit price is locked because recorded consumptions exist') }}">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    </span>
+                   </div>`
+                : `<input type="number" step="0.01" min="0" max="999999999999.99" name="items[${i}][unit_price]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${escapeHtml(data.unit_price ?? '')}" placeholder="0.00">`;
 
             row.innerHTML = `
-                <input type="hidden" name="items[${i}][id]" value="${data.id ?? ''}">
+                <input type="hidden" name="items[${i}][id]" value="${escapeHtml(data.id ?? '')}">
                 <div class="flex items-center justify-between pb-2 border-b border-gray-200/60 dark:border-gray-700/60">
                     <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                        #${i + 1} ${isExisting ? '<span class="ms-1 px-1.5 py-0.5 rounded text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ __("Existing") }}</span>' : '<span class="ms-1 px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/70">{{ __("New") }}</span>'}
+                        #${i + 1} ${statusBadge}
                     </span>
-                    <button type="button" onclick="this.closest('.item-row').remove()" class="p-1 text-gray-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" title="{{ __('Remove Item') }}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+                    ${removeBtn}
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
                     <div class="lg:col-span-2">
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Designation') }} <span class="text-rose-500">*</span></label>
-                        <input type="text" name="items[${i}][designation]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${data.designation ?? ''}" required placeholder="{{ __('Item title or service description') }}">
+                        <input type="text" name="items[${i}][designation]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${escapeHtml(data.designation ?? '')}" required placeholder="{{ __('Item title or service description') }}">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Classification') }}</label>
@@ -205,15 +237,18 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Quantity') }}</label>
-                        <input type="number" name="items[${i}][quantity]" min="1" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${data.quantity ?? 1}">
+                        <input type="number" name="items[${i}][quantity]" min="1" max="1000000" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${escapeHtml(data.quantity ?? 1)}">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Unit Price (DA)') }}</label>
-                        <input type="number" step="0.01" name="items[${i}][unit_price]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${data.unit_price ?? ''}" placeholder="0.00">
+                        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                            {{ __('Unit Price (DA)') }}
+                            ${isConsumed ? '<span class="text-amber-500 text-[10px] font-normal ms-1">({{ __("Locked") }})</span>' : ''}
+                        </label>
+                        ${unitPriceField}
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Unit Cost (DA)') }}</label>
-                        <input type="number" step="0.01" name="items[${i}][unit_cost]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${data.unit_cost ?? ''}" placeholder="0.00">
+                        <input type="number" step="0.01" min="0" max="999999999999.99" name="items[${i}][unit_cost]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${escapeHtml(data.unit_cost ?? '')}" placeholder="0.00">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Billing Cycle') }}</label>

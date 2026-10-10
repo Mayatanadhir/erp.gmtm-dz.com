@@ -36,34 +36,25 @@
             <!-- Header Action Buttons -->
             <div class="flex flex-wrap items-center gap-2">
                 @can('edit reports')
-                    <a href="{{ route('metrology.reports.edit', $report->id) }}">
-                        <x-warning-button type="button" class="gap-1.5 text-xs">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            <span>{{ __('Edit Report') }}</span>
-                        </x-warning-button>
-                    </a>
+                    <x-edit-button href="{{ route('metrology.reports.edit', $report->id) }}" class="gap-1.5 text-xs">
+                        {{ __('Edit Report') }}
+                    </x-edit-button>
                 @endcan
 
-                <a href="{{ route('metrology.reports.pdf', $report->id) }}" target="_blank">
-                    <x-danger-button type="button" class="gap-1.5 text-xs">
-                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
-                        <span>{{ __('PDF (EMT)') }}</span>
-                    </x-danger-button>
-                </a>
+                <x-danger-button href="{{ route('metrology.reports.pdf', $report->id) }}" target="_blank" class="gap-1.5 text-xs">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+                    <span>{{ __('PDF (EMT)') }}</span>
+                </x-danger-button>
 
-                <a href="{{ route('metrology.reports.pdf.summary', $report->id) }}" target="_blank">
-                    <x-info-button type="button" class="gap-1.5 text-xs">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <span>{{ __('Summary PDF') }}</span>
-                    </x-info-button>
-                </a>
+                <x-info-button href="{{ route('metrology.reports.pdf.summary', $report->id) }}" target="_blank" class="gap-1.5 text-xs">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>{{ __('Summary PDF') }}</span>
+                </x-info-button>
 
-                <a href="{{ route('metrology.reports.report-instruments.index') }}">
-                    <x-secondary-button type="button" class="gap-1.5 text-xs">
-                        <svg class="w-3.5 h-3.5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                        <span>{{ __('Dashboard') }}</span>
-                    </x-secondary-button>
-                </a>
+                <x-secondary-button href="{{ route('metrology.reports.report-instruments.index') }}" class="gap-1.5 text-xs">
+                    <svg class="w-3.5 h-3.5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    <span>{{ __('Dashboard') }}</span>
+                </x-secondary-button>
             </div>
         </div>
     </x-slot>

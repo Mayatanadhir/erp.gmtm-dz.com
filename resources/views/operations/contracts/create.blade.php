@@ -156,10 +156,21 @@
         const itemTypes = @json($itemTypes);
         let itemIndex = 0;
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         function buildItemTypeOptions(selected = '') {
             let opts = `<option value="">— {{ __('Type') }} —</option>`;
             itemTypes.forEach(t => {
-                opts += `<option value="${t.id}" ${t.id == selected ? 'selected' : ''}>${t.designation}</option>`;
+                const sel = String(t.id) === String(selected) ? 'selected' : '';
+                opts += `<option value="${escapeHtml(t.id)}" ${sel}>${escapeHtml(t.designation)}</option>`;
             });
             return opts;
         }
@@ -178,7 +189,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
                     <div class="lg:col-span-2">
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Designation') }} <span class="text-rose-500">*</span></label>
-                        <input type="text" name="items[${i}][designation]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${data.designation ?? ''}" required placeholder="{{ __('Item title or service description') }}">
+                        <input type="text" name="items[${i}][designation]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${escapeHtml(data.designation ?? '')}" required placeholder="{{ __('Item title or service description') }}">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Classification') }}</label>
@@ -196,15 +207,15 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Quantity') }}</label>
-                        <input type="number" name="items[${i}][quantity]" min="1" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${data.quantity ?? 1}">
+                        <input type="number" name="items[${i}][quantity]" min="1" max="1000000" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${escapeHtml(data.quantity ?? 1)}">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Unit Price (DA)') }}</label>
-                        <input type="number" step="0.01" name="items[${i}][unit_price]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${data.unit_price ?? ''}" placeholder="0.00">
+                        <input type="number" step="0.01" min="0" max="999999999999.99" name="items[${i}][unit_price]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${escapeHtml(data.unit_price ?? '')}" placeholder="0.00">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Unit Cost (DA)') }}</label>
-                        <input type="number" step="0.01" name="items[${i}][unit_cost]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${data.unit_cost ?? ''}" placeholder="0.00">
+                        <input type="number" step="0.01" min="0" max="999999999999.99" name="items[${i}][unit_cost]" class="w-full py-1.5 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-brand-500 focus:border-brand-500" value="${escapeHtml(data.unit_cost ?? '')}" placeholder="0.00">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Billing Cycle') }}</label>

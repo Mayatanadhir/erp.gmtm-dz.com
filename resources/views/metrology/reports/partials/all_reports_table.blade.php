@@ -5,8 +5,8 @@
             <div class="flex items-center gap-2.5">
                 <x-tool-icon name="reports" class="w-6 h-6 shrink-0" />
                 <div>
-                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ __('Tous les Rapports de Vérification & Étalonnage') }}</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('Vue globale consolidée de tous les domaines métrologiques') }}</p>
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ __('All Verification & Calibration Reports') }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('Consolidated global overview of all metrological domains') }}</p>
                 </div>
             </div>
 
@@ -16,7 +16,7 @@
                     <input type="text"
                            name="search"
                            value="{{ request('search') }}"
-                           placeholder="{{ __('Rechercher référence...') }}"
+                           placeholder="{{ __('Search reference...') }}"
                            class="text-xs rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white pl-8 pr-3 py-1.5 focus:border-brand-500 focus:ring-brand-500">
                     <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -25,7 +25,7 @@
                 @if(request('search') || request('status') || request('mission_id'))
                     <a href="{{ route('metrology.reports.index') }}"
                        class="text-xs text-rose-600 hover:underline">
-                        {{ __('Effacer') }}
+                        {{ __('Clear') }}
                     </a>
                 @endif
             </form>
@@ -77,8 +77,8 @@
                 </span>
             </x-table.td>
             <x-table.td>
-                <x-badge variant="success" size="sm" :dot="true">
-                    {{ __('OIML / ISO Compliant') }}
+                <x-badge :variant="$report->compliance_verdict['variant']" size="sm" :dot="true">
+                    {{ $report->compliance_verdict['label'] }}
                 </x-badge>
             </x-table.td>
             <x-table.td class="text-xs text-gray-500 dark:text-gray-400">
@@ -95,7 +95,7 @@
             </x-table.td>
         </tr>
     @empty
-        <x-table.empty :colspan="8" :message="__('Aucun rapport trouvé dans cette catégorie. Cliquez ci-dessus pour initialiser un nouveau rapport.')" />
+        <x-table.empty :colspan="8" :message="__('No reports found in this category. Click above to initialize a new report.')" />
     @endforelse
 </x-table>
 

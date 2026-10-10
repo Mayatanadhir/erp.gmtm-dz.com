@@ -13,7 +13,7 @@
             <!-- All Reports Tab -->
             <a href="{{ route('metrology.reports.index', array_filter(array_merge(request()->query(), ['category' => null, 'page' => null]))) }}"
                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors duration-150 {{ $currentCategory === 'all' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white' }}">
-                <span>{{ __('Tous les Rapports') }}</span>
+                <span>{{ __('All Reports') }}</span>
                 <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold {{ $currentCategory === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' }}">
                     {{ $totalCount ?? 0 }}
                 </span>
@@ -23,7 +23,7 @@
             <a href="{{ route('metrology.reports.index', array_filter(array_merge(request()->query(), ['category' => 'instruments', 'page' => null]))) }}"
                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors duration-150 {{ $currentCategory === 'instruments' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white' }}">
                 <x-tool-icon name="instruments" class="w-3.5 h-3.5 shrink-0" />
-                <span>{{ __('Instruments de Mesure') }}</span>
+                <span>{{ __('Measuring Instruments') }}</span>
                 <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold {{ $currentCategory === 'instruments' ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' }}">
                     {{ $instrumentsReportsCount ?? 0 }}
                 </span>
@@ -33,7 +33,7 @@
             <a href="{{ route('metrology.reports.index', array_filter(array_merge(request()->query(), ['category' => 'prover', 'page' => null]))) }}"
                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors duration-150 {{ $currentCategory === 'prover' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white' }}">
                 <x-tool-icon name="prover" class="w-3.5 h-3.5 shrink-0" />
-                <span>{{ __('Provers & Tubes') }}</span>
+                <span>{{ __('Provers & Standard Pipes') }}</span>
                 <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold {{ $currentCategory === 'prover' ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' }}">
                     {{ $proversReportsCount ?? 0 }}
                 </span>
@@ -43,7 +43,7 @@
             <a href="{{ route('metrology.reports.index', array_filter(array_merge(request()->query(), ['category' => 'chromatograph', 'page' => null]))) }}"
                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors duration-150 {{ $currentCategory === 'chromatograph' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white' }}">
                 <x-tool-icon name="chromatograph" class="w-3.5 h-3.5 shrink-0" />
-                <span>{{ __('Chromatographes CPG') }}</span>
+                <span>{{ __('Gas Chromatographs') }}</span>
                 <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold {{ $currentCategory === 'chromatograph' ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' }}">
                     {{ $chromatographsReportsCount ?? 0 }}
                 </span>
@@ -58,11 +58,11 @@
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     <span>
                         @if($currentCategory === 'prover')
-                            {{ __('Nouveau Rapport Prover') }}
+                            {{ __('New Prover Report') }}
                         @elseif($currentCategory === 'chromatograph')
-                            {{ __('Nouveau Rapport CPG') }}
+                            {{ __('New GC Report') }}
                         @else
-                            {{ __('Nouveau Rapport') }}
+                            {{ __('New Report') }}
                         @endif
                     </span>
                 </x-primary-button>
@@ -77,7 +77,7 @@
     @elseif($currentCategory === 'chromatograph')
         @include('metrology.reports.report-chromatograph.partials.reports_table')
     @elseif($currentCategory === 'prover')
-        @include('metrology.reports.report-Prover.partials.reports_table')
+        @include('metrology.reports.report-prover.partials.reports_table')
     @else
         @include('metrology.reports.partials.all_reports_table')
     @endif

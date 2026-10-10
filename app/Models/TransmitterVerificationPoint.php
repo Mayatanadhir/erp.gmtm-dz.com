@@ -18,7 +18,11 @@ class TransmitterVerificationPoint extends Model
         'cycle_phase',
         'applied_percentage',
         'reference_value',
+        'calibrator_1_correction',
+        'corrected_reference_value',
         'measured_signal',
+        'calibrator_2_correction',
+        'corrected_signal',
         'indicated_value',
         'absolute_error',
         'emt_limit',
@@ -28,7 +32,11 @@ class TransmitterVerificationPoint extends Model
     protected $casts = [
         'applied_percentage' => 'float',
         'reference_value' => 'float',
+        'calibrator_1_correction' => 'float',
+        'corrected_reference_value' => 'float',
         'measured_signal' => 'float',
+        'calibrator_2_correction' => 'float',
+        'corrected_signal' => 'float',
         'indicated_value' => 'float',
         'absolute_error' => 'float',
         'emt_limit' => 'float',
@@ -56,10 +64,11 @@ class TransmitterVerificationPoint extends Model
             return (float) $this->indicated_value;
         }
 
-        if ($this->measured_signal !== null && $span !== 0.0) {
-            return ((float) $this->measured_signal - 4.0) / 16.0 * $span + $min;
+        $signal = $this->corrected_signal ?? $this->measured_signal;
+        if ($signal !== null && $span !== 0.0) {
+            return ((float) $signal - 4.0) / 16.0 * $span + $min;
         }
 
-        return (float) ($this->reference_value ?? 0);
+        return (float) ($this->corrected_reference_value ?? $this->reference_value ?? 0);
     }
 }

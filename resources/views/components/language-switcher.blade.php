@@ -24,7 +24,7 @@
          x-transition:leave="transition ease-in duration-100"
          x-transition:leave-start="opacity-100 translate-y-0 scale-100"
          x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-         class="absolute end-0 z-50 mt-2 w-40 origin-top-right rounded-xl shadow-lg bg-white dark:bg-gray-800 ring-1 ring-gray-900/5 dark:ring-white/10 overflow-hidden"
+         class="absolute end-0 z-50 mt-2 w-40 ltr:origin-top-right rtl:origin-top-left rounded-xl shadow-lg bg-white dark:bg-gray-800 ring-1 ring-gray-900/5 dark:ring-white/10 overflow-hidden"
          @click="open = false"
          x-cloak>
 

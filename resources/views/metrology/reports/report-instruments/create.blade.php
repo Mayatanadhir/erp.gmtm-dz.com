@@ -264,13 +264,32 @@
                         instrumentsList.classList.remove('hidden');
                         instrumentsList.innerHTML = '';
 
+                        function escapeHtml(str) {
+                            if (str === null || str === undefined) return '';
+                            return String(str)
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#039;');
+                        }
+
                         data.instruments.forEach(inst => {
                             const rangeStr = (inst.range_min !== null && inst.range_max !== null)
                                 ? `${inst.range_min} - ${inst.range_max} ${inst.unit || ''}`
                                 : '---';
 
-                            const imageHtml = inst.image_url
-                                ? `<img src="${inst.image_url}" alt="${inst.tag_number || ''}" class="w-11 h-11 object-contain rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 p-0.5 shrink-0 shadow-xs" />`
+                            const safeId = parseInt(inst.id, 10);
+                            const safeTag = escapeHtml(inst.tag_number || '---');
+                            const safeSerial = escapeHtml(inst.serial_number || '---');
+                            const safeType = escapeHtml(inst.instrument_type || '');
+                            const safeRange = escapeHtml(rangeStr);
+                            const safeImageUrl = (inst.image_url && (inst.image_url.startsWith('/') || inst.image_url.startsWith('http://') || inst.image_url.startsWith('https://')))
+                                ? encodeURI(inst.image_url)
+                                : null;
+
+                            const imageHtml = safeImageUrl
+                                ? `<img src="${safeImageUrl}" alt="${safeTag}" class="w-11 h-11 object-contain rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 p-0.5 shrink-0 shadow-xs" />`
                                 : `<div class="w-11 h-11 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100/70 dark:bg-gray-700/50 flex items-center justify-center text-gray-400 dark:text-gray-500 shrink-0">
                                      <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
                                    </div>`;
@@ -278,18 +297,18 @@
                             const card = document.createElement('label');
                             card.className = 'group flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-500 dark:hover:border-brand-500 bg-white dark:bg-gray-800 cursor-pointer transition-all shadow-sm';
                             card.innerHTML = `
-                                <input type="checkbox" name="instrument_ids[]" value="${inst.id}" checked
+                                <input type="checkbox" name="instrument_ids[]" value="${safeId}" checked
                                        class="instrument-check w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 dark:bg-gray-700 dark:focus:ring-offset-gray-800 shrink-0" />
                                 ${imageHtml}
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center justify-between gap-2">
-                                        <span dir="ltr" class="font-bold text-xs text-gray-900 dark:text-white font-mono">${inst.tag_number || '---'}</span>
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-500/10 text-brand-800 dark:text-brand-300 border border-brand-500/20 capitalize">${inst.instrument_type}</span>
+                                        <span dir="ltr" class="font-bold text-xs text-gray-900 dark:text-white font-mono">${safeTag}</span>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-500/10 text-brand-800 dark:text-brand-300 border border-brand-500/20 capitalize">${safeType}</span>
                                     </div>
                                     <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1.5 flex-wrap">
-                                        <span>SN: <strong class="font-mono text-gray-700 dark:text-gray-300">${inst.serial_number || '---'}</strong></span>
+                                        <span>SN: <strong class="font-mono text-gray-700 dark:text-gray-300">${safeSerial}</strong></span>
                                         <span>&bull;</span>
-                                        <span>${"{{ __('Range') }}"}: <span class="font-mono text-gray-700 dark:text-gray-300">${rangeStr}</span></span>
+                                        <span>${"{{ __('Range') }}"}: <span class="font-mono text-gray-700 dark:text-gray-300">${safeRange}</span></span>
                                     </div>
                                 </div>
                             `;

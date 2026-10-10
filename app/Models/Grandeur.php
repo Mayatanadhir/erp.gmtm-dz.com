@@ -11,13 +11,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 #[Fillable(['name', 'symbol', 'type'])]
 class Grandeur extends Model
 {
-    use FilterableTrait, HasActivity, HasFactory;
+    use FilterableTrait, HasActivity, HasFactory, SoftDeletes;
 
     protected $table = 'grandeurs';
 

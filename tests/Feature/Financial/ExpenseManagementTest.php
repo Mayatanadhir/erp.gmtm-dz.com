@@ -215,7 +215,7 @@ class ExpenseManagementTest extends TestCase
         $response = $this->actingAs($this->superAdmin)->delete(route('financial.expenses.destroy', $expense->id));
 
         $response->assertRedirect(route('financial.expenses'));
-        $this->assertDatabaseMissing('charges', [
+        $this->assertSoftDeleted('charges', [
             'id' => $expense->id,
         ]);
     }

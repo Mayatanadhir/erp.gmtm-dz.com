@@ -13,8 +13,7 @@ use App\Models\Employee;
 use App\Models\Mission;
 use App\Models\MissionOrder;
 use App\Models\Site;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -72,6 +71,7 @@ class MissionService extends BaseService
                         }
                     }
                 }
+                $employeeIds = array_values(array_unique($employeeIds));
 
                 $employees = Employee::whereIn('id', $employeeIds)->get()->keyBy('id');
 
@@ -88,16 +88,17 @@ class MissionService extends BaseService
                         'ended_at' => $data['end_date'],
                         'daily_rate' => $employee?->daily_rate ?? 0.00,
                         'destination' => $destination,
-                        'vehicle_id' => $data['vehicle_id'] ?? null,
+                        'vehicle_id' => ! empty($data['vehicle_id']) ? (int) $data['vehicle_id'] : null,
                         'all_vehicles' => false,
                     ]);
                 }
             }
 
             // 2. Mobilize designated transport vehicle
-            if (! empty($data['vehicle_id'])) {
+            $vehicleId = ! empty($data['vehicle_id']) ? (int) $data['vehicle_id'] : null;
+            if ($vehicleId) {
                 $mission->deployments()->create([
-                    'equipment_id' => $data['vehicle_id'],
+                    'equipment_id' => $vehicleId,
                     'status' => MissionDeploymentStatus::Active->value,
                     'deployed_at' => $data['start_date'],
                 ]);
@@ -105,10 +106,20 @@ class MissionService extends BaseService
 
             // 3. Mobilize technical equipment and calibrators
             if (! empty($data['equipments'])) {
-                foreach ($data['equipments'] as $eqId) {
-                    if ($eqId != ($data['vehicle_id'] ?? null)) {
+                $equipmentIds = [];
+                foreach ($data['equipments'] as $eq) {
+                    if (is_array($eq) && isset($eq['id'])) {
+                        $equipmentIds[] = (int) $eq['id'];
+                    } elseif (is_numeric($eq)) {
+                        $equipmentIds[] = (int) $eq;
+                    }
+                }
+                $equipmentIds = array_values(array_unique(array_filter($equipmentIds)));
+
+                foreach ($equipmentIds as $eqId) {
+                    if ($eqId !== $vehicleId) {
                         $mission->deployments()->create([
-                            'equipment_id' => (int) $eqId,
+                            'equipment_id' => $eqId,
                             'status' => MissionDeploymentStatus::Active->value,
                             'deployed_at' => $data['start_date'],
                         ]);
@@ -134,6 +145,9 @@ class MissionService extends BaseService
 
             $site = Site::find($data['site_id']);
             $siteLocation = $site?->location ?? $site?->short_name ?? __('Designated Site');
+
+            $prevMissionStart = $mission->start_date ? Carbon::parse($mission->start_date)->format('Y-m-d') : null;
+            $prevMissionEnd = $mission->end_date ? Carbon::parse($mission->end_date)->format('Y-m-d') : null;
 
             $this->missionRepository->update($mission->id, [
                 'site_id' => $data['site_id'],
@@ -161,10 +175,16 @@ class MissionService extends BaseService
                     }
                 }
 
+                $employeeIds = array_values(array_unique($employeeIds));
+
                 // Remove unassigned orders permanently for planned missions
                 $mission->missionOrders()->whereNotIn('employee_id', $employeeIds)->forceDelete();
 
                 $employees = Employee::whereIn('id', $employeeIds)->get()->keyBy('id');
+
+                $newVehicleId = array_key_exists('vehicle_id', $data)
+                    ? ($data['vehicle_id'] ? (int) $data['vehicle_id'] : null)
+                    : null;
 
                 foreach ($employeeIds as $empId) {
                     $employee = $employees->get($empId);
@@ -177,11 +197,36 @@ class MissionService extends BaseService
                         if ($existing->trashed()) {
                             $existing->restore();
                         }
+
+                        // Preserve custom employee dates if they were customized
+                        $startedAt = $existing->started_at ? Carbon::parse($existing->started_at)->format('Y-m-d') : null;
+                        $endedAt = $existing->ended_at ? Carbon::parse($existing->ended_at)->format('Y-m-d') : null;
+
+                        $hadStandardDates = ($startedAt && $endedAt && $startedAt === $prevMissionStart && $endedAt === $prevMissionEnd);
+
+                        if (! $startedAt || ! $endedAt || $hadStandardDates) {
+                            $startedAt = $data['start_date'];
+                            $endedAt = $data['end_date'];
+                        } else {
+                            // Clamp customized dates to new mission boundary if needed
+                            if ($startedAt < $data['start_date']) {
+                                $startedAt = $data['start_date'];
+                            }
+                            if ($endedAt > $data['end_date']) {
+                                $endedAt = $data['end_date'];
+                            }
+                            if ($startedAt > $endedAt) {
+                                $startedAt = $data['start_date'];
+                                $endedAt = $data['end_date'];
+                            }
+                        }
+
                         $existing->update([
                             'is_leader' => $isLeader,
-                            'started_at' => $data['start_date'],
-                            'ended_at' => $data['end_date'],
-                            'vehicle_id' => $data['vehicle_id'] ?? $existing->vehicle_id,
+                            'started_at' => $startedAt,
+                            'ended_at' => $endedAt,
+                            'destination' => $destination,
+                            'vehicle_id' => array_key_exists('vehicle_id', $data) ? $newVehicleId : $existing->vehicle_id,
                         ]);
                     } else {
                         $mission->missionOrders()->create([
@@ -192,7 +237,7 @@ class MissionService extends BaseService
                             'ended_at' => $data['end_date'],
                             'daily_rate' => $employee?->daily_rate ?? 0.00,
                             'destination' => $destination,
-                            'vehicle_id' => $data['vehicle_id'] ?? null,
+                            'vehicle_id' => $newVehicleId,
                         ]);
                     }
                 }
@@ -200,15 +245,23 @@ class MissionService extends BaseService
 
             // Sync equipment deployments
             $allEquipmentIds = [];
-            if (! empty($data['vehicle_id'])) {
-                $allEquipmentIds[] = (int) $data['vehicle_id'];
+            $vehicleId = array_key_exists('vehicle_id', $data)
+                ? ($data['vehicle_id'] ? (int) $data['vehicle_id'] : null)
+                : null;
+
+            if ($vehicleId) {
+                $allEquipmentIds[] = $vehicleId;
             }
             if (! empty($data['equipments'])) {
-                foreach ($data['equipments'] as $eqId) {
-                    $allEquipmentIds[] = (int) $eqId;
+                foreach ($data['equipments'] as $eq) {
+                    if (is_array($eq) && isset($eq['id'])) {
+                        $allEquipmentIds[] = (int) $eq['id'];
+                    } elseif (is_numeric($eq)) {
+                        $allEquipmentIds[] = (int) $eq;
+                    }
                 }
             }
-            $allEquipmentIds = array_unique($allEquipmentIds);
+            $allEquipmentIds = array_values(array_unique(array_filter($allEquipmentIds)));
 
             $mission->deployments()->whereNotIn('equipment_id', $allEquipmentIds)->delete();
             $existingEqIds = $mission->deployments()->pluck('equipment_id')->toArray();
@@ -258,11 +311,19 @@ class MissionService extends BaseService
             }
 
             $mission->update(['status' => MissionStatus::Completed->value]);
-            $mission->missionOrders()->update(['status' => MissionOrderStatus::Completed->value]);
-            $mission->deployments()->update([
-                'status' => MissionDeploymentStatus::Returned->value,
-                'returned_at' => now(),
-            ]);
+
+            // Only complete active orders; preserve cancelled orders
+            $mission->missionOrders()
+                ->where('status', MissionOrderStatus::Active->value)
+                ->update(['status' => MissionOrderStatus::Completed->value]);
+
+            // Only return active deployments; preserve damaged or lost assets
+            $mission->deployments()
+                ->where('status', MissionDeploymentStatus::Active->value)
+                ->update([
+                    'status' => MissionDeploymentStatus::Returned->value,
+                    'returned_at' => now(),
+                ]);
         });
     }
 
@@ -277,8 +338,19 @@ class MissionService extends BaseService
             }
 
             $mission->update(['status' => MissionStatus::Planned->value]);
-            $mission->missionOrders()->update(['status' => MissionOrderStatus::Active->value]);
-            $mission->deployments()->update(['status' => MissionDeploymentStatus::Active->value]);
+
+            // Revert completed orders back to active
+            $mission->missionOrders()
+                ->where('status', MissionOrderStatus::Completed->value)
+                ->update(['status' => MissionOrderStatus::Active->value]);
+
+            // Revert returned deployments back to active and clear returned_at
+            $mission->deployments()
+                ->where('status', MissionDeploymentStatus::Returned->value)
+                ->update([
+                    'status' => MissionDeploymentStatus::Active->value,
+                    'returned_at' => null,
+                ]);
         });
     }
 
@@ -292,12 +364,9 @@ class MissionService extends BaseService
                 throw new InvalidArgumentException(__('Only planned missions can be deleted. Active or completed missions cannot be removed.'));
             }
 
-            // Guard against FK RESTRICT violation on reports
-            if (Schema::hasTable('reports')) {
-                $hasReports = DB::table('reports')->where('mission_id', $mission->id)->exists();
-                if ($hasReports) {
-                    throw new RuntimeException(__('Cannot delete mission because associated metrological calibration reports exist.'));
-                }
+            // Guard against associated reports
+            if ($mission->reports()->exists()) {
+                throw new RuntimeException(__('Cannot delete mission because associated metrological calibration reports exist.'));
             }
 
             $mission->deployments()->delete();

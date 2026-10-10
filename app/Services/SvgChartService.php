@@ -164,10 +164,10 @@ final class SvgChartService
     private function getRefValue(mixed $point): float
     {
         if (is_array($point)) {
-            return (float) ($point['reference_value'] ?? $point['reference_temperature'] ?? $point['equivalent_value'] ?? 0.0);
+            return (float) ($point['corrected_reference_value'] ?? $point['reference_value'] ?? $point['reference_temperature'] ?? $point['equivalent_value'] ?? 0.0);
         }
 
-        return (float) ($point->reference_value ?? $point->reference_temperature ?? $point->equivalent_value ?? 0.0);
+        return (float) ($point->corrected_reference_value ?? $point->reference_value ?? $point->reference_temperature ?? $point->equivalent_value ?? 0.0);
     }
 
     private function mapStepToX(int $stepIndex): float

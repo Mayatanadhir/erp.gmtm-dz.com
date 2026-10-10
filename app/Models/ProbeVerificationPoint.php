@@ -19,7 +19,11 @@ class ProbeVerificationPoint extends Model
         'step_order',
         'cycle_phase',
         'reference_temperature',
+        'calibrator_1_correction',
+        'corrected_reference_temperature',
         'measured_resistance',
+        'calibrator_2_correction',
+        'corrected_measured_resistance',
         'indicated_temperature',
         'absolute_error',
         'emt_limit',
@@ -28,7 +32,11 @@ class ProbeVerificationPoint extends Model
 
     protected $casts = [
         'reference_temperature' => 'float',
+        'calibrator_1_correction' => 'float',
+        'corrected_reference_temperature' => 'float',
         'measured_resistance' => 'float',
+        'calibrator_2_correction' => 'float',
+        'corrected_measured_resistance' => 'float',
         'indicated_temperature' => 'float',
         'absolute_error' => 'float',
         'emt_limit' => 'float',

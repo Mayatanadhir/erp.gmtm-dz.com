@@ -50,4 +50,14 @@ class StandardGaugeSpecification extends Model
     {
         return $this->belongsTo(Instrument::class, 'instrument_id');
     }
+
+    /**
+     * Alias accessor for base reference temperature in celsius.
+     */
+    public function getReferenceTemperatureCelsiusAttribute(): ?float
+    {
+        return $this->base_reference_temperature !== null
+            ? (float) $this->base_reference_temperature
+            : null;
+    }
 }

@@ -8,6 +8,293 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 > Detailed historical changelog prior to Point Zero Core Kernel extraction is preserved in `docs/archive/legacy_changelog.md`.
 > Historical Core Kernel releases from `v1.0.0` through `v1.0.35` are archived in `docs/archive/core_kernel_archive.md`.
 
+## [1.0.106] — 2026-10-10 — Global Soft Delete Standardization & Trashed Data Management Architecture
+### Added & Enhanced
+- **Global Soft Delete Database Standardization (`database/migrations/`)**:
+  - Implemented migration `2026_10_10_220000_standardize_soft_deletes_across_eligible_tables.php` extending `deleted_at` timestamps across 19 eligible core business and verification tables (`attachments`, `attachment_items`, `charges`, `chromatograph_verifications`, `transmitter_verifications`, `probe_verifications`, `flow_computer_verifications`, `prover_verifications`, `reports`, `sites`, `customers`, `departments`, `positions`, `currencies`, `expense_categories`, `payment_methods`, `grandeur_units`, `grandeurs`, `contracts`).
+  - Added migration `2026_10_10_230000_add_soft_deletes_to_calibration_certificate_extractions_table.php` extending `deleted_at` to AI certificate extraction history.
+  - Documented exhaustive 71-table audit in `docs/soft_delete_audit_inventory.md`.
+- **System Trashed Management & Data Pruning Interface (`app/Services/DataPruningService.php`, `SystemTableController.php`, `trashed.blade.php`, `trashed-show.blade.php`)**:
+  - Implemented centralized trashed records explorer under `/system-tables/trashed` and `/system-tables/trashed/{table}/{id}` with real-time filtering, per-table counting, single/bulk restoration, and hard purge capabilities.
+  - Verified with comprehensive automated feature tests in `GlobalSoftDeletesStandardizationTest` and `TrashedDataPurgeTest`.
+
+## [1.0.105] — 2026-10-09 — Flow Computer Separated Applied & Interpolated Corrected Values Architecture
+### Added & Enhanced
+- **Separation of Generator Current Signal and Corrected Signal for Calibrator 1 (`flow_computer.blade.php`, `FlowComputerVerificationPoint.php`)**:
+  - Separated normal current input field (`Current (mA)` / `input-signal`) from the metrologically corrected electrical signal (`correction (Interpolated) (mA)` / `cell-signal-corrigee`).
+  - Implemented the corrected signal column as **Read-only** (`<span class="signal-corrigee-val">`), dynamically evaluated in real-time via linear interpolation of Calibrator 1 certificate calibration points ($I_{\text{corr}} = I_{\text{mes}} + \text{Corr}_{\text{Cal1}}$).
+  - Applied corporate brand styling with dark mode harmony (`text-brand-700 dark:text-brand-400 bg-brand-50/60 dark:bg-brand-950/50 border-x border-brand-200/40 dark:border-brand-900/50`).
+- **Separation of Calculated Expected and Corrected Value for Calibrator 2 (`flow_computer.blade.php`, `FlowComputerVerificationPoint.php`)**:
+  - Separated calculated expected value column (`Calculated Expected` / `cell-calculated`) from the metrologically corrected expected value (`correction (Interpolated)` / `cell-val-corrigee`).
+  - Implemented the corrected expected value column as **Read-only** (`<span class="val-corrigee-span">`), dynamically evaluated in real-time via linear interpolation of Calibrator 2 certificate calibration points ($V_{\text{exp,corr}} = V_{\text{calc}} + \text{Corr}_{\text{Cal2}}$).
+  - Applied corporate emerald styling with dark mode harmony (`text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/50 border-x border-emerald-200/40 dark:border-emerald-900/50`).
+  - Connected metrological error and ADC evaluation ($\text{Error} = \text{Indicated} - V_{\text{exp,corr}}$) strictly to the corrected expected value and corrected current signal.
+- **Data Persistence & Metrological Reporting (`FlowComputerVerificationPoint.php`, `CalibrationInstrumentsController.php`, PDF Templates)**:
+  - Added database migration `add_interpolation_columns_to_flow_computer_verification_points_table` storing `calibrator_1_correction`, `corrected_signal`, `calibrator_2_correction`, and `corrected_expected_value`.
+  - Updated `StoreFlowComputerRequest` and `CalibrationInstrumentsController::storeFlowComputerSaisie` to compute and persist calibrator corrections and evaluate ADC compliance based on both corrected values.
+  - Integrated both Calibrator 1 and Calibrator 2 correction notes into Detailed and Summary PDF verification reports (`instrument_verification_report_detailed.blade.php`, `instrument_verification_report_summary.blade.php`).
+  - Verified with automated tests in `TransmitterCalibratorInterpolationTest` (12 tests passing, 82 assertions).
+
+## [1.0.104] — 2026-10-09 — Temperature Probe Separated Applied & Interpolated Corrected Values Architecture
+### Added & Enhanced
+- **Separation of Normal Applied and Corrected Reference Temperature (`probe.blade.php`, `ProbeVerificationPoint.php`)**:
+  - Separated normal applied temperature input field (`Applied Temp (°C)` / `input-temp-etalon`) from the metrologically corrected reference temperature (`Applied Temp + correction (Interpolated)` / `cell-temp-corrigee`).
+  - Implemented the corrected reference temperature column as **Read-only** (`<span class="ref-corrigee-val">`), dynamically evaluated in real-time via linear interpolation of Calibrator 1 certificate calibration points.
+  - Applied corporate brand styling with dark mode harmony (`text-brand-700 dark:text-brand-400 bg-brand-50/60 dark:bg-brand-950/50 border-x border-brand-200/40 dark:border-brand-900/50`).
+- **Separation of Normal Measured and Corrected Resistance for Calibrator 2 (`probe.blade.php`, `ProbeVerificationPoint.php`)**:
+  - Separated raw measured resistance input field (`Measured Resistance (Ω)` / `input-resistance`) from the metrologically corrected resistance (`Measured Resistance + correction (Interpolated)` / `cell-res-corrigee`).
+  - Implemented the corrected measured resistance column as **Read-only** (`<span class="res-corrigee-val">`), dynamically evaluated in real-time via linear interpolation of Calibrator 2 certificate calibration points ($R_{\text{corr}} = R_{\text{mes}} + \text{Corr}_{\text{Cal2}}$).
+  - Applied corporate emerald styling with dark mode harmony (`text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/50 border-x border-emerald-200/40 dark:border-emerald-900/50`).
+  - Connected IEC 60751 Callendar-Van Dusen temperature calculation ($T_{\text{probe}}$) and metrological error evaluation ($\text{Error} = T_{\text{probe}} - T_{\text{ref,corr}}$) strictly to the corrected resistance and corrected reference temperature.
+- **Data Persistence & Metrological Reporting (`ProbeVerificationPoint.php`, `CalibrationInstrumentsController.php`, PDF Templates)**:
+  - Added database migration `add_interpolation_columns_to_probe_verification_points_table` storing `calibrator_1_correction`, `corrected_reference_temperature`, `calibrator_2_correction`, and `corrected_measured_resistance`.
+  - Updated `StoreProbeRequest` and `CalibrationInstrumentsController::storeProbeSaisie` to compute and persist calibrator corrections and evaluate probe compliance based on both corrected values.
+  - Integrated both Calibrator 1 and Calibrator 2 correction notes into Detailed and Summary PDF verification reports (`instrument_verification_report_detailed.blade.php`, `instrument_verification_report_summary.blade.php`).
+  - Added trilingual localization keys for `"Applied Temp (°C)"`, `"Applied Temp + correction (Interpolated)"`, and `"Measured Resistance + correction (Interpolated)"` across `lang/en.json`, `lang/ar.json`, and `lang/fr.json` maintaining 100% key parity (2,918 keys each).
+  - Verified with automated tests in `TransmitterCalibratorInterpolationTest` (11 tests passing, 71 assertions).
+
+## [1.0.103] — 2026-10-09 — Calibrator Specification Qualification, Mission Scoping & Standards Masking Engine (ADR-055)
+### Fixed & Hardened
+- **Strict Metrological Qualification & Exclusive Mission Scoping in Calibrator Resolution Engine (`app/Services/CalibratorResolutionService.php`, `Mission.php`)**:
+  - Enforced strict physical quantity verification against `equipment_specifications` / `grandeurs` (`getEquipmentGrandeurs`), eliminating loose heuristic regex fallbacks on equipment name/designation strings that allowed unqualified devices to leak into calibrator lists.
+  - Required Calibrator 1 (Applied Generator) to possess the exact process variable physical quantity (`Pression` for pressure / differential pressure transmitters, `Température` for temperature transmitters).
+  - Required Calibrator 2 (Multimeter mA) to strictly possess electric current (`Courant` / `mA`) in its technical specifications.
+  - Strictly scoped reference calibrators to equipment deployed and participating in the active mission (`$report->mission->equipments()`), eliminating cross-mission leaks and broad table queries. Returns empty collection when no mission is linked.
+  - Neutralized external database injection of non-mission equipment IDs previously saved on verifications, ensuring dropdowns (`options1` / `options2`) exclusively present mission-mobilized standards.
+  - Automatically masked and excluded any equipment lacking the required physical standard or not participating in the mission from dropdown options across `transmitter.blade.php`, `probe.blade.php`, `flow_computer.blade.php`, and `calibrators_card.blade.php`.
+- **Dark Mode Table Aesthetics & Harmonization (`resources/views/metrology/reports/report-instruments/transmitter.blade.php`, `tailwind.config.js`)**:
+  - Replaced off-white light background in dark mode with unified dark surface styling (`dark:bg-brand-950/50`, `dark:bg-emerald-950/50`) and subtle border separation (`border-x border-brand-200/40 dark:border-brand-900/50`).
+  - Added `variants: ['dark']` to dynamic brand color patterns in `tailwind.config.js` safelist to ensure all dark brand shades are consistently compiled by Vite.
+  - Recompiled production frontend assets via `npm run build` so dark-mode table styling renders seamlessly.
+- **Calibrator Qualification & Metrological Interpolation Expansion (`probe.blade.php`, `flow_computer.blade.php`)**:
+  - Transferred the full calibrator resolution and certificate point interpolation service to Thermal Probes (`resources/views/metrology/reports/report-instruments/probe.blade.php`) and Flow Computers (`resources/views/metrology/reports/report-instruments/flow_computer.blade.php`).
+  - Added live status indicators (`cal1-status-info`, `cal2-status-info`) displaying certificate points count and active interpolation status badges under calibrator selectors.
+  - Injected active certificate points map `@json($calibratorsPointsMap)` and metrological linear interpolation engine (`interpolatePoints`) calculating live corrections and display tooltips.
+  - Aligned table headers and data cells with harmonized light/dark mode styles (`dark:bg-brand-950/50`, `dark:bg-emerald-950/50`).
+- **Automated Test Coverage (`tests/Feature/Metrology/TransmitterCalibratorInterpolationTest.php`)**:
+  - Added feature tests asserting exclusion of devices with empty specifications or mismatched physical quantities (`test_calibrator_without_matching_grandeur_is_excluded_from_dropdown_options`).
+  - Added feature tests verifying strict exclusion of non-mission equipment (`test_calibrator_not_attached_to_mission_is_strictly_excluded_from_dropdown_options`), blocking injection of saved non-mission equipment (`test_saved_calibrator_from_outside_mission_is_not_injected_into_dropdown`), and handling reports without missions (`test_report_without_mission_returns_empty_dropdown_options`).
+  - Added unit/feature coverage for probe (`test_probe_calibrator_resolution_and_view_data`) and flow computer (`test_flow_computer_calibrator_resolution_and_view_data`) calibrator resolution. All 10 tests passing cleanly (58 assertions).
+
+## [1.0.102] — 2026-10-09 — Softened Harmonious Table Action Buttons Architecture
+### Enhanced & Harmonized
+- **Softened Harmonious Table Action Button Suite (`resources/views/components/table/action.blade.php`)**:
+  - Replaced harsh, oversaturated solid table action buttons with refined, eye-friendly tinted backgrounds (`bg-amber-50`, `bg-rose-50`, `bg-indigo-50`, `bg-emerald-50`, `bg-sky-50`, `bg-slate-100`, `bg-brand-50`) paired with subtle matching borders (`border-*-200 / dark:border-*-800/60`), vibrant accessible text tokens, and smooth, elegant hover transitions to solid backgrounds with white icons.
+  - Eliminated visual noise and clutter across data-heavy tables while preserving instant semantic color recognition (Amber for Edit/Restore, Rose for Delete/PDF, Indigo for View/Statistics, Emerald for Export/Success, Slate for Print, Brand for Primary Actions).
+- **Operations Views Alignment (`resources/views/operations/missions/`)**:
+  - Standardized itinerary table actions in `operations/missions/show.blade.php` with icon-only `<x-table.action-print>` matching `<x-table.action-edit>` height and geometry.
+  - Replaced ad-hoc raw equipment manifest link with standardized `<x-secondary-button>`.
+  - Upgraded "Create Mission" in `index.blade.php` to `<x-primary-button>`.
+  - Upgraded header back button and cancel button in `edit.blade.php` to `<x-secondary-button>`.
+- **Automated Test Coverage (`tests/Feature/ButtonComponentTest.php`)**:
+  - Added feature test asserting soft background classes, text tokens, and hover states for `<x-table.action-edit>`, `<x-table.action-delete>`, and `<x-table.action-view>`.
+
+## [1.0.101] — 2026-10-09 — Unified Button & Semantic Color System Architecture (ADR-054)
+### Added & Enhanced
+- **Dedicated `<x-edit-button>` Component (`resources/views/components/edit-button.blade.php`)**:
+  - Implemented polymorphic Edit button supporting both `<a>` (`href`) and `<button>` (`type="button"`).
+  - Built-in SVG pencil icon with optional toggle (`:icon="false"`) and automatic localized fallback text (`{{ __('Edit') }}`).
+  - Styled with Solid Amber design token (`.btn-edit` -> `bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white shadow-sm shadow-amber-500/20`), creating 100% visual and semantic parity with table action edit badges (`<x-table.action-edit>`).
+- **Standardized Component Suite & Button Utilities (`resources/css/components.css`, `resources/views/components/`)**:
+  - Added `.btn-edit`, `.btn-success`, and `.btn-info` utility classes to `components.css` sharing the exact geometric specifications (`px-4 py-2.5`, `rounded-xl`, `font-semibold text-xs sm:text-sm tracking-wide`, `shadow-sm`, focus rings, transitions).
+  - Modernized `<x-success-button>`, `<x-warning-button>`, and `<x-info-button>` to polymorphically support `href` attributes while adhering to unified `.btn-*` styling tokens.
+- **Whole-Project Detail & Show Views Modernization**:
+  - Standardized all 10 show/detail views and action partials across Metrology, Operations, and Financial modules:
+    - `operations/missions/show.blade.php`: `<x-edit-button>`, `<x-success-button>`, `<x-secondary-button>`, `<x-table.action-print>`, `<x-table.action-edit>`.
+    - `operations/contracts/show.blade.php`: `<x-edit-button>`, `<x-secondary-button>`.
+    - `operations/attachments/show.blade.php`: `<x-edit-button>`, `<x-success-button>`, `<x-secondary-button>`, `<x-danger-button>`.
+    - `Financial/expenses/show.blade.php`: `<x-edit-button>`, `<x-danger-button>`.
+    - `metrology/certificates/show.blade.php`: `<x-edit-button>`, `<x-secondary-button>`, `<x-success-button>`, `<x-primary-button>`, `<x-danger-button>`.
+    - `metrology/equipment/partials/_header-actions.blade.php`: `<x-edit-button>`, `<x-primary-button>`, `<x-secondary-button>`.
+    - `metrology/instruments/partials/_header-actions.blade.php`: `<x-edit-button>`, `<x-secondary-button>`.
+    - `metrology/reports/report-prover/show.blade.php`: `<x-edit-button>`, `<x-primary-button>`, `<x-secondary-button>`.
+    - `metrology/reports/report-instruments/show.blade.php`: `<x-edit-button>`, `<x-danger-button>`, `<x-info-button>`, `<x-secondary-button>`.
+    - `metrology/reports/report-chromatograph/show.blade.php`: `<x-edit-button>`.
+- **Automated Verification Suite (`tests/Feature/ButtonComponentTest.php`)**:
+  - Added comprehensive Feature tests verifying rendering, polymorphic link/button handling, slot content, and CSS class bindings across all 7 button components (9 tests, 37 assertions).
+
+## [1.0.100] — 2026-10-09 — Volumetric Meter Prover & Calibration Service Migration (API MPMS Ch. 4 / ISO 7278 / ISO 8222 / Tanaka 2001)
+### Added & Enhanced
+- **High-Precision Metrological Engine (`ProverMetrologyService.php`, `MetrologyConstants.php`, `MetrologyCalculationException.php`)**:
+  - Implemented Tanaka 2001 (ISO 8222) pure water density formulation over $[0^\circ\text{C}, 45^\circ\text{C}]$ with high-precision `Brick\Math\BigDecimal` calculations.
+  - Formulated water density correction $C_{tdw} = \rho(T_{gauge}) / \rho(T_{prover})$, standard gauge thermal expansion $C_{tsm} = 1 + (T_{gauge} - T_b) \cdot G_{cm}$, and prover thermal expansion $C_{tsp}$ (supporting conventional bidirectional/unidirectional provers $1 + (T_p - T_b) \cdot G_c$ and SVP dual-expansion chamber/shaft $C_{tsp} = [1 + (T_p - T_b) \cdot G_a][1 + (T_d - T_b) \cdot G_l]$).
+  - Formulated prover pressure expansion $C_{psp} = 1 + (P \cdot ID) / (E \cdot WT)$ and water compressibility factor $C_{plp} = 1 / (1 - P \cdot F)$.
+  - Calculated run corrected volume $V_b$, aggregated multi-fill run volumes, session Base Prover Volume ($BPV$), and repeatability $r\% = ((CPV_{max} - CPV_{min}) / CPV_{min}) \cdot 100$ against Algerian ONML/OAM and API MPMS Chapter 4 statutory limits ($r \le 0.020\%$).
+- **DTO Suite & Type Safety (`app/DTOs/Metrology/`)**:
+  - Built typed DTOs: `ProverVerificationDTO`, `ProverRunDTO`, `CalculatedRunDTO`, `MetrologyCalculationResultDTO`, `ProverTubeDTO`, and `StandardGaugeDTO` supporting both Eloquent instrument models and dynamic raw input arrays.
+- **Eloquent Models & Bidirectional Relations (`ProverVerification.php`, `ProverVerificationRun.php`, `Instrument.php`)**:
+  - Implemented `ProverVerification` and `ProverVerificationRun` Eloquent models with typed casts, timestamps, and relations (`runs()`, `prover()`, `jauge()`, `latestProverVerification`).
+- **Controller & Endpoints (`ProverVerificationController.php`, `StoreProverVerificationRequest.php`, `routes/web.php`)**:
+  - Implemented thin `ProverVerificationController` handling `index`, `create`, `calculatePreview` (live Ajax preview), `store` (atomic `DB::transaction`), `show`, `destroy`, `generatePdf` (detailed), and `generatePdfNotEmt` (summary report).
+  - Built `StoreProverVerificationRequest` with automatic nested fills array flattening, default fallbacks, and validation rules.
+  - Registered resource and compatibility routes under `metrology.reports.report-prover.*` and legacy alias `admin.prover_verifications.*`.
+- **Modern UI Suite (`metrology/reports/report-prover/`)**:
+  - `index.blade.php`: Interactive dual-tab workspace providing Verification Sessions (with certificate reference, BPV, repeatability, status badge, and actions for View, PDF Detailed, PDF Summary, and modal Delete) and Instruments & Standards Inventory (strictly preserving backward-compatibility with `ReportProverIndexTest`).
+  - `create.blade.php`: Real-time reactive Alpine.js calibration session workspace with live preview calculation of all correction factors, run totals, BPV, and $r\%$.
+  - `show.blade.php`: Certificate review sheet displaying metrological KPI cards, prover specifications, gauge specifications, detailed pass measurement table, and legal compliance verdict.
+- **Legacy Data Migration (`MigrateLegacyProverVerificationsCommand.php`)**:
+  - Created Artisan command `php artisan metrology:migrate-legacy-provers` migrating legacy prover verification session (ID 399: `FE/WDP/----`, dated `2026-09-21`, BPV `120.23528` L, $r = 0.0044\%$, Compliant) and 3 measurement runs (959, 960, 961) from `gmtm_app` to `gmtmdz_erp`, dynamically resolving instrument IDs 81 (`Compact Prover`) and 82 (`jauge-Compact`).
+- **Trilingual Dictionary Parity (`lang/en.json`, `lang/ar.json`, `lang/fr.json`)**:
+  - Synchronized 97 new metrological and UI keys across English, Arabic, and French dictionaries with 100% key parity and strictly English master keys verified by `LocalizationTest`.
+- **Automated Feature Tests (`ProverVerificationTest.php`, `ReportProverIndexTest.php`)**:
+  - Added full test suite covering index, create view, calculation preview API, store transaction, show certificate, PDF generation, and cascade deletion. Total test suite stands at 504 tests passing cleanly (2,384 assertions).
+
+## [1.0.99] — 2026-10-09 — Operations Attachments Module Hardening & Data Integrity Remediation
+### Added & Enhanced
+- **Zero-Quantity Bug & Empty Attachment Prevention (`StoreAttachmentRequest.php`, `UpdateAttachmentRequest.php`, `CreateAttachmentAction.php`, `UpdateAttachmentAction.php`)**:
+  - Enforced validation requiring at least one line item with a quantity greater than zero (`actual_quantity > 0` or `planned_quantity > 0`).
+  - Filtered insertion and updates to strictly persist line items with positive quantities, eliminating ghost records and empty attachments.
+- **In-Place Item Synchronization & Expense Link Preservation (`UpdateAttachmentAction.php`)**:
+  - Eliminated destructive `delete()` and recreate approach in `update()`; implemented non-destructive in-place synchronization keyed by `contract_item_id`.
+  - Preserved primary keys (`id`) on existing `AttachmentItem` records, safeguarding relational integrity with linked `Expense` records (`attachment_item_id`).
+  - Added domain guard blocking removal of any line item linked to expense charges (`DomainException`), presenting localized user feedback.
+- **Schema & Validation String Length Alignment (`enhance_attachments_and_items_tables.php`, FormRequests, Blade Views)**:
+  - Aligned validation rules (`max:45`) and Blade input attributes (`maxlength="45"`) for `ods` and `code_ref` with MySQL column bounds (`varchar(45)`), preventing MySQL strict-mode SQL 500 truncation errors.
+  - Cleaned up historical duplicates and added unique index on `attachments.code_ref`, composite index on `attachments(['status', 'date'])`, and composite index on `attachment_items(['attachment_id', 'contract_item_id'])`.
+- **Contract Ownership Integrity & Cross-Contract Leakage Elimination (`StoreAttachmentRequest.php`, `UpdateAttachmentRequest.php`, `AttachmentController.php`)**:
+  - Enforced strict contract item ownership: validated that all submitted `contract_item_id`s strictly belong to the associated contract.
+  - Eliminated cross-contract mission leakage in `create()` and `edit()` views by ensuring customer site missions merged into contract options strictly have `contract_id IS NULL` or belong to the active contract.
+- **Concurrency-Safe Sequential Reference Auto-Generation (`CreateAttachmentAction.php`)**:
+  - Implemented concurrency-safe, sequential `code_ref` generation (`ATT-GMTM-{YEAR}-{NUM3}`) utilizing integer extraction and `lockForUpdate()` within an atomic `DB::transaction`.
+- **Workflow State & Referential Deletion Guards (`AttachmentController.php`, `UpdateAttachmentRequest.php`)**:
+  - Guarded approved attachments against accidental modification or deletion without reverting to draft first.
+  - Protected referential integrity on `destroy()`: blocked deleting attachments whose line items have linked expenses, and executed cascading item deletions through Eloquent model instances to trigger Spatie audit activity logs.
+- **Single Aggregate Query & Clean Architecture Decoupling (`AttachmentController.php`, Actions, FormRequests)**:
+  - Extracted business logic and validation from `AttachmentController` into dedicated `StoreAttachmentRequest`, `UpdateAttachmentRequest`, `CreateAttachmentAction`, and `UpdateAttachmentAction`.
+  - Consolidated KPI card queries in `AttachmentController::index` into a single aggregate query with cross-database year drivers.
+- **Trilingual Localization Parity (`lang/en.json`, `lang/ar.json`, `lang/fr.json`)**:
+  - Synchronized 8 new translation keys across English, Arabic, and French dictionaries with 100% trilingual parity (2,787 keys, 0 missing, 0 non-English keys) verified by `LocalizationTest`.
+
+## [1.0.98] — 2026-10-09 — Commercial Contracts Module Hardening, Data Integrity & Temporal Alignment Remediation
+### Added & Enhanced
+- **Financial History Integrity & Consumption Protection (`UpdateContractAction.php`, `edit.blade.php`)**:
+  - Locked `unit_price` of contractual items with existing attachment consumptions, preventing retroactive rewriting of historical invoices and accounting data.
+  - Clamped contractual item `quantity` on update to never drop below the already consumed quantity (`attachment_items_sum_quantity`).
+  - Switched line item updates and deletions to invoke Eloquent model methods (`$existingItem->update()`, `$itemToDelete->delete()`), reliably dispatching Spatie `HasActivity` audit trail events.
+  - Added visual locked badges, lock icons, tooltips, and disabled row deletion in `edit.blade.php` for items with recorded consumptions.
+- **Referential Integrity & Safe Contract Deletion (`ContractController.php`)**:
+  - Wrapped `ContractController::destroy` in an atomic `DB::transaction` with blocking guards preventing contract deletion when linked attachment items, field missions (`missions()->count() > 0`), or financial expenses (`charges()->count() > 0`) exist.
+  - Performed item cascading cleanup via individual model instances ensuring audit trail logging.
+- **Temporal Alignment & Month Overflow Discrepancy Fix (`Contract.php`, `ContractStatisticsService.php`, `index.blade.php`)**:
+  - Replaced standard Carbon `addMonths` with `addMonthsNoOverflow` across `Contract::getRemainDaysAttribute`, `getPercentRemainingAttribute`, and `ContractStatisticsService::calculate`. This eliminates the 3-4 day date discrepancy between PHP (where Jan 31 + 1 month overflows to March 3) and MySQL (`DATE_ADD` which produces Feb 28), ensuring 100% mathematical consistency.
+  - Harmonized active vs expired status across models and views: contracts with `remain_days >= 0` remain active (day 0 is Near Expiry phase `'end'`); contracts strictly expired only when `remain_days < 0`. Fixed condition in `index.blade.php` accordingly.
+  - Fortified `ContractStatisticsService` HR day calculations against inverted date spans (`$oEnd->gte($oStart)`) and future start dates.
+- **Performance & N+1 Query Elimination (`ContractItem.php`)**:
+  - Neutralized N+1 queries in `ContractItem::getConsumptionPercentageAttribute` by checking `array_key_exists('attachment_items_sum_quantity', $this->attributes)` before falling back to relationship queries, correctly handling Eloquent `withSum` null results on unconsumed items.
+- **Request Validation Hardening (`StoreContractRequest.php`, `UpdateContractRequest.php`)**:
+  - Enforced `Rule::unique('contracts', 'garantie_id')` to guarantee 1-to-1 uniqueness between bank guarantees and contracts.
+  - Implemented upper bound constraints: `montant_global_prevu` (max 999999999999.99), `duree` (max 600), item `quantity` (max 1000000), `unit_price` and `unit_cost` (max 999999999999.99).
+  - Enforced `Rule::in(['service', 'supply'])` on `type` and `Rule::in(['annuelle', 'semestrielle'])` on `frequency`.
+  - Added bidirectional `required_with:date_signature,duree` constraints.
+- **DOM Security & XSS Fortification (`create.blade.php`, `edit.blade.php`)**:
+  - Sanitized all dynamic row interpolations with `escapeHtml()`, neutralizing stored XSS and HTML attribute truncation vulnerabilities.
+- **Audit & Notification Scoping (`ContractObserver.php`)**:
+  - Excluded the acting user (`auth()->id()`) from receiving self-notifications upon contract creation, update, or deletion.
+- **Trilingual Localization Parity (`lang/en.json`, `lang/ar.json`, `lang/fr.json`)**:
+  - Integrated 10 new translation keys with 100% trilingual dictionary parity (2,779 keys across AR/EN/FR, 0 missing, 0 non-English keys) verified by `LocalizationTest`.
+
+## [1.0.97] — 2026-10-09 — Operations Missions Module Hardening, Data Integrity & Performance Remediation
+### Added & Enhanced
+- **Mission Planning & Resource Synchronization Integrity (`MissionService.php`, `MissionController.php`)**:
+  - Neutralized silent data loss bug when modifying missions: preserved custom employee date assignments (`started_at` / `ended_at`) unless they matched standard full-mission bounds; dynamically updated destination cities on site modification; and supported unassigning vehicles to `null`.
+  - Fixed collection category check in `MissionController::edit` by rejecting `EquipmentCategory::Vehicle` instances directly rather than evaluating Enum objects against string literals.
+  - Guarded exception handling in `activate`, `complete`, `revert`, and `destroy` to mask raw internal SQL/PDO exceptions while presenting localized user feedback.
+- **Mission Lifecycle & Asset State Preservation (`MissionService.php`, `MissionDeployment.php`, Migration)**:
+  - Scoped status transitions in `completeMission` to active orders and active deployments, preserving historical `Cancelled` orders and `Damaged`/`Lost` equipment deployments.
+  - Scoped `revertMission` to completed orders and returned deployments, resetting `returned_at` timestamp back to `null`.
+  - Added `softDeletes()` to `mission_deployments` and upgraded `missions.mob_dmob_days` to `decimal(4, 1)->default(0.0)`.
+- **Sequential Reference Overflow Resolution (`MissionRepository.php`, `MissionOrderRepository.php`, `MissionOrderController.php`)**:
+  - Resolved string-sorting truncation flaw (`M-2026-999` > `M-2026-1000`) by parsing integer suffixes (`maxNumber + 1`) across all annual missions and travel orders (`NNN/ALG/YY`).
+  - Wrapped dynamic travel order reference generation in `MissionOrderController::print` within locked atomic database transactions (`lockForUpdate`).
+- **Blade XSS & Alpine Syntax Crash Prevention (`create.blade.php`, `edit.blade.php`)**:
+  - Replaced unescaped single quotes in employee and equipment search with `{{ Js::from(...) }}`, preventing Alpine parse crashes when names contain apostrophes (e.g. "M'Hamed").
+- **Statistics Aggregation & Query Optimization (`MissionStatisticsService.php`)**:
+  - Eliminated dozens of redundant runtime `information_schema` table/column existence checks across `calculate()` and `calculateCompanyStats()`.
+  - Replaced N+1 per-mission queries with 4 pre-aggregated batch queries grouped by `mission_id`.
+  - Enforced non-negative date boundary guards and supported decimal transit days.
+
+## [1.0.96] — 2026-10-09 — Metrology Equipment Module Hardening & Data Integrity Remediation
+### Added & Enhanced
+- **Equipment Specifications Validation & State Restoration (`show.blade.php`, `equipment.blade.php`)**:
+  - Neutralized silent data loss bug where technical specifications were wiped upon form validation failure by restoring `old('params')` or `old('edit_id')` specifications into Alpine `editSpecs`.
+  - Added URL hash whitelist (`overview`, `specifications`, `certificates`, `audit`) in `show.blade.php` to prevent disappearing tab panes when navigating to `#edit`.
+  - Bound Alpine state using `Js::from` preventing translation quote breaking, and added `<x-alert variant="danger">` validation summary with serial number input error feedback in modal.
+- **Open Redirect Fortification (`EquipmentController.php`)**:
+  - Sanitized `_redirect` input to allow only relative paths or URLs strictly matching the current request host (`$request->getHost()`), defaulting safely to `route('metrology.equipment')`.
+  - Replaced unvalidated `$request->input('params')` with `$request->validated('params')` across `store` and `update`.
+- **Media Deletion Transaction Safety & Memory Optimization (`EquipmentObserver.php`, `EquipmentService.php`)**:
+  - Implemented `ShouldHandleEventsAfterCommit` contract in `EquipmentObserver` ensuring old media files and deleted equipment files are only erased from disk after database transactions successfully commit.
+  - Replaced whole-file `file_get_contents` hash calculation with streaming `hash_file('sha256', $fullPath)` preventing memory exhaustion.
+  - Removed duplicate manual file deletions and hash calculations from `EquipmentService`, centralizing file lifecycle within the observer.
+- **Audit Trail & Query Aggregation Optimization (`EquipmentService.php`, `ImportLegacyEquipmentCommand.php`)**:
+  - Refactored `syncSpecifications()` so deletions execute on Eloquent model instances (`$spec->delete()`), triggering Spatie `HasActivity` audit logs.
+  - Consolidated 8 separate `COUNT` queries in `getStatistics()` into 1 single aggregate `selectRaw` query.
+  - Modernized `ImportLegacyEquipmentCommand` to invoke seeder via `$this->call('db:seed', ...)`.
+- **Measurement & Generation Capabilities Reactive Visual Highlighting (`_modal-edit.blade.php`, `equipment.blade.php`)**:
+  - Dynamically distinguished active measurement and source capabilities with emerald (`border-2 border-emerald-500 bg-emerald-50/75 ring-2 ring-emerald-500/20`) and amber (`border-2 border-amber-500 bg-amber-50/75 ring-2 ring-amber-500/20`) styling, vibrant symbol badges, dedicated checkmark status chips (`Active`), and instant two-way Alpine reactivity upon checkbox toggle.
+- **RTL Logical Margin Corrections (`_modal-edit.blade.php`, `_tab-certificates.blade.php`)**:
+  - Replaced physical `file:mr-4` and `mr-0.5` with logical `file:me-4` and `me-1`.
+
+## [1.0.95] — 2026-10-08 — Metrology Reports Translation Normalization & Trilingual Parity
+### Added & Enhanced
+- **100% English Master Translation Keys Normalization (`resources/views/metrology/reports/`)**:
+  - Normalized all legacy French translation keys across `partials/stats_cards.blade.php`, `partials/switcher.blade.php`, `report-chromatograph/index.blade.php`, `report-chromatograph/show.blade.php`, `report-chromatograph/saisie.blade.php`, and `report-instruments/probe.blade.php` to unified English Master Keys per `ADR-037`.
+  - Replaced French verdicts (`CONFORME`, `NON-CONFORME`, `CONFORME (OIML R 140 / ISO 6974)`) with standardized English keys (`COMPLIANT`, `NON-COMPLIANT`, `COMPLIANT (OIML R 140 / ISO 6974)`).
+  - Normalized engineering notation keys (`Indicated Temp T_sonde (°C)` $\rightarrow$ `Indicated Temp T_probe (°C)`).
+- **Trilingual Dictionary Parity Synchronization (`lang/en.json`, `lang/ar.json`, `lang/fr.json`)**:
+  - Integrated 254 new English translation keys with 100% trilingual dictionary parity (2,770 keys across AR/EN/FR, 0 missing, 0 non-English keys).
+  - Provided legally and technically precise metrology translations conforming to OIML R 140, ISO 6974, ISO 6976, IEC 60751, and API MPMS standards in both Arabic and French.
+- **Instrument Calibration Specifications Integrity & Category Workflow Routing (`CalibrationInstrumentsController.php`, `probe.blade.php`, `transmitter.blade.php`)**:
+  - Enforced mandatory technical specifications check for measuring transmitters (`transmitter`) and temperature probes (`probe Pt100`) prior to entering calibration sessions (`createSaisie`). Redirects missing-specification instruments to `metrology.instruments.show` with localized error alert to ensure mathematical and metrological calculation validity (Span, EMT, CVD resistance).
+  - Preserved specialized workflow routing and specifications exemptions for `flow_computer` (integrates multi-channel simulated transmitter specs), `chromatograph` (certified gas mixture bottles per ISO 6974 / ASTM D 1945), and `prover` / `standard_gauge` (routes directly to volumetric `report-prover`).
+  - Fortified Blade saisie templates (`transmitter.blade.php`, `probe.blade.php`) with null-safe accessors and graceful defaults to eliminate runtime 500 exceptions.
+- **Blade Components Library Remediation & Architectural Hardening (`resources/views/components/`)**:
+  - **AI Certificate Extractor (`ai-extractor.blade.php`)**: Replaced unbounded `setInterval` polling with sequential recursive `setTimeout` enforcing strict 30-attempt (60s) cap; bound `destroy()` lifecycle teardown; prevented duplicate remarks and points across repeated applications; encoded query parameters via `encodeURIComponent`; and guarded `fetchPreview` with response validation.
+  - **Global Filter & State Persistence (`global-filter.blade.php`, `sort.blade.php`)**: Excluded navigation `tab` from triggering false-positive 'Reset Filters' displays; preserved active `tab` parameter in dynamic reset URLs; corrected free `$refs` and `$el` references inside `x-data` method to `this.$refs` and `this.$el` preventing runtime `ReferenceError`; safely encoded titles with `Js::from`; fortified `searchQuery` against newline breaking; and added `data-no-auto-submit` exclusion.
+  - **CRUD Modals & A11y (`delete.blade.php`, `delete-modal.blade.php`, `form.blade.php`, `modal.blade.php`, `password-input.blade.php`, and all 6 `*-tabs.blade.php` suites)**: Synchronized dynamic `headingId` with `aria-labelledby`; added `@keydown.escape.window` closing to form modal; added `role="dialog"` and `aria-modal="true"` to base modal; added `aria-current="page"` to all tab navigation links (`analytics-tabs`, `financial-tabs`, `master-data-tabs`, `metrology-tabs`, `operations-tabs`, `system-tabs`); localized trailing question marks (`؟` vs `?`); supported `green`/`yellow` aliases; and conditionally emitted `aria-controls` only when ID is present.
+  - **Navigation, Dropdowns & RTL (`responsive-nav-link.blade.php`, `nav-link.blade.php`, `nav-dropdown.blade.php`, `dropdown.blade.php`, `theme-switcher.blade.php`, `language-switcher.blade.php`)**: Replaced `border-l-4` with logical `border-s-4`; unified active border colors from legacy Breeze `indigo` to system brand tokens (`border-brand-500 dark:border-brand-400`); updated ring opacity to Tailwind v4 forward-compatible slash tokens (`ring-black/5`); enabled bidirectional dropdown origin (`ltr:origin-top-right rtl:origin-top-left`); resolved touch event conflicts with `@click.outside`; added `@keydown.escape.window` closing to dropdowns; and prevented translation quote breaking via `Js::from`.
+  - **Curve Interpolation Canvas Scoping (`curve.blade.php`)**: Replaced fixed global canvas IDs with Alpine `$refs` (`singleCurveCanvas`, `comparisonCurveCanvas`) to ensure instance isolation and prevent cross-component interference when multiple charts exist on a page.
+  - **Database Driver Abstraction (`AttachmentController.php`, `AppServiceProvider.php`)**: Abstracted raw MySQL `YEAR()` calls to `strftime('%Y', ...)` when executing on SQLite, ensuring complete in-memory database test suite compatibility; restored `AppServiceProvider::ensureSafeDriversWhenUnmigrated()` guaranteeing graceful session and cache fallback to `file` on unmigrated fresh installations.
+  - **Data Formatting & Table Action (`date.blade.php`, `table/action.blade.php`)**: Fortified date component against raw string timestamps; deduplicated 45 lines of SVG markup in `table.action`; and added themes and icons for `csv`, `export`, `import`, and `download`.
+  - **File Hygiene**: Stripped UTF-8 BOM headers from all component files.
+- **Automated Verification**:
+  - All 18 localization tests passing cleanly (`php artisan test --filter=LocalizationTest`).
+  - All 12 report feature tests passing cleanly (`php artisan test --filter=Report`).
+  - All 14 operations business module tests passing cleanly (`php artisan test --filter=BusinessModulesTest`).
+  - All 9 initial setup zero-state tests passing cleanly (`php artisan test --filter=InitialSystemSetupTest`).
+
+## [1.0.94] — 2026-10-08 — Calibration Certificates Remediation, Security & Metrological Integrity
+### Added & Enhanced
+- **Reflected XSS Fortification (`create.blade.php`, `edit.blade.php`, `show.blade.php`)**:
+  - Replaced raw string interpolation in Alpine.js component attributes with `@js(...)` binding for `equipment_id`, `tab`, dates, and translation strings containing apostrophes.
+- **Expiry Date & Calendar Normalization (`create.blade.php`, `edit.blade.php`)**:
+  - Gated automatic calculation in `edit.blade.php@init()` to only run if `expiryDate` is empty, preserving stored laboratory verification dates upon review.
+  - Implemented UTC-based calendar arithmetic preventing month-end overflows and DST time-zone offsets.
+- **Metrological Points & Tolerance Integrity (`show.blade.php`)**:
+  - Eliminated inline DB queries in view and replaced heuristic range-guessing with explicit specification matching and clean fallback to unlinked points.
+  - Replaced misleading 'In Tolerance' default fallback on null point status with localized 'Undetermined' badge.
+  - Bound SHA-256 CAS verification badge to actual hash existence, eliminating blank ellipsis display.
+- **Form Submission Robustness & Performance (`create.blade.php`, `edit.blade.php`, `show.blade.php`, `index.blade.php`)**:
+  - Removed `required` attributes from dynamically hidden Alpine point rows preventing silent form submission blocks.
+  - Added user confirmation alerts when switching equipment with populated points or clearing standard points.
+  - Restored `old(...)` preservation across certificate type, ambient environmental inputs, and remarks.
+  - Converted embedded PDF iframe to lazy loading via `<template x-if="activeTab === 'document'">`.
+  - Fixed table empty state colspan to 6 columns and corrected item name reference in delete confirmation modal.
+- **Trilingual Dictionary Parity (`lang/en.json`, `lang/ar.json`, `lang/fr.json`)**:
+  - Synchronized 25 new master keys with exact 1-to-1 parity across all three locales, verified by `LocalizationTest`.
+
+## [1.0.93] — 2026-10-08 — Metrology Reports Phase 1 Remediation, Dynamic EMT Verdict & XSS Hardening
+### Added & Enhanced
+- **Dynamic EMT Compliance Verdict (`app/Models/Report.php`, `ReportController.php`, `all_reports_table.blade.php`)**:
+  - Replaced hardcoded "OIML / ISO Compliant" badges across report tables with dynamic model accessor `compliance_verdict` evaluating verification records across child types (Chromatographs, Transmitters, Pt100 Probes, Flow Computers).
+  - Eager-loaded child verification relationships in `ReportController::index` to eliminate N+1 queries during status evaluation.
+- **Directory Normalization & Routing (`resources/views/metrology/reports/report-prover/`)**:
+  - Normalized case-sensitive folder from `report-Prover` to `report-prover` across filesystem, git, views, controller routes, and test assertions (`ReportProverIndexTest`, `ReportInstrumentsIndexTest`).
+- **DOM XSS Sanitization (`create.blade.php` in instruments, prover, chromatograph)**:
+  - Fortified dynamic mission equipment card generation by eliminating unsanitized `innerHTML` string interpolation, enforcing `escapeHtml()`, `parseInt()`, and URL protocol guards.
+- **Trilingual Dictionary Parity (`lang/en.json`, `lang/ar.json`, `lang/fr.json`)**:
+  - Added 73 new standardized English master keys with exact 1-to-1 parity across English, Arabic, and French dictionaries, verified by `LocalizationTest`.
+
 ## [1.0.92] — 2026-10-08 — Measuring Instruments Unified Modal Expansion Across All 6 Categories
 ### Added & Enhanced
 - **Measuring Instruments Modal Architecture (`resources/views/metrology/instruments.blade.php`)**:

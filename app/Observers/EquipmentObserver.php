@@ -6,9 +6,10 @@ namespace App\Observers;
 
 use App\Models\Equipment;
 use App\Services\MediaOptimizationService;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Support\Facades\Storage;
 
-class EquipmentObserver
+class EquipmentObserver implements ShouldHandleEventsAfterCommit
 {
     /**
      * Handle the Equipment "saving" event.
@@ -17,27 +18,39 @@ class EquipmentObserver
     public function saving(Equipment $equipment): void
     {
         if ($equipment->isDirty('image_path')) {
-            $oldPath = $equipment->getOriginal('image_path');
-            if (! blank($oldPath) && $oldPath !== $equipment->image_path) {
-                app(MediaOptimizationService::class)->safeDelete((string) $oldPath, 'public', $equipment->id);
-            }
-
             if (blank($equipment->image_path)) {
                 $equipment->image_hash = null;
             } else {
                 $disk = Storage::disk('public');
-                if ($disk->exists($equipment->image_path)) {
+                $fullPath = $disk->path($equipment->image_path);
+                if (file_exists($fullPath)) {
+                    $equipment->image_hash = hash_file('sha256', $fullPath);
+                } elseif ($disk->exists($equipment->image_path)) {
                     $equipment->image_hash = hash('sha256', (string) $disk->get($equipment->image_path));
-                } else {
-                    $equipment->image_hash = hash('sha256', (string) $equipment->image_path);
                 }
             }
         }
+    }
 
-        if ($equipment->isDirty('certificate_path')) {
+    /**
+     * Handle the Equipment "updated" event.
+     * Cleans up old replaced media files after transaction commit.
+     */
+    public function updated(Equipment $equipment): void
+    {
+        $mediaService = app(MediaOptimizationService::class);
+
+        if ($equipment->wasChanged('image_path')) {
+            $oldPath = $equipment->getOriginal('image_path');
+            if (! blank($oldPath) && $oldPath !== $equipment->image_path) {
+                $mediaService->safeDelete((string) $oldPath, 'public', $equipment->id);
+            }
+        }
+
+        if ($equipment->wasChanged('certificate_path')) {
             $oldCert = $equipment->getOriginal('certificate_path');
             if (! blank($oldCert) && $oldCert !== $equipment->certificate_path) {
-                app(MediaOptimizationService::class)->safeDelete((string) $oldCert, 'public', $equipment->id);
+                $mediaService->safeDelete((string) $oldCert, 'public', $equipment->id);
             }
         }
     }

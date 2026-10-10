@@ -22,7 +22,11 @@ class StoreTransmitterRequest extends FormRequest
             'points' => ['required', 'array', 'size:10'],
             'points.*.applied_percentage' => ['required', 'numeric'],
             'points.*.reference_value' => ['required', 'numeric'],
+            'points.*.calibrator_1_correction' => ['nullable', 'numeric'],
+            'points.*.corrected_reference_value' => ['nullable', 'numeric'],
             'points.*.measured_signal' => ['nullable', 'numeric'],
+            'points.*.calibrator_2_correction' => ['nullable', 'numeric'],
+            'points.*.corrected_signal' => ['nullable', 'numeric'],
             'points.*.indicated_value' => ['nullable', 'numeric'],
         ];
     }

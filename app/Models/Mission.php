@@ -191,6 +191,7 @@ class Mission extends Model
     public function equipments(): BelongsToMany
     {
         return $this->belongsToMany(Equipment::class, 'mission_deployments', 'mission_id', 'equipment_id')
+            ->wherePivotNull('deleted_at')
             ->withPivot([
                 'id',
                 'status',

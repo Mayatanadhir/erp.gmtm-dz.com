@@ -2,9 +2,9 @@
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-3.5">
-                <a href="{{ route('operations.missions.show', $mission->id) }}" class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <x-secondary-button href="{{ route('operations.missions.show', $mission->id) }}" class="!p-2.5 !rounded-xl" title="{{ __('Back to Mission') }}">
                     <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                </a>
+                </x-secondary-button>
                 <div>
                     <h2 class="font-bold text-2xl text-gray-900 dark:text-white leading-tight flex items-center gap-2.5">
                         <span>{{ __('Edit Mission') }}</span>
@@ -284,7 +284,7 @@
                             @php
                                 $empPosition = is_object($employee->position) ? ($employee->position->label() ?? $employee->position->value) : (string) ($employee->position ?? '');
                             @endphp
-                            <div x-show="!employeeSearch || '{{ strtolower($employee->full_name . ' ' . $empPosition) }}'.includes(employeeSearch.toLowerCase())"
+                            <div x-show="!employeeSearch || {{ Js::from(mb_strtolower($employee->full_name . ' ' . $empPosition)) }}.includes(employeeSearch.toLowerCase())"
                                  @click="toggleEmployee({{ $employee->id }})"
                                  class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all"
                                  :class="isEmployeeSelected({{ $employee->id }}) ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-900/20 dark:border-indigo-600 shadow-xs' : 'border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-900/40 hover:bg-white dark:hover:bg-gray-700/50'">
@@ -442,7 +442,7 @@
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                                     @foreach ($items as $equipment)
-                                        <div x-show="!equipmentSearch || '{{ strtolower($equipment->full_name . ' ' . $equipment->internal_code) }}'.includes(equipmentSearch.toLowerCase())"
+                                        <div x-show="!equipmentSearch || {{ Js::from(mb_strtolower($equipment->full_name . ' ' . $equipment->internal_code)) }}.includes(equipmentSearch.toLowerCase())"
                                              @click="toggleEquipment({{ $equipment->id }})"
                                              class="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-all border"
                                              :class="isEquipmentSelected({{ $equipment->id }}) ? 'border-brand-500 bg-emerald-50/80 dark:bg-emerald-950/40 dark:border-brand-500 shadow-xs' : 'border-gray-200 dark:border-gray-700/70 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'">
@@ -476,9 +476,9 @@
 
                 <!-- Form Action Buttons -->
                 <div class="flex items-center justify-end gap-3 pt-4">
-                    <a href="{{ route('operations.missions.show', $mission->id) }}" class="btn-secondary">
+                    <x-secondary-button href="{{ route('operations.missions.show', $mission->id) }}">
                         {{ __('Cancel') }}
-                    </a>
+                    </x-secondary-button>
                     <x-primary-button type="submit" class="flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         <span>{{ __('Save Changes') }}</span>

@@ -22,18 +22,23 @@ class MissionOrderRepository extends BaseRepository implements MissionOrderRepos
         $shortYear = (int) substr((string) $year, -2);
         $suffix = "/ALG/{$shortYear}";
 
-        $latest = $this->model->newQuery()
+        $references = $this->model->newQuery()
+            ->withTrashed()
             ->where('order_reference', 'like', "%{$suffix}")
-            ->orderByDesc('order_reference')
-            ->value('order_reference');
+            ->pluck('order_reference');
 
-        if ($latest) {
-            $parts = explode('/', (string) $latest);
-            $lastNumber = isset($parts[0]) ? (int) $parts[0] : 0;
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
+        $maxNumber = 0;
+        foreach ($references as $ref) {
+            $parts = explode('/', (string) $ref);
+            if (isset($parts[0]) && is_numeric($parts[0])) {
+                $num = (int) $parts[0];
+                if ($num > $maxNumber) {
+                    $maxNumber = $num;
+                }
+            }
         }
+
+        $nextNumber = $maxNumber + 1;
 
         return sprintf('%03d/ALG/%02d', $nextNumber, $shortYear);
     }

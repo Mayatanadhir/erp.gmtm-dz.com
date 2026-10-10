@@ -6,7 +6,7 @@
             <div>
                 <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ __('Measuring Instruments') }}</p>
                 <h3 class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ $instrumentsCount ?? 0 }}</h3>
-                <p class="mt-1 text-xs text-brand-700 dark:text-brand-400 font-medium">{{ __('Rapport Transmitters, Probes & ADC') }}</p>
+                <p class="mt-1 text-xs text-brand-700 dark:text-brand-400 font-medium">{{ __('Transmitters, Probes & ADC Reports') }}</p>
             </div>
             <x-tool-icon name="instruments" class="w-12 h-12 shrink-0 transition-transform duration-200 group-hover:scale-105" />
         </div>
@@ -18,7 +18,7 @@
             <div>
                 <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ __('Gas Chromatographs') }}</p>
                 <h3 class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ $chromatographsCount ?? 0 }}</h3>
-                <p class="mt-1 text-xs text-brand-700 dark:text-brand-400 font-medium">{{ __('rapport CPG & Energy Analysis') }}</p>
+                <p class="mt-1 text-xs text-brand-700 dark:text-brand-400 font-medium">{{ __('GC & Energy Analysis Reports') }}</p>
             </div>
             <x-tool-icon name="chromatograph" class="w-12 h-12 shrink-0 transition-transform duration-200 group-hover:scale-105" />
         </div>
@@ -30,7 +30,7 @@
             <div>
                 <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ __('Standard Provers') }}</p>
                 <h3 class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ $proversCount ?? 0 }}</h3>
-                <p class="mt-1 text-xs text-brand-700 dark:text-brand-400 font-medium">{{ __('rapport Mastering Gas & Provers') }}</p>
+                <p class="mt-1 text-xs text-brand-700 dark:text-brand-400 font-medium">{{ __('Master Gauges & Provers Reports') }}</p>
             </div>
             <x-tool-icon name="prover" class="w-12 h-12 shrink-0 transition-transform duration-200 group-hover:scale-105" />
         </div>

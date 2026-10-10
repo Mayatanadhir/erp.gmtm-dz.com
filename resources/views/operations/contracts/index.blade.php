@@ -159,7 +159,7 @@
                                     </x-badge>
                                     @if ($contract->remain_days !== null)
                                         <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                                            @if ($contract->remain_days > 0)
+                                            @if ($contract->remain_days >= 0)
                                                 <bdi class="font-mono">{{ $contract->remain_days }}</bdi> {{ __('days left') }}
                                             @else
                                                 {{ __('Expired') }}

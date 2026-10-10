@@ -204,6 +204,7 @@
                                                 </option>
                                             @endforeach
                                         </select>
+                                        <div id="cal1-status-info" class="mt-1 text-[11px] min-h-[16px]"></div>
                                     </div>
 
                                     <!-- Calibrator 2: Reference Standard -->
@@ -219,6 +220,7 @@
                                                 </option>
                                             @endforeach
                                         </select>
+                                        <div id="cal2-status-info" class="mt-1 text-[11px] min-h-[16px]"></div>
                                     </div>
 
                                     <!-- Channel Scale -->
@@ -238,8 +240,8 @@
                                         <span>{{ __('Measurement Points') }} – {{ $activeTransmitter->channel_number ?? 'Canal' }} ({{ $channelData['grandeur'] }})</span>
                                     </h3>
                                     <div class="flex items-center gap-2">
-                                        <x-badge variant="neutral" size="sm">{{ __('Cycle 4-20 mA') }}</x-badge>
-                                        <x-badge variant="info" size="sm">{{ $channelData['symbol'] }}</x-badge>
+                                        <x-badge variant="neutral" size="sm">{{ __('Calibrator 1 → 4-20 mA Generator') }}</x-badge>
+                                        <x-badge variant="info" size="sm">{{ __('Calibrator 2 → ') }} {{ $channelData['grandeur'] }}</x-badge>
                                     </div>
                                 </div>
 
@@ -250,7 +252,13 @@
                                                 <th class="px-3 py-3 text-center w-12">#</th>
                                                 <th class="px-4 py-3 text-center">{{ __('Applied (%)') }}</th>
                                                 <th class="px-4 py-3 text-center">{{ __('Current (mA)') }}</th>
+                                                <th class="px-4 py-3 text-center text-brand-700 dark:text-brand-400 bg-brand-50/60 dark:bg-brand-950/50 border-x border-brand-200/40 dark:border-brand-900/50">
+                                                    {{ __('correction (Interpolated)') }} (mA)
+                                                </th>
                                                 <th class="px-4 py-3 text-center">{{ __('Calculated Expected') }} ({{ $channelData['symbol'] }})</th>
+                                                <th class="px-4 py-3 text-center text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/50 border-x border-emerald-200/40 dark:border-emerald-900/50">
+                                                    {{ __('correction (Interpolated)') }} ({{ $channelData['symbol'] }})
+                                                </th>
                                                 <th class="px-4 py-3 text-center">{{ __('Indicated Read Value') }} ({{ $channelData['symbol'] }}) *</th>
                                                 <th class="px-4 py-3 text-center">{{ __('Error') }} ({{ $channelData['emt_display'] }})</th>
                                                 <th class="px-4 py-3 text-center">{{ __('EMT (±)') }}</th>
@@ -277,15 +285,31 @@
                                                         <input type="hidden" name="points[{{ $index }}][applied_percentage]" value="{{ $percentage }}">
                                                         <span>{{ number_format($percentage, 1) }}%</span>
                                                     </td>
+                                                    <!-- Current (mA) Input -->
                                                     <td class="px-4 py-2.5 text-center">
                                                         <input type="number" step="0.0001" name="points[{{ $index }}][measured_signal]"
                                                                value="{{ $measuredSignal }}" required
                                                                class="input-signal w-32 text-center text-xs font-mono font-bold rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-1.5 px-2 focus:ring-brand-500 focus:border-brand-500" />
                                                     </td>
-                                                    <td class="px-4 py-2.5 text-center font-mono font-bold text-indigo-600 dark:text-indigo-400 cell-calculated">
-                                                        -
+                                                    <!-- Calibrator 1 Corrected Signal (Read-only + Interpolated) -->
+                                                    <td class="px-4 py-2.5 text-center font-mono font-bold cell-signal-corrigee text-brand-700 dark:text-brand-400 bg-brand-50/30 dark:bg-brand-950/30 border-x border-brand-100/50 dark:border-brand-900/30">
+                                                        <span class="signal-corrigee-val">{{ isset($existingPoint->corrected_signal) ? number_format($existingPoint->corrected_signal, 4, '.', '') : (isset($existingPoint->measured_signal) ? number_format($existingPoint->measured_signal, 4, '.', '') : '-') }}</span>
+                                                        <input type="hidden" name="points[{{ $index }}][calibrator_1_correction]" class="input-cal1-correction" value="{{ $existingPoint->calibrator_1_correction ?? '' }}">
+                                                        <input type="hidden" name="points[{{ $index }}][corrected_signal]" class="input-corrected-signal" value="{{ $existingPoint->corrected_signal ?? '' }}">
                                                     </td>
-                                                    <input type="hidden" name="points[{{ $index }}][calculated_value]" class="input-expected-val" value="">
+                                                    <!-- Calculated Expected Value -->
+                                                    <td class="px-4 py-2.5 text-center font-mono font-bold cell-calculated">
+                                                        <span class="val-calculee-span">{{ isset($existingPoint->expected_value) ? number_format($existingPoint->expected_value, 4, '.', '') : '-' }}</span>
+                                                        <input type="hidden" name="points[{{ $index }}][expected_signal]" value="{{ number_format($defaultmA, 4, '.', '') }}">
+                                                        <input type="hidden" name="points[{{ $index }}][expected_value]" class="input-expected-val" value="{{ $existingPoint->expected_value ?? '' }}">
+                                                    </td>
+                                                    <!-- Calibrator 2 Corrected Expected Value (Read-only + Interpolated) -->
+                                                    <td class="px-4 py-2.5 text-center font-mono font-bold cell-val-corrigee text-emerald-700 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/30 border-x border-emerald-100/50 dark:border-emerald-900/30">
+                                                        <span class="val-corrigee-span">{{ isset($existingPoint->corrected_expected_value) ? number_format($existingPoint->corrected_expected_value, 4, '.', '') : (isset($existingPoint->expected_value) ? number_format($existingPoint->expected_value, 4, '.', '') : '-') }}</span>
+                                                        <input type="hidden" name="points[{{ $index }}][calibrator_2_correction]" class="input-cal2-correction" value="{{ $existingPoint->calibrator_2_correction ?? '' }}">
+                                                        <input type="hidden" name="points[{{ $index }}][corrected_expected_value]" class="input-corrected-expected" value="{{ $existingPoint->corrected_expected_value ?? '' }}">
+                                                    </td>
+                                                    <!-- Indicated Read Value Input -->
                                                     <td class="px-4 py-2.5 text-center">
                                                         <input type="number" step="0.0001" name="points[{{ $index }}][indicated_value]"
                                                                value="{{ $indicatedValue }}" required
@@ -330,6 +354,9 @@
         </div>
     </div>
 
+    <!-- Active Calibrators Points Data -->
+    <script id="calibrators-points-data" type="application/json">@json($calibratorsPointsMap ?? [])</script>
+
     @push('scripts')
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -342,10 +369,106 @@
         const isTemp = document.getElementById('is_temp')?.value === '1';
         const span = (rangeMax - rangeMin) !== 0 ? (rangeMax - rangeMin) : 100;
 
+        const calibratorsDataEl = document.getElementById('calibrators-points-data');
+        let calibratorsPointsMap = {};
+        if (calibratorsDataEl) {
+            try {
+                calibratorsPointsMap = JSON.parse(calibratorsDataEl.textContent || '{}');
+            } catch (e) {
+                console.warn('Failed to parse calibrators points map', e);
+            }
+        }
+
+        /**
+         * خوارزمية الاستيفاء الخطي المترولوجي لنقاط شهادة المعايرة
+         */
+        function interpolatePoints(points, targetX) {
+            if (!points || !Array.isArray(points) || points.length === 0 || isNaN(targetX)) {
+                return { correction: 0, hasData: false };
+            }
+
+            for (let i = 0; i < points.length; i++) {
+                if (Math.abs(points[i].nominal - targetX) < 1e-6) {
+                    return { correction: Number(points[i].correction), hasData: true, exact: true };
+                }
+            }
+
+            const sorted = [...points].sort((a, b) => a.nominal - b.nominal);
+            const minNom = sorted[0].nominal;
+            const maxNom = sorted[sorted.length - 1].nominal;
+
+            if (targetX <= minNom) {
+                return { correction: Number(sorted[0].correction), hasData: true, clamped: true };
+            }
+            if (targetX >= maxNom) {
+                return { correction: Number(sorted[sorted.length - 1].correction), hasData: true, clamped: true };
+            }
+
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const p1 = sorted[i];
+                const p2 = sorted[i + 1];
+                if (targetX >= p1.nominal && targetX <= p2.nominal) {
+                    if (p2.nominal === p1.nominal) {
+                        return { correction: Number(p1.correction), hasData: true };
+                    }
+                    const ratio = (targetX - p1.nominal) / (p2.nominal - p1.nominal);
+                    const interpCorr = Number(p1.correction) + ratio * (Number(p2.correction) - Number(p1.correction));
+                    return { correction: interpCorr, hasData: true };
+                }
+            }
+
+            return { correction: 0, hasData: false };
+        }
+
+        /**
+         * تحديث شارات حالة نقاط المعايرة تحت قوائم اختيار الأجهزة
+         */
+        function updateCalibratorStatus() {
+            const cal1Select = document.getElementById('calibrator_1');
+            const cal2Select = document.getElementById('calibrator_2');
+            const cal1Info = document.getElementById('cal1-status-info');
+            const cal2Info = document.getElementById('cal2-status-info');
+
+            if (cal1Select && cal1Info) {
+                const val1 = cal1Select.value;
+                const pts1 = val1 && calibratorsPointsMap[val1] ? calibratorsPointsMap[val1] : [];
+                if (val1 && pts1.length > 0) {
+                    cal1Info.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> ${pts1.length} {{ __('points') }} ({{ __('Interpolation Active') }})</span>`;
+                } else if (val1) {
+                    cal1Info.innerHTML = `<span class="text-gray-400 dark:text-gray-500">{{ __('No certificate points (Correction = 0)') }}</span>`;
+                } else {
+                    cal1Info.innerHTML = '';
+                }
+            }
+
+            if (cal2Select && cal2Info) {
+                const val2 = cal2Select.value;
+                const pts2 = val2 && calibratorsPointsMap[val2] ? calibratorsPointsMap[val2] : [];
+                if (val2 && pts2.length > 0) {
+                    cal2Info.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> ${pts2.length} {{ __('points') }} ({{ __('Interpolation Active') }})</span>`;
+                } else if (val2) {
+                    cal2Info.innerHTML = `<span class="text-gray-400 dark:text-gray-500">{{ __('No certificate points (Correction = 0)') }}</span>`;
+                } else {
+                    cal2Info.innerHTML = '';
+                }
+            }
+        }
+
         function calculateRow(row) {
             const inputSignal = row.querySelector('.input-signal');
+            const cellSignalCorrigee = row.querySelector('.cell-signal-corrigee');
+            const inputCal1Corr = row.querySelector('.input-cal1-correction');
+            const inputCorrSignal = row.querySelector('.input-corrected-signal');
+
             const cellCalculated = row.querySelector('.cell-calculated');
+            const spanCalculated = cellCalculated?.querySelector('.val-calculee-span');
             const inputExpectedVal = row.querySelector('.input-expected-val');
+
+            const cellValCorrigee = row.querySelector('.cell-val-corrigee');
+            const spanValCorrigee = cellValCorrigee?.querySelector('.val-corrigee-span');
+            const inputCal2Corr = row.querySelector('.input-cal2-correction');
+            const inputCorrExpected = row.querySelector('.input-corrected-expected');
+
             const inputIndicated = row.querySelector('.input-indicated');
             const cellErreur = row.querySelector('.cell-erreur');
             const cellConformite = row.querySelector('.cell-conformite');
@@ -360,21 +483,84 @@
             const signal_mA = hasSignal ? parseFloat(rawSignal) : NaN;
             const indicated = hasIndicated ? parseFloat(rawIndicated) : NaN;
 
-            if (hasSignal && !isNaN(signal_mA) && span !== 0) {
-                const val_calculee = rangeMin + ((signal_mA - 4.0) / 16.0) * span;
-                cellCalculated.textContent = val_calculee.toFixed(4);
+            const cal1Id = document.getElementById('calibrator_1')?.value;
+            const cal2Id = document.getElementById('calibrator_2')?.value;
+            const cal1Points = (cal1Id && calibratorsPointsMap[cal1Id]) ? calibratorsPointsMap[cal1Id] : [];
+            const cal2Points = (cal2Id && calibratorsPointsMap[cal2Id]) ? calibratorsPointsMap[cal2Id] : [];
+
+            // 1. استيفاء وتصحيح إشارة التيار المحقونة (Calibrator 1)
+            let signalCorrigee = signal_mA;
+            let cal1Correction = 0;
+            if (!isNaN(signal_mA)) {
+                const res1 = interpolatePoints(cal1Points, signal_mA);
+                cal1Correction = res1.correction;
+                signalCorrigee = signal_mA + cal1Correction;
+
+                if (cellSignalCorrigee) {
+                    const spanSig = cellSignalCorrigee.querySelector('.signal-corrigee-val');
+                    if (spanSig) spanSig.textContent = signalCorrigee.toFixed(4);
+                    if (res1.hasData && Math.abs(cal1Correction) > 1e-6) {
+                        cellSignalCorrigee.title = `Correction Calibrator 1: ${(cal1Correction >= 0 ? '+' : '')}${cal1Correction.toFixed(5)} mA`;
+                    } else {
+                        cellSignalCorrigee.title = '';
+                    }
+                }
+                if (inputCal1Corr) inputCal1Corr.value = cal1Correction.toFixed(6);
+                if (inputCorrSignal) inputCorrSignal.value = signalCorrigee.toFixed(6);
+            } else {
+                if (cellSignalCorrigee) {
+                    const spanSig = cellSignalCorrigee.querySelector('.signal-corrigee-val');
+                    if (spanSig) spanSig.textContent = '-';
+                    cellSignalCorrigee.title = '';
+                }
+                if (inputCal1Corr) inputCal1Corr.value = '';
+                if (inputCorrSignal) inputCorrSignal.value = '';
+            }
+
+            // 2. حساب القيمة الاسمية المتوقعة من الإشارة المصححة
+            if (hasSignal && !isNaN(signalCorrigee) && span !== 0) {
+                const val_calculee = rangeMin + ((signalCorrigee - 4.0) / 16.0) * span;
+                if (spanCalculated) spanCalculated.textContent = val_calculee.toFixed(4);
                 if (inputExpectedVal) inputExpectedVal.value = val_calculee.toFixed(4);
 
+                // 3. استيفاء وتصحيح القيمة المتوقعة (Calibrator 2)
+                let valCorrigee = val_calculee;
+                let cal2Correction = 0;
+                if (!isNaN(val_calculee)) {
+                    const res2 = interpolatePoints(cal2Points, val_calculee);
+                    cal2Correction = res2.correction;
+                    valCorrigee = val_calculee + cal2Correction;
+
+                    if (cellValCorrigee) {
+                        if (spanValCorrigee) spanValCorrigee.textContent = valCorrigee.toFixed(4);
+                        if (res2.hasData && Math.abs(cal2Correction) > 1e-6) {
+                            cellValCorrigee.title = `Correction Calibrator 2: ${(cal2Correction >= 0 ? '+' : '')}${cal2Correction.toFixed(4)}`;
+                        } else {
+                            cellValCorrigee.title = '';
+                        }
+                    }
+                    if (inputCal2Corr) inputCal2Corr.value = cal2Correction.toFixed(6);
+                    if (inputCorrExpected) inputCorrExpected.value = valCorrigee.toFixed(6);
+                } else {
+                    if (cellValCorrigee) {
+                        if (spanValCorrigee) spanValCorrigee.textContent = '-';
+                        cellValCorrigee.title = '';
+                    }
+                    if (inputCal2Corr) inputCal2Corr.value = '';
+                    if (inputCorrExpected) inputCorrExpected.value = '';
+                }
+
+                // 4. تقييم الخطأ والمطابقة بالمقارنة مع القيمة المصححة (valCorrigee)
                 if (hasIndicated && !isNaN(indicated)) {
-                    const erreurAbs = indicated - val_calculee;
+                    const erreurAbs = indicated - valCorrigee;
 
                     if (isTemp) {
                         cellErreur.textContent = (erreurAbs >= 0 ? '+' : '') + erreurAbs.toFixed(4);
                         const isOk = Math.abs(erreurAbs) <= emtLimit + 0.000001;
                         cellErreur.className = 'px-4 py-2.5 text-center font-mono font-bold cell-erreur ' + (isOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400');
                         cellConformite.innerHTML = isOk 
-                            ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> OK</span>'
-                            : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300/60"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg> NOK</span>';
+                            ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> OK</span>'
+                            : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300/60"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg> NOK</span>';
                         inputConformite.value = isOk ? 1 : 0;
                     } else {
                         const erreurRel = (span !== 0) ? (Math.abs(erreurAbs) / span) * 100 : 0;
@@ -383,8 +569,8 @@
                         const isOk = (erreurEval <= emtLimit + 0.000001);
                         cellErreur.className = 'px-4 py-2.5 text-center font-mono font-bold cell-erreur ' + (isOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400');
                         cellConformite.innerHTML = isOk
-                            ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> OK</span>'
-                            : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300/60"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg> NOK</span>';
+                            ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> OK</span>'
+                            : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300/60"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg> NOK</span>';
                         inputConformite.value = isOk ? 1 : 0;
                     }
                 } else {
@@ -393,7 +579,8 @@
                     inputConformite.value = '';
                 }
             } else {
-                cellCalculated.textContent = '-';
+                if (spanCalculated) spanCalculated.textContent = '-';
+                if (spanValCorrigee) spanValCorrigee.textContent = '-';
                 cellErreur.textContent = '-';
                 cellConformite.innerHTML = '-';
                 inputConformite.value = '';
@@ -412,6 +599,17 @@
 
             document.querySelectorAll('.point-row').forEach(row => calculateRow(row));
         }
+
+        document.getElementById('calibrator_1')?.addEventListener('change', function() {
+            updateCalibratorStatus();
+            document.querySelectorAll('.point-row').forEach(row => calculateRow(row));
+        });
+        document.getElementById('calibrator_2')?.addEventListener('change', function() {
+            updateCalibratorStatus();
+            document.querySelectorAll('.point-row').forEach(row => calculateRow(row));
+        });
+
+        updateCalibratorStatus();
     });
     </script>
     @endpush

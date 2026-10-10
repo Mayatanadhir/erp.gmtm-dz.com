@@ -35,45 +35,44 @@
 
             <!-- Header Action Controls -->
             <div class="flex items-center flex-wrap gap-2">
-                <a href="{{ route('metrology.calibration-certificates') }}" class="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-lg transition">
-                    <i class="fas fa-arrow-left"></i>
+                <x-secondary-button href="{{ route('metrology.calibration-certificates') }}" class="gap-1.5 text-xs">
+                    <svg class="w-3.5 h-3.5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                     <span>{{ __('Back to List') }}</span>
-                </a>
+                </x-secondary-button>
 
                 @if($certificate->certificate_path)
-                    <a href="{{ route('metrology.calibration-certificates.download', $certificate) }}" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
-                        <i class="fas fa-download"></i>
+                    <x-success-button href="{{ route('metrology.calibration-certificates.download', $certificate) }}" class="gap-1.5 text-xs">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                         <span>{{ __('Download PDF') }}</span>
-                    </a>
+                    </x-success-button>
                 @endif
 
                 @can('edit calibration certificates')
                     @if(! $certificate->is_locked)
-                        <a href="{{ route('metrology.calibration-certificates.edit', $certificate) }}" class="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg shadow-sm transition">
-                            <i class="fas fa-edit"></i>
-                            <span>{{ __('Edit Certificate') }}</span>
-                        </a>
+                        <x-edit-button href="{{ route('metrology.calibration-certificates.edit', $certificate) }}" class="gap-1.5 text-xs">
+                            {{ __('Edit Certificate') }}
+                        </x-edit-button>
 
                         <form method="POST" action="{{ route('metrology.calibration-certificates.approve', $certificate) }}" class="inline" x-data>
                             @csrf
-                            <button type="button" @click="if (confirm({{ json_encode(__('Are you sure you want to approve and officially lock this certificate?')) }})) { $el.closest('form').submit(); }" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
-                                <i class="fas fa-check-double"></i>
+                            <x-primary-button type="button" @click="if (confirm({{ json_encode(__('Are you sure you want to approve and officially lock this certificate?')) }})) { $el.closest('form').submit(); }" class="gap-1.5 text-xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 <span>{{ __('Approve & Lock') }}</span>
-                            </button>
+                            </x-primary-button>
                         </form>
                     @else
                         <!-- Unlock with mandatory reason button -->
-                        <button type="button" x-data="" @click="$dispatch('open-modal', 'unlock-certificate-modal')" class="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
-                            <i class="fas fa-unlock"></i>
+                        <x-danger-button type="button" x-data="" @click="$dispatch('open-modal', 'unlock-certificate-modal')" class="gap-1.5 text-xs">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
                             <span>{{ __('Unlock Certificate') }}</span>
-                        </button>
+                        </x-danger-button>
                     @endif
                 @endcan
             </div>
         </div>
     </x-slot>
 
-    <div class="py-8" x-data="{ activeTab: '{{ request('tab', 'points') }}' }">
+    <div class="py-8" x-data="{ activeTab: @js(in_array(request('tab'), ['points', 'interpolation', 'document', 'environment'], true) ? request('tab') : 'points') }">
         <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
             <!-- Flash Notifications -->
             @if(session('success'))
@@ -167,11 +166,11 @@
                     <div class="space-y-2 text-xs">
                         <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700/60">
                             <span class="text-gray-500 dark:text-gray-400">{{ __('Calibration Cost') }}:</span>
-                            <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ number_format($certificate->price, 2) }} DZD</span>
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ number_format((float) ($certificate->price ?? 0), 2) }} {{ __('DZD') }}</span>
                         </div>
                         <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700/60">
                             <span class="text-gray-500 dark:text-gray-400">{{ __('Created By') }}:</span>
-                            <span class="font-medium text-gray-900 dark:text-white">{{ $certificate->creator?->name ?: 'System / Legacy' }}</span>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ $certificate->creator?->name ?: __('System / Legacy') }}</span>
                         </div>
                         <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700/60">
                             <span class="text-gray-500 dark:text-gray-400">{{ __('Approved By') }}:</span>
@@ -221,10 +220,9 @@
             <!-- Tab 2: Calibration Points Tables (Sourced from Equipment Specifications & Standards) -->
             <div x-show="activeTab === 'points'" x-data="{ pointsCategory: 'all' }" class="space-y-6">
                 @php
-                    $equipment = $certificate->equipment;
-                    $specifications = $specifications ?? ($equipment?->specifications()->with('grandeur')->get() ?? collect());
-                    $mesureSpecs = $mesureSpecs ?? $specifications->filter(fn($s) => $s->grandeur?->type === \App\Enums\GrandeurType::Measurement)->values();
-                    $sourceSpecs = $sourceSpecs ?? $specifications->filter(fn($s) => $s->grandeur?->type === \App\Enums\GrandeurType::Source)->values();
+                    $specifications = $specifications ?? collect();
+                    $mesureSpecs = $mesureSpecs ?? collect();
+                    $sourceSpecs = $sourceSpecs ?? collect();
                     $matchedPointIds = [];
                 @endphp
 
@@ -297,16 +295,8 @@
                                         if ($pt->equipment_specification_id === $spec->id) {
                                             return true;
                                         }
-                                        if ($pt->equipment_specification_id === null) {
-                                            if ($specifications->count() === 1) {
-                                                return true;
-                                            }
-                                            $min = (float) $spec->range_min;
-                                            $max = (float) $spec->range_max;
-                                            $span = abs($max - $min);
-                                            $tol = max(1.0, $span * 0.15);
-                                            $nominal = (float) $pt->nominal_value;
-                                            return ($nominal >= ($min - $tol) && $nominal <= ($max + $tol));
+                                        if ($pt->equipment_specification_id === null && $specifications->count() === 1) {
+                                            return true;
                                         }
                                         return false;
                                     })->values();
@@ -416,7 +406,7 @@
                                             </x-table.td>
                                             <x-table.td>
                                                 <x-badge :variant="$pt->status?->badgeVariant() ?? 'neutral'">
-                                                    {{ $pt->status?->label() ?? 'In Tolerance' }}
+                                                    {{ $pt->status?->label() ?? __('Undetermined') }}
                                                 </x-badge>
                                             </x-table.td>
                                         </x-table.tr>
@@ -445,23 +435,15 @@
                             @foreach($sourceSpecs as $spec)
                                 @php
                                     $unit = $spec->grandeur?->symbol ?: '';
-                                    $specPoints = $certificate->calibrationPoints->filter(function ($pt) use ($spec, $specifications) {
+                                    $specPoints = $certificate->calibrationPoints->filter(function ($pt) use ($spec, $specifications, $matchedPointIds) {
+                                        if (in_array($pt->id, $matchedPointIds, true)) {
+                                            return false;
+                                        }
                                         if ($pt->equipment_specification_id === $spec->id) {
                                             return true;
                                         }
-                                        if ($pt->equipment_specification_id === null) {
-                                            if (in_array($pt->id, $matchedPointIds, true)) {
-                                                return false;
-                                            }
-                                            if ($specifications->count() === 1) {
-                                                return true;
-                                            }
-                                            $min = (float) $spec->range_min;
-                                            $max = (float) $spec->range_max;
-                                            $span = abs($max - $min);
-                                            $tol = max(1.0, $span * 0.15);
-                                            $nominal = (float) $pt->nominal_value;
-                                            return ($nominal >= ($min - $tol) && $nominal <= ($max + $tol));
+                                        if ($pt->equipment_specification_id === null && $specifications->count() === 1) {
+                                            return true;
                                         }
                                         return false;
                                     })->values();
@@ -571,7 +553,7 @@
                                             </x-table.td>
                                             <x-table.td>
                                                 <x-badge :variant="$pt->status?->badgeVariant() ?? 'neutral'">
-                                                    {{ $pt->status?->label() ?? 'In Tolerance' }}
+                                                    {{ $pt->status?->label() ?? __('Undetermined') }}
                                                 </x-badge>
                                             </x-table.td>
                                         </x-table.tr>
@@ -639,20 +621,20 @@
                                                 <x-grandeur-icon :grandeur="$pt->equipmentSpecification?->grandeur" size="xs" :withBackground="true" />
                                                 <span>{{ $pt->equipmentSpecification?->grandeur?->name ?? __('Standard Parameter') }}</span>
                                                 @if($pt->equipmentSpecification?->grandeur?->symbol)
-                                                    <span class="inline-flex items-center font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border {{ $pt->equipmentSpecification->discipline()->badgeClass() }}">
+                                                    <span class="inline-flex items-center font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border {{ $pt->equipmentSpecification?->discipline()?->badgeClass() ?? 'border-gray-200 dark:border-gray-700' }}">
                                                         {{ $pt->equipmentSpecification->grandeur->symbol }}
                                                     </span>
                                                 @endif
                                             </div>
                                         </x-table.td>
                                         <x-table.td class="font-bold text-gray-900 dark:text-white font-mono">{{ $pt->nominal_value }}</x-table.td>
-                                        <x-table.td class="font-mono">{{ $pt->correction }}</x-table.td>
-                                        <x-table.td class="font-mono">{{ $pt->uncertainty }}</x-table.td>
+                                        <x-table.td class="font-mono">{{ ($pt->correction > 0 ? '+' : '') . $pt->correction }}</x-table.td>
+                                        <x-table.td class="font-mono">±{{ $pt->uncertainty }}</x-table.td>
                                         <x-table.td class="font-mono text-gray-500 dark:text-gray-400">{{ round($pt->lower_limit, 4) }}</x-table.td>
                                         <x-table.td class="font-mono text-gray-500 dark:text-gray-400">{{ round($pt->upper_limit, 4) }}</x-table.td>
                                         <x-table.td>
                                             <x-badge :variant="$pt->status?->badgeVariant() ?? 'neutral'">
-                                                {{ $pt->status?->label() ?? 'In Tolerance' }}
+                                                {{ $pt->status?->label() ?? __('Undetermined') }}
                                             </x-badge>
                                         </x-table.td>
                                     </x-table.tr>
@@ -688,7 +670,15 @@
                                         @if($certificate->file_size)
                                             {{ number_format($certificate->file_size / 1024, 1) }} KB &bull;
                                         @endif
-                                        {{ __('SHA256 CAS Verified') }}: <span class="font-mono text-[10px]">{{ substr($certificate->certificate_hash ?: '', 0, 16) }}...</span>
+                                        @if($certificate->certificate_hash)
+                                            <span class="inline-flex items-center gap-1">
+                                                <span class="text-gray-500 dark:text-gray-400">{{ __('SHA-256') }}:</span>
+                                                <span class="font-mono text-[10px]">{{ substr($certificate->certificate_hash, 0, 16) }}...</span>
+                                                <x-badge variant="success" size="sm" class="ms-1">{{ __('CAS Verified') }}</x-badge>
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400 text-xs">{{ __('Document Attached') }}</span>
+                                        @endif
                                     </p>
                                 </div>
                             </div>
@@ -698,9 +688,11 @@
                             </a>
                         </div>
 
-                        <!-- Embedded PDF Frame -->
+                        <!-- Embedded PDF Frame (Lazy Loaded on Tab Selection) -->
                         <div class="w-full h-[750px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
-                            <iframe src="{{ $certificate->certificate_url }}#toolbar=1" class="w-full h-full" frameborder="0"></iframe>
+                            <template x-if="activeTab === 'document'">
+                                <iframe src="{{ $certificate->certificate_url }}#toolbar=1" title="{{ __('Calibration Certificate Document') }}" class="w-full h-full" frameborder="0"></iframe>
+                            </template>
                         </div>
                     </div>
                 </div>

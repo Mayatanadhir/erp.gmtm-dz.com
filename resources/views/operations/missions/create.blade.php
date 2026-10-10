@@ -283,7 +283,7 @@
                             @php
                                 $empPosition = is_object($employee->position) ? ($employee->position->label() ?? $employee->position->value) : (string) ($employee->position ?? '');
                             @endphp
-                            <div x-show="!employeeSearch || '{{ strtolower($employee->full_name . ' ' . $empPosition) }}'.includes(employeeSearch.toLowerCase())"
+                            <div x-show="!employeeSearch || {{ Js::from(mb_strtolower($employee->full_name . ' ' . $empPosition)) }}.includes(employeeSearch.toLowerCase())"
                                  @click="toggleEmployee({{ $employee->id }})"
                                  class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all"
                                  :class="isEmployeeSelected({{ $employee->id }}) ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-900/20 dark:border-indigo-600 shadow-xs' : 'border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-900/40 hover:bg-white dark:hover:bg-gray-700/50'">
@@ -441,7 +441,7 @@
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                                     @foreach ($items as $equipment)
-                                        <div x-show="!equipmentSearch || '{{ strtolower($equipment->full_name . ' ' . $equipment->internal_code) }}'.includes(equipmentSearch.toLowerCase())"
+                                        <div x-show="!equipmentSearch || {{ Js::from(mb_strtolower($equipment->full_name . ' ' . $equipment->internal_code)) }}.includes(equipmentSearch.toLowerCase())"
                                              @click="toggleEquipment({{ $equipment->id }})"
                                              class="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-all border"
                                              :class="isEquipmentSelected({{ $equipment->id }}) ? 'border-brand-500 bg-emerald-50/80 dark:bg-emerald-950/40 dark:border-brand-500 shadow-xs' : 'border-gray-200 dark:border-gray-700/70 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'">

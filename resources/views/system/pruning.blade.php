@@ -10,13 +10,16 @@
                 </p>
             </div>
             <div class="flex items-center gap-2">
-                @if($effectiveConfig['enabled'])
+                @php
+                    $activeTablesCount = collect($effectiveConfig['tables'] ?? [])->filter(fn($t) => !empty($t['enabled']))->count();
+                @endphp
+                @if($activeTablesCount > 0)
                     <x-badge variant="success" size="md" :dot="true" :dot-ping="true">
-                        {{ __('Pruning Active') }}
+                        {{ $activeTablesCount }} {{ __('Active Tables') }}
                     </x-badge>
                 @else
-                    <x-badge variant="danger" size="md" :dot="true">
-                        {{ __('Pruning Disabled') }}
+                    <x-badge variant="neutral" size="md" :dot="true">
+                        {{ __('All Tables Disabled') }}
                     </x-badge>
                 @endif
 
@@ -105,54 +108,11 @@
                     <form method="POST" action="{{ route('system-tables.pruning.update') }}" class="space-y-6">
                         @csrf
 
-                        <!-- Global Master Switch Card -->
-                        <div class="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700/60">
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-gray-100 dark:border-gray-700/60">
-                                <div>
-                                    <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                                        <span>{{ __('Global Pruning Engine Switch') }}</span>
-                                    </h3>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {{ __('When disabled, all automated pruning schedules and routines will be safely halted globally.') }}
-                                    </p>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" name="enabled" value="1" class="sr-only peer" {{ $effectiveConfig['enabled'] ? 'checked' : '' }}>
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-600"></div>
-                                        <span class="ms-3 text-xs font-semibold text-gray-700 dark:text-gray-300">{{ __('Engine Master Power') }}</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
-                                        {{ __('Batch Deletion Chunk Size') }}
-                                    </label>
-                                    <input type="number" name="chunk_size" value="{{ $effectiveConfig['chunk_size'] ?? 1000 }}" min="50" max="10000" class="w-full rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white text-sm focus:border-brand-600 focus:ring-brand-600">
-                                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                        {{ __('Number of records deleted per database chunk iteration (prevents lock contention).') }}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
-                                        {{ __('Task Scheduler Timing') }}
-                                    </label>
-                                    <div class="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/60 text-xs font-mono text-gray-700 dark:text-gray-300">
-                                        <svg class="w-4 h-4 text-brand-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                        <span>02:00 {{ __('Daily (Midnight Schedule)') }}</span>
-                                    </div>
-                                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                        {{ __('Runs autonomously via Laravel Task Scheduler without overlapping.') }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Target Tables Configuration Grid Header -->
+                        <!-- Execution Parameters Card -->
+                        <div class="rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm border border-gray-100 dark:border-gray-700/60">
+                            <div >
+                               
+ <!-- Target Tables Configuration Grid Header -->
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
                             <div>
                                 <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -170,6 +130,11 @@
                                 </x-primary-button>
                             @endif
                         </div>
+                                
+                            </div>
+                        </div>
+
+                       
 
                         <!-- Target Tables Configuration Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">

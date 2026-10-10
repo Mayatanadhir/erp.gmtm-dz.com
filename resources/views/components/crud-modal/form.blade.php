@@ -1,4 +1,4 @@
-﻿@props([
+@props([
     'show'          => 'showFormModal',
     'actionUrl'     => '',
     'alpineAction'  => null,  // Alpine.js variable name for dynamic action URLs (edit forms)
@@ -19,12 +19,14 @@
 
     // Icon background + text color tokens by semantic color
     $iconTheme = match($iconColor) {
-        'amber'   => 'bg-amber-500/10  dark:bg-amber-500/20  text-amber-600  dark:text-amber-400',
-        'indigo'  => 'bg-indigo-500/10 dark:bg-indigo-500/20 text-brand-700 dark:text-indigo-400',
-        'emerald' => 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
-        'rose'    => 'bg-rose-500/10   dark:bg-rose-500/20   text-rose-600   dark:text-rose-400',
-        default   => 'bg-brand-600/10 dark:bg-brand-600/20 text-brand-700 dark:text-brand-400',
+        'amber', 'yellow'  => 'bg-amber-500/10  dark:bg-amber-500/20  text-amber-600  dark:text-amber-400',
+        'indigo', 'blue'   => 'bg-indigo-500/10 dark:bg-indigo-500/20 text-brand-700 dark:text-indigo-400',
+        'emerald', 'green' => 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+        'rose', 'red'      => 'bg-rose-500/10   dark:bg-rose-500/20   text-rose-600   dark:text-rose-400',
+        default            => 'bg-brand-600/10 dark:bg-brand-600/20 text-brand-700 dark:text-brand-400',
     };
+
+    $headingId = 'form-modal-heading-' . Str::random(6);
 
     $maxWidthClass = match($maxWidth) {
         'md'  => 'sm:max-w-md',
@@ -68,9 +70,11 @@
 <div
     x-cloak
     x-show="{{ $show }}"
+    @keydown.escape.window="{{ $show }} = false"
     class="fixed inset-0 z-50 overflow-y-auto"
     role="dialog"
     aria-modal="true"
+    aria-labelledby="{{ $headingId }}"
 >
     {{-- Backdrop --}}
     <div
@@ -130,7 +134,7 @@
                                 @endif
                             </div>
                             <div>
-                                <h3 class="text-base font-bold text-gray-900 dark:text-white">
+                                <h3 class="text-base font-bold text-gray-900 dark:text-white" id="{{ $headingId }}">
                                     {{ $resolvedTitle }}
                                 </h3>
                                 @if($resolvedDescription)

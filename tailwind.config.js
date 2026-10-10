@@ -47,10 +47,10 @@ export default {
         'translate-x-0',
         'translate-x-7',
         // brand shades used dynamically
-        { pattern: /bg-brand-(50|100|200|500|600|700|800|950)/ },
-        { pattern: /text-brand-(300|400|500|600|700)/ },
-        { pattern: /border-brand-(200|600|800)/ },
-        { pattern: /ring-brand-(500|600)/ },
+        { pattern: /bg-brand-(50|100|200|500|600|700|800|950)/, variants: ['dark'] },
+        { pattern: /text-brand-(300|400|500|600|700)/, variants: ['dark'] },
+        { pattern: /border-brand-(200|600|800|900)/, variants: ['dark'] },
+        { pattern: /ring-brand-(500|600)/, variants: ['dark'] },
     ],
 };
 

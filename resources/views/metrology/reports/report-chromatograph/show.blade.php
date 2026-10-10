@@ -18,11 +18,11 @@
                         <x-badge variant="neutral" size="sm">{{ __('Chromatograph CPG') }}</x-badge>
                         @if($chromatographVerification->overall_status)
                             <x-badge variant="success" size="sm" :dot="true">
-                                {{ __('CONFORME (OIML R 140 / ISO 6974)') }}
+                                {{ __('COMPLIANT (OIML R 140 / ISO 6974)') }}
                             </x-badge>
                         @else
                             <x-badge variant="danger" size="sm" :dot="true">
-                                {{ __('NON-CONFORME') }}
+                                {{ __('NON-COMPLIANT') }}
                             </x-badge>
                         @endif
                     </div>
@@ -78,14 +78,9 @@
                 @endcanany
 
                 @canany(['edit chromatograph verifications', 'edit reports'])
-                    <a href="{{ route('metrology.reports.report-chromatograph.saisie', $chromatographVerification->id) }}">
-                        <x-warning-button type="button" class="gap-1.5 text-xs">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                            <span>{{ __('Edit / Saisie') }}</span>
-                        </x-warning-button>
-                    </a>
+                    <x-edit-button href="{{ route('metrology.reports.report-chromatograph.saisie', $chromatographVerification->id) }}" class="gap-1.5 text-xs">
+                        {{ __('Edit / Saisie') }}
+                    </x-edit-button>
                 @endcanany
 
                 <a href="{{ route('metrology.reports.report-chromatograph.index') }}">
@@ -257,14 +252,14 @@
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
-                                        <span>{{ __('CONFORME (OIML R 140)') }}</span>
+                                        <span>{{ __('COMPLIANT (OIML R 140)') }}</span>
                                     </div>
                                 @else
                                     <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-bold text-sm shadow-2xs">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
-                                        <span>{{ __('NON-CONFORME') }}</span>
+                                        <span>{{ __('NON-COMPLIANT') }}</span>
                                     </div>
                                 @endif
                             </div>
@@ -529,11 +524,11 @@
                                                 <td class="px-3 py-3 text-center font-sans">
                                                     @if($prop->is_conforme)
                                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
-                                                            {{ __('CONFORME') }}
+                                                            {{ __('COMPLIANT') }}
                                                         </span>
                                                     @else
                                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300">
-                                                            {{ __('NON-CONFORME') }}
+                                                            {{ __('NON-COMPLIANT') }}
                                                         </span>
                                                     @endif
                                                 </td>
@@ -573,13 +568,13 @@
                                 </div>
                                 <div class="flex-1">
                                     <div class="text-xs font-bold uppercase tracking-wider">
-                                        {{ __('Final Metrological Conformity Decision (Decision de Conformite Metrologique):') }}
+                                        {{ __('Final Metrological Conformity Decision:') }}
                                     </div>
                                     <div class="text-sm font-extrabold mt-0.5">
                                         @if($chromatographVerification->overall_status)
-                                            {{ __('CONFORME AUX EXIGENCES REGLEMENTAIRES OIML R 140 / ISO 6974 (CLASSE A)') }}
+                                            {{ __('COMPLIANT WITH REGULATORY REQUIREMENTS OIML R 140 / ISO 6974 (CLASS A)') }}
                                         @else
-                                            {{ __('NON-CONFORME AUX EXIGENCES REGLEMENTAIRES OIML R 140') }}
+                                            {{ __('NON-COMPLIANT WITH REGULATORY REQUIREMENTS OIML R 140') }}
                                         @endif
                                     </div>
                                 </div>

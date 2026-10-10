@@ -16,51 +16,107 @@
             : array_merge(request()->except('page'), ['instrument_type' => $type])
     );
 
+    $isTransmitterActive   = request('instrument_type') === 'transmitter';
+    $isFlowComputerActive  = request('instrument_type') === 'flow_computer';
+    $isChromatographActive = request('instrument_type') === 'chromatograph';
+    $isStandardGaugeActive = request('instrument_type') === 'standard_gauge';
+    $isProverActive        = request('instrument_type') === 'prover';
+
     $kpis = [
         [
-            'label'  => __('Total Instruments'),
-            'value'  => $stats['total'] ?? 0,
-            'url'    => route('metrology.instruments', request()->except(['instrument_type', 'status', 'page'])),
-            'icon'   => 'fa-boxes',
-            'active' => false,
-            'box'    => 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400',
-            'ring'   => '',
+            'label'     => __('Transmitters'),
+            'value'     => $stats['transmitters'] ?? 0,
+            'url'       => $kpiUrl('transmitter'),
+            'icon'      => 'fa-satellite-dish',
+            'active'    => $isTransmitterActive,
+            'card'      => $isTransmitterActive
+                ? 'bg-blue-100/80 dark:bg-blue-950/70 border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/30 shadow-md'
+                : 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/70 dark:border-blue-900/40 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-800 shadow-2xs',
+            'box'       => $isTransmitterActive
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-blue-100/80 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400',
+            'label_cls' => $isTransmitterActive
+                ? 'text-blue-700 dark:text-blue-300 font-semibold'
+                : 'text-gray-600 dark:text-gray-400 font-medium',
+            'value_cls' => $isTransmitterActive
+                ? 'text-blue-950 dark:text-blue-100'
+                : 'text-gray-900 dark:text-white',
         ],
         [
-            'label'  => __('Transmitters'),
-            'value'  => $stats['transmitters'] ?? 0,
-            'url'    => $kpiUrl('transmitter'),
-            'icon'   => 'fa-satellite-dish',
-            'active' => request('instrument_type') === 'transmitter',
-            'box'    => 'bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400',
-            'ring'   => 'ring-2 ring-blue-500 border-blue-500 bg-blue-50/20',
+            'label'     => __('Flow Computers'),
+            'value'     => $stats['flow_computers'] ?? 0,
+            'url'       => $kpiUrl('flow_computer'),
+            'icon'      => 'fa-server',
+            'active'    => $isFlowComputerActive,
+            'card'      => $isFlowComputerActive
+                ? 'bg-amber-100/80 dark:bg-amber-950/70 border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/30 shadow-md'
+                : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/70 dark:border-amber-900/40 hover:bg-amber-50/80 dark:hover:bg-amber-950/40 hover:border-amber-300 dark:hover:border-amber-800 shadow-2xs',
+            'box'       => $isFlowComputerActive
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-amber-100/80 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400',
+            'label_cls' => $isFlowComputerActive
+                ? 'text-amber-700 dark:text-amber-300 font-semibold'
+                : 'text-gray-600 dark:text-gray-400 font-medium',
+            'value_cls' => $isFlowComputerActive
+                ? 'text-amber-950 dark:text-amber-100'
+                : 'text-gray-900 dark:text-white',
         ],
         [
-            'label'  => __('Flow Computers'),
-            'value'  => $stats['flow_computers'] ?? 0,
-            'url'    => $kpiUrl('flow_computer'),
-            'icon'   => 'fa-server',
-            'active' => request('instrument_type') === 'flow_computer',
-            'box'    => 'bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400',
-            'ring'   => 'ring-2 ring-amber-500 border-amber-500 bg-amber-50/20',
+            'label'     => __('Gas Chromatographs'),
+            'value'     => $stats['chromatographs'] ?? 0,
+            'url'       => $kpiUrl('chromatograph'),
+            'icon'      => 'fa-vial',
+            'active'    => $isChromatographActive,
+            'card'      => $isChromatographActive
+                ? 'bg-emerald-100/80 dark:bg-emerald-950/70 border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-500/30 shadow-md'
+                : 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/70 dark:border-emerald-900/40 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 hover:border-emerald-300 dark:hover:border-emerald-800 shadow-2xs',
+            'box'       => $isChromatographActive
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+            'label_cls' => $isChromatographActive
+                ? 'text-emerald-700 dark:text-emerald-300 font-semibold'
+                : 'text-gray-600 dark:text-gray-400 font-medium',
+            'value_cls' => $isChromatographActive
+                ? 'text-emerald-950 dark:text-emerald-100'
+                : 'text-gray-900 dark:text-white',
         ],
         [
-            'label'  => __('Standard Gauges'),
-            'value'  => $stats['standard_gauges'] ?? 0,
-            'url'    => $kpiUrl('standard_gauge'),
-            'icon'   => 'fa-flask',
-            'active' => request('instrument_type') === 'standard_gauge',
-            'box'    => 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
-            'ring'   => 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/20',
+            'label'     => __('Standard Gauges'),
+            'value'     => $stats['standard_gauges'] ?? 0,
+            'url'       => $kpiUrl('standard_gauge'),
+            'icon'      => 'fa-prescription-bottle',
+            'active'    => $isStandardGaugeActive,
+            'card'      => $isStandardGaugeActive
+                ? 'bg-teal-100/80 dark:bg-teal-950/70 border-teal-500 dark:border-teal-400 ring-2 ring-teal-500/30 shadow-md'
+                : 'bg-teal-50/50 dark:bg-teal-950/20 border-teal-200/70 dark:border-teal-900/40 hover:bg-teal-50/80 dark:hover:bg-teal-950/40 hover:border-teal-300 dark:hover:border-teal-800 shadow-2xs',
+            'box'       => $isStandardGaugeActive
+                ? 'bg-teal-600 text-white shadow-xs'
+                : 'bg-teal-100/80 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400',
+            'label_cls' => $isStandardGaugeActive
+                ? 'text-teal-700 dark:text-teal-300 font-semibold'
+                : 'text-gray-600 dark:text-gray-400 font-medium',
+            'value_cls' => $isStandardGaugeActive
+                ? 'text-teal-950 dark:text-teal-100'
+                : 'text-gray-900 dark:text-white',
         ],
         [
-            'label'  => __('Provers'),
-            'value'  => $stats['provers'] ?? 0,
-            'url'    => $kpiUrl('prover'),
-            'icon'   => 'fa-tachometer-alt',
-            'active' => request('instrument_type') === 'prover',
-            'box'    => 'bg-violet-50 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400',
-            'ring'   => 'ring-2 ring-violet-500 border-violet-500 bg-violet-50/20',
+            'label'     => __('Provers'),
+            'value'     => $stats['provers'] ?? 0,
+            'url'       => $kpiUrl('prover'),
+            'icon'      => 'fa-tachometer-alt',
+            'active'    => $isProverActive,
+            'card'      => $isProverActive
+                ? 'bg-violet-100/80 dark:bg-violet-950/70 border-violet-500 dark:border-violet-400 ring-2 ring-violet-500/30 shadow-md'
+                : 'bg-violet-50/50 dark:bg-violet-950/20 border-violet-200/70 dark:border-violet-900/40 hover:bg-violet-50/80 dark:hover:bg-violet-950/40 hover:border-violet-300 dark:hover:border-violet-800 shadow-2xs',
+            'box'       => $isProverActive
+                ? 'bg-violet-600 text-white shadow-xs'
+                : 'bg-violet-100/80 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400',
+            'label_cls' => $isProverActive
+                ? 'text-violet-700 dark:text-violet-300 font-semibold'
+                : 'text-gray-600 dark:text-gray-400 font-medium',
+            'value_cls' => $isProverActive
+                ? 'text-violet-950 dark:text-violet-100'
+                : 'text-gray-900 dark:text-white',
         ],
     ];
 
@@ -462,13 +518,13 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
                         @foreach($kpis as $kpi)
                             <a href="{{ $kpi['url'] }}"
-                               class="p-3.5 sm:p-4 rounded-xl border bg-white dark:bg-gray-800 shadow-sm flex items-center gap-3 hover:shadow-md transition group {{ $kpi['active'] ? $kpi['ring'] : 'border-gray-200 dark:border-gray-700' }}">
-                                <div class="p-2 sm:p-2.5 rounded-lg {{ $kpi['box'] }} shrink-0 group-hover:scale-105 transition">
+                               class="p-3.5 sm:p-4 rounded-xl border flex items-center gap-3 transition-all duration-150 group {{ $kpi['card'] }}">
+                                <div class="p-2 sm:p-2.5 rounded-lg {{ $kpi['box'] }} shrink-0 group-hover:scale-105 transition-transform duration-150">
                                     <i class="fas {{ $kpi['icon'] }} text-base sm:text-lg"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <div class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">{{ $kpi['label'] }}</div>
-                                    <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white mt-0.5">{{ $kpi['value'] }}</div>
+                                    <div class="text-xs {{ $kpi['label_cls'] }} truncate">{{ $kpi['label'] }}</div>
+                                    <div class="text-base sm:text-lg font-bold {{ $kpi['value_cls'] }} mt-0.5 leading-tight">{{ $kpi['value'] }}</div>
                                 </div>
                             </a>
                         @endforeach

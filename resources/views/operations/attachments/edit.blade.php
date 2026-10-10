@@ -115,7 +115,7 @@
                             <label for="code_ref" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                                 {{ __('Reference Code') }}
                             </label>
-                            <input type="text" id="code_ref" name="code_ref" value="{{ old('code_ref', $attachment->code_ref) }}" class="w-full py-2.5 px-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-brand-500 focus:border-brand-500 shadow-sm">
+                            <input type="text" id="code_ref" name="code_ref" value="{{ old('code_ref', $attachment->code_ref) }}" maxlength="45" class="w-full py-2.5 px-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-brand-500 focus:border-brand-500 shadow-sm">
                         </div>
 
                         <!-- ODS Reference -->
@@ -123,7 +123,7 @@
                             <label for="ods" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                                 {{ __('ODS Number') }}
                             </label>
-                            <input type="text" id="ods" name="ods" value="{{ old('ods', $attachment->ods) }}" class="w-full py-2.5 px-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-brand-500 focus:border-brand-500 shadow-sm" placeholder="{{ __('e.g. 1844-7 / ODS-2026') }}">
+                            <input type="text" id="ods" name="ods" value="{{ old('ods', $attachment->ods) }}" maxlength="45" class="w-full py-2.5 px-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-brand-500 focus:border-brand-500 shadow-sm" placeholder="{{ __('e.g. 1844-7 / ODS-2026') }}">
                         </div>
 
                         <!-- Date -->

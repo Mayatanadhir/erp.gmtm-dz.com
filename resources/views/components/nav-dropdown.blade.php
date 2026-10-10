@@ -1,14 +1,15 @@
 @props(['label', 'active' => false])
 
-<div class="relative" x-data="{ dropOpen: false }" @mouseenter="dropOpen = true" @mouseleave="dropOpen = false">
+<div class="relative" x-data="{ dropOpen: false }" @click.outside="dropOpen = false" @keydown.escape.window="dropOpen = false">
 
     {{-- Trigger Button --}}
     <button
         type="button"
         @click="dropOpen = !dropOpen"
+        :aria-expanded="dropOpen.toString()"
         class="inline-flex items-center gap-1 px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out
                {{ $active
-                    ? 'border-indigo-400 dark:border-indigo-500 text-gray-900 dark:text-gray-100'
+                    ? 'border-brand-500 dark:border-brand-400 text-gray-900 dark:text-gray-100'
                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}"
     >
         {{ $label }}

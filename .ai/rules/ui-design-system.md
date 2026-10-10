@@ -19,13 +19,14 @@ paths:
 - **Multi-File Response Mandate:** Output backend and frontend/CSS changes as completely separate code blocks with distinct file paths.
 
 ## 2. Mandatory Unified Button & Semantic Color System
-All buttons must exclusively use the standardized Blade button components. Never write raw `<button>` elements with arbitrary, non-standard background classes or inline styles:
-- `<x-primary-button>`: Main calls to action, submit, save, create, confirm, login, register, apply search/filters. Visual Token: Brand Safety Orange (`bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 text-white`).
-- `<x-secondary-button>`: Cancel, dismiss, close modals, reset forms, neutral secondary actions. Visual Token: Neutral bordered gray (`bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300`).
-- `<x-danger-button>`: Destructive actions, delete account, purge records, terminate background jobs, drop entities. Visual Token: Destructive Rose/Red (`bg-rose-600 hover:bg-rose-700 dark:bg-rose-600 text-white`).
-- `<x-success-button>`: Positive confirmations, approvals, resolving errors, marking items as read. Visual Token: Emerald Green (`bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 text-white`).
-- `<x-warning-button>`: Cautionary tasks, retry operations, temporary holds/pauses. Visual Token: Amber Yellow (`bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 text-white`).
-- `<x-info-button>`: Data inspection, view changes/diffs, preview payloads, examine stack traces. Visual Token: Indigo Blue (`bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 text-white`).
+All buttons must exclusively use the standardized Blade button components. Never write raw `<button>` or `<a>` elements with arbitrary, non-standard background classes or inline styles:
+- `<x-primary-button>`: Main calls to action, submit, save, create, confirm, login, register, apply search/filters. Visual Token: GMTM Brand Green (`.btn-primary` -> `bg-brand-600 hover:bg-brand-700 dark:bg-brand-700 dark:hover:bg-brand-600 text-white`).
+- `<x-secondary-button>`: Cancel, dismiss, close modals, reset forms, back to list/inventory, neutral secondary actions. Visual Token: Neutral bordered gray (`.btn-secondary` -> `bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300`).
+- `<x-edit-button>`: Modifying or editing records/entities in page headers, cards, and detail views. Visual Token: Solid Amber (`.btn-edit` -> `bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 text-white shadow-sm shadow-amber-500/20`) with integrated white pencil SVG icon.
+- `<x-danger-button>`: Destructive actions, delete account, purge records, terminate background jobs, drop entities. Visual Token: Destructive Rose/Red (`.btn-danger` -> `bg-red-600 hover:bg-red-700 dark:bg-red-700 text-white`).
+- `<x-success-button>`: Positive confirmations, approvals, resolving errors, marking items as read, download PDF. Visual Token: Emerald Green (`.btn-success` -> `bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 text-white`).
+- `<x-warning-button>`: Cautionary tasks, retry operations, temporary holds/pauses. Visual Token: Amber Yellow (`.btn-warning` -> `bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 text-white`).
+- `<x-info-button>`: Data inspection, view changes/diffs, preview payloads, examine stack traces. Visual Token: Indigo Blue (`.btn-info` -> `bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 text-white`).
 
 ## 3. Mandatory Unified Table Component Architecture
 Never write raw HTML `<table>` elements or ad-hoc raw buttons with inline SVGs for row operations. Exclusively use the unified `<x-table>` suite:

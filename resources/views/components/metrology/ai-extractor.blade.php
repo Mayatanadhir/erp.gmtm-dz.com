@@ -623,6 +623,10 @@
                 });
             },
 
+            destroy() {
+                this.clearPolling();
+            },
+
             handleFileSelect(event) {
                 const file = event.target.files[0];
                 if (file) this.processUpload(file);
@@ -692,9 +696,19 @@
             startPolling(extractionId) {
                 this.clearPolling();
                 let pollCount = 0;
+                const maxPolls = 30; // الحد الأقصى للاستطلاع 30 محاولة (60 ثانية)
                 
-                this.aiState.pollTimer = setInterval(() => {
+                const poll = () => {
                     pollCount++;
+
+                    // فحص انتهاء المهلة في كل دورة استطلاع لمنع الاستعلام اللانهائي
+                    if (pollCount > maxPolls) {
+                        this.clearPolling();
+                        this.aiState.keyStatus = 'idle';
+                        this.showError(this.config.translations.timeout);
+                        return;
+                    }
+
                     if (pollCount === 2) {
                         this.aiState.step = 3;
                         this.aiState.stepMessage = this.config.translations.multimodalAnalysis;
@@ -727,24 +741,34 @@
                             this.clearPolling();
                             this.aiState.keyStatus = 'idle'; // إيقاف المفتاح في حال الفشل
                             this.showError(statusData.error_message || this.config.translations.processFailed);
+                        } else {
+                            // الاستمرار في الاستطلاع المتسلسل بعد إتمام الرد
+                            this.aiState.pollTimer = setTimeout(poll, 2000);
                         }
                     })
                     .catch(() => {
-                        // تفادي التسرب في حالة فشل الخادم كلياً وتجاوز المحاولات
-                        if (pollCount > 30) {
+                        // تفادي التسرب في حالة فشل الشبكة وتجاوز المحاولات
+                        if (pollCount >= maxPolls) {
                             this.clearPolling();
-                            this.aiState.keyStatus = 'idle'; // إعادة المفتاح لحالة الخمول عند انتهاء المهلة
+                            this.aiState.keyStatus = 'idle';
                             this.showError(this.config.translations.timeout);
+                        } else {
+                            this.aiState.pollTimer = setTimeout(poll, 2000);
                         }
                     });
-                }, 2000);
+                };
+
+                this.aiState.pollTimer = setTimeout(poll, 2000);
             },
 
             fetchPreview(extractionId) {
                 fetch(`${this.config.urls.base}/${extractionId}/preview`, {
                     headers: { 'Accept': 'application/json' }
                 })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error(this.config.translations.previewFailed);
+                    return res.json();
+                })
                 .then(previewData => {
                     this.completeExtraction(previewData.extracted_data);
                 })
@@ -757,7 +781,7 @@
 
                 let url = this.config.urls.unapplied;
                 if (this.selectedEquipmentId) {
-                    url += '?equipment_id=' + this.selectedEquipmentId;
+                    url += '?equipment_id=' + encodeURIComponent(this.selectedEquipmentId);
                 }
 
                 fetch(url, { headers: { 'Accept': 'application/json' } })
@@ -814,8 +838,11 @@
                 if (header.remarks) {
                     const remInput = document.querySelector('textarea[name="remarks"]');
                     if (remInput) {
-                        remInput.value = (remInput.value ? remInput.value + '\n' : '') + header.remarks;
-                        remInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        const currentVal = remInput.value.trim();
+                        if (!currentVal.includes(header.remarks.trim())) {
+                            remInput.value = (currentVal ? currentVal + '\n' : '') + header.remarks;
+                            remInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
                     }
                 }
 
@@ -846,8 +873,22 @@
                 });
 
                 if (newPoints.length > 0 && this.points !== undefined) {
-                    const hasExistingData = this.points.some(p => p.nominal_value !== '' || p.correction !== '');
-                    this.points = hasExistingData ? this.points.concat(newPoints) : newPoints;
+                    const existingEmpty = this.points.every(p => !p.nominal_value && !p.correction && !p.uncertainty);
+                    if (existingEmpty) {
+                        this.points = newPoints;
+                    } else {
+                        // إضافة النقاط غير المكررة فقط لمنع التكرار عند إعادة الضغط
+                        const uniqueNewPoints = newPoints.filter(np => 
+                            !this.points.some(ep => 
+                                String(ep.equipment_specification_id) === String(np.equipment_specification_id) &&
+                                String(ep.nominal_value) === String(np.nominal_value) &&
+                                String(ep.correction) === String(np.correction)
+                            )
+                        );
+                        if (uniqueNewPoints.length > 0) {
+                            this.points = this.points.concat(uniqueNewPoints);
+                        }
+                    }
 
                     const firstPtSpec = this.points.find(p => p.equipment_specification_id)?.equipment_specification_id;
                     if (firstPtSpec && this.activeSpecId !== undefined) {
@@ -900,6 +941,7 @@
 
             clearPolling() {
                 if (this.aiState.pollTimer) {
+                    clearTimeout(this.aiState.pollTimer);
                     clearInterval(this.aiState.pollTimer);
                     this.aiState.pollTimer = null;
                 }

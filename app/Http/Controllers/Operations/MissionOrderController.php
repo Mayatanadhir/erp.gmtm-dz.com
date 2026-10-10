@@ -15,6 +15,7 @@ use App\Models\MissionOrder;
 use App\Services\MissionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class MissionOrderController extends Controller
@@ -73,11 +74,18 @@ class MissionOrderController extends Controller
         /** @var MissionOrder $order */
         $order = $mission->missionOrders()->with(['employee', 'vehicle'])->findOrFail($orderId);
 
-        // Generate sequential reference if missing (e.g. 001/ALG/26)
+        // Atomically generate sequential reference if missing (e.g. 001/ALG/26)
         if (blank($order->order_reference)) {
-            $year = $order->started_at ? (int) $order->started_at->year : (int) date('Y');
-            $ref = $this->missionOrderRepository->getNextOrderReference($year);
-            $order->update(['order_reference' => $ref]);
+            DB::transaction(function () use ($order): void {
+                /** @var MissionOrder|null $lockedOrder */
+                $lockedOrder = MissionOrder::where('id', $order->id)->lockForUpdate()->first();
+                if ($lockedOrder && blank($lockedOrder->order_reference)) {
+                    $year = $lockedOrder->started_at ? (int) $lockedOrder->started_at->year : (int) date('Y');
+                    $ref = $this->missionOrderRepository->getNextOrderReference($year);
+                    $lockedOrder->update(['order_reference' => $ref]);
+                    $order->order_reference = $ref;
+                }
+            });
             $order->refresh();
         }
 

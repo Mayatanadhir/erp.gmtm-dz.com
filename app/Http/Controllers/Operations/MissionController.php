@@ -26,6 +26,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
+use RuntimeException;
 
 class MissionController extends Controller
 {
@@ -156,7 +159,10 @@ class MissionController extends Controller
         $assignedEmployeeIds = $mission->missionOrders->pluck('employee_id')->toArray();
         $chiefId = $mission->teamLeader?->id;
         $vehicleId = $mission->missionOrders->firstWhere('vehicle_id', '!=', null)?->vehicle_id;
-        $assignedEquipmentIds = $mission->equipments->where('category', '!=', EquipmentCategory::Vehicle->value)->pluck('id')->toArray();
+        $assignedEquipmentIds = $mission->equipments
+            ->reject(fn (Equipment $equipment) => $equipment->category === EquipmentCategory::Vehicle)
+            ->pluck('id')
+            ->toArray();
 
         return view('operations.missions.edit', compact(
             'mission',
@@ -200,10 +206,12 @@ class MissionController extends Controller
             return redirect()
                 ->route('operations.missions.show', $mission->id)
                 ->with('success', __('Mission activated successfully.'));
-        } catch (MissionConflictException $e) {
+        } catch (MissionConflictException|InvalidArgumentException|RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         } catch (Exception $e) {
-            return back()->with('error', __('Failed to activate mission: ').$e->getMessage());
+            Log::error('Failed to activate mission', ['mission_id' => $id, 'error' => $e->getMessage()]);
+
+            return back()->with('error', __('Failed to activate mission.'));
         }
     }
 
@@ -222,8 +230,12 @@ class MissionController extends Controller
             return redirect()
                 ->route('operations.missions.show', $mission->id)
                 ->with('success', __('Mission marked as completed and assets released.'));
+        } catch (InvalidArgumentException|RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (Exception $e) {
-            return back()->with('error', __('Failed to complete mission: ').$e->getMessage());
+            Log::error('Failed to complete mission', ['mission_id' => $id, 'error' => $e->getMessage()]);
+
+            return back()->with('error', __('Failed to complete mission.'));
         }
     }
 
@@ -242,8 +254,12 @@ class MissionController extends Controller
             return redirect()
                 ->route('operations.missions.show', $mission->id)
                 ->with('success', __('Mission reverted back to planned status.'));
+        } catch (InvalidArgumentException|RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (Exception $e) {
-            return back()->with('error', __('Failed to revert mission: ').$e->getMessage());
+            Log::error('Failed to revert mission', ['mission_id' => $id, 'error' => $e->getMessage()]);
+
+            return back()->with('error', __('Failed to revert mission.'));
         }
     }
 
@@ -262,8 +278,12 @@ class MissionController extends Controller
             return redirect()
                 ->route('operations.missions', $request->query())
                 ->with('success', __('Mission deleted successfully.'));
-        } catch (Exception $e) {
+        } catch (InvalidArgumentException|RuntimeException $e) {
             return back()->with('error', $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Failed to delete mission', ['mission_id' => $id, 'error' => $e->getMessage()]);
+
+            return back()->with('error', __('Failed to delete mission.'));
         }
     }
 

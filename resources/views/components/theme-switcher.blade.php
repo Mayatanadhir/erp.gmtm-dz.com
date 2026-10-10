@@ -1,4 +1,4 @@
-﻿<div class="relative"
+<div class="relative"
      x-data="{
          open: false,
          theme: localStorage.getItem('theme') || 'system',
@@ -36,7 +36,7 @@
     {{-- Trigger: ghost icon button --}}
     <button @click="open = ! open"
             type="button"
-            :title="theme === 'light' ? '{{ __('Light') }}' : (theme === 'dark' ? '{{ __('Dark') }}' : '{{ __('System') }}')"
+            :title="theme === 'light' ? {{ Js::from(__('Light')) }} : (theme === 'dark' ? {{ Js::from(__('Dark')) }} : {{ Js::from(__('System')) }})"
             class="relative flex items-center justify-center w-9 h-9 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-600 dark:focus:ring-offset-gray-800 transition-all duration-150">
 
         {{-- Sun — Light --}}
@@ -63,7 +63,7 @@
          x-transition:leave="transition ease-in duration-100"
          x-transition:leave-start="opacity-100 translate-y-0 scale-100"
          x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-         class="absolute end-0 z-50 mt-2 w-40 origin-top-right rounded-xl shadow-lg bg-white dark:bg-gray-800 ring-1 ring-gray-900/5 dark:ring-white/10 overflow-hidden"
+         class="absolute end-0 z-50 mt-2 w-40 ltr:origin-top-right rtl:origin-top-left rounded-xl shadow-lg bg-white dark:bg-gray-800 ring-1 ring-gray-900/5 dark:ring-white/10 overflow-hidden"
          @click="open = false"
          x-cloak>
 

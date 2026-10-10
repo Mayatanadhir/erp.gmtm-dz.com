@@ -161,13 +161,11 @@ final class ContractController extends Controller
         Gate::authorize('edit contracts');
 
         $contract->load(['warranty', 'items' => function ($q): void {
-            if (Schema::hasTable('item_types')) {
-                $q->with('itemType');
-            }
+            $q->with('itemType')->withCount('attachmentItems');
         }]);
 
         $customers = Customer::orderBy('short_name')->get();
-        $itemTypes = Schema::hasTable('item_types') ? ItemType::orderBy('designation')->get() : collect([]);
+        $itemTypes = ItemType::orderBy('designation')->get();
         $warranties = Warranty::where(function ($q): void {
             $q->where('status', 'active')
                 ->whereIn('type', [WarrantyType::Performance, 'garantie_bonne_execution'])
@@ -197,23 +195,41 @@ final class ContractController extends Controller
     {
         Gate::authorize('delete contracts');
 
-        // Guard: cannot delete if any attachments exist for this contract's items
-        if (Schema::hasTable('attachments') && Schema::hasTable('attachment_items')) {
-            $attachmentsCount = Attachment::whereHas(
-                'items',
-                fn ($q) => $q->whereIn('contract_item_id', $contract->items()->pluck('id'))
-            )->count();
+        // Guard 1: cannot delete if any attachments exist for this contract's items
+        $attachmentsCount = Attachment::whereHas(
+            'items',
+            fn ($q) => $q->whereIn('contract_item_id', $contract->items()->pluck('id'))
+        )->count();
 
-            if ($attachmentsCount > 0) {
-                return back()->with(
-                    'error',
-                    __('Cannot delete: this contract has :count linked attachment(s).', ['count' => $attachmentsCount])
-                );
-            }
+        if ($attachmentsCount > 0) {
+            return back()->with(
+                'error',
+                __('Cannot delete: this contract has :count linked attachment(s).', ['count' => $attachmentsCount])
+            );
+        }
+
+        // Guard 2: cannot delete if linked missions exist
+        $missionsCount = $contract->missions()->count();
+        if ($missionsCount > 0) {
+            return back()->with(
+                'error',
+                __('Cannot delete: this contract has :count linked mission(s).', ['count' => $missionsCount])
+            );
+        }
+
+        // Guard 3: cannot delete if linked expenses/charges exist
+        $chargesCount = $contract->charges()->count();
+        if ($chargesCount > 0) {
+            return back()->with(
+                'error',
+                __('Cannot delete: this contract has :count linked expense charge(s).', ['count' => $chargesCount])
+            );
         }
 
         DB::transaction(function () use ($contract): void {
-            $contract->items()->delete();
+            foreach ($contract->items as $item) {
+                $item->delete();
+            }
             $contract->delete();
         });
 

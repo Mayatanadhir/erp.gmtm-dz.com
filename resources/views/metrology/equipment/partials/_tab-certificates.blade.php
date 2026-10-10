@@ -76,15 +76,15 @@
                             @if($rem !== null)
                                 @if($rem < 0)
                                     <span class="text-[10px] font-semibold text-rose-600 dark:text-rose-400 block">
-                                        <i class="fas fa-times-circle mr-0.5"></i> {{ __('Expired :days d ago', ['days' => abs($rem)]) }}
+                                        <i class="fas fa-times-circle me-1"></i> {{ __('Expired :days d ago', ['days' => abs($rem)]) }}
                                     </span>
                                 @elseif($rem <= 30)
                                     <span class="text-[10px] font-semibold text-amber-600 dark:text-amber-400 block">
-                                        <i class="fas fa-exclamation-triangle mr-0.5"></i> {{ __('Expires in :days d', ['days' => $rem]) }}
+                                        <i class="fas fa-exclamation-triangle me-1"></i> {{ __('Expires in :days d', ['days' => $rem]) }}
                                     </span>
                                 @else
                                     <span class="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 block">
-                                        <i class="fas fa-check mr-0.5"></i> {{ __(':days days remaining', ['days' => $rem]) }}
+                                        <i class="fas fa-check me-1"></i> {{ __(':days days remaining', ['days' => $rem]) }}
                                     </span>
                                 @endif
                             @endif

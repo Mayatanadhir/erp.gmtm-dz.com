@@ -208,9 +208,10 @@ class CustomerTest extends TestCase
         $response->assertRedirect(route('master-data.clients'));
         $response->assertSessionHas('success');
 
-        $this->assertDatabaseMissing('customers', [
+        $this->assertSoftDeleted('customers', [
             'id' => $customer->id,
         ]);
+        $this->assertNull(Customer::find($customer->id));
     }
 
     /**
@@ -229,9 +230,10 @@ class CustomerTest extends TestCase
         $deleteResponse = $this->actingAs($this->superAdmin)->delete(route('master-data.clients.destroy', $customer));
         $deleteResponse->assertRedirect(route('master-data.clients'));
 
-        $this->assertDatabaseMissing('customers', [
+        $this->assertSoftDeleted('customers', [
             'id' => $customer->id,
         ]);
+        $this->assertNull(Customer::find($customer->id));
     }
 
     /**

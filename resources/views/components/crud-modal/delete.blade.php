@@ -17,8 +17,9 @@
     $resolvedSubmitText = $submitText ?? __('Delete');
 
     // Determine if $resolvedAction is a raw Alpine JS expression/variable or needs string quotes
-    $isJsVar = preg_match('/^[a-zA-Z_$][a-zA-Z0-9_$.]*$/', trim((string) $resolvedAction));
+    $isJsVar = ! empty($alpineAction) || preg_match('/^[a-zA-Z_$][a-zA-Z0-9_$.]*$/', trim((string) $resolvedAction));
     $actionBinding = $isJsVar ? $resolvedAction : json_encode($resolvedAction);
+    $headingId = 'delete-modal-heading-' . Str::random(6);
 @endphp
 
 {{--
@@ -39,7 +40,7 @@
     class="fixed inset-0 z-50 overflow-y-auto"
     role="dialog"
     aria-modal="true"
-    aria-labelledby="delete-modal-heading-{{ Str::random(6) }}"
+    aria-labelledby="{{ $headingId }}"
 >
     {{-- Backdrop --}}
     <div
@@ -83,7 +84,7 @@
                         </div>
 
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-base font-bold text-gray-900 dark:text-white" id="delete-modal-heading">
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white" id="{{ $headingId }}">
                                 {{ $resolvedTitle }}
                             </h3>
 
@@ -98,7 +99,7 @@
                                 <div class="mt-1.5 space-y-1">
                                     <p class="text-sm text-gray-600 dark:text-gray-300">
                                         {{ __('Are you sure you want to delete') }}
-                                        <strong class="font-bold text-gray-900 dark:text-white font-mono break-all" x-text="{{ $resolvedItemName }}"></strong>؟
+                                        <strong class="font-bold text-gray-900 dark:text-white font-mono break-all" x-text="{{ $resolvedItemName }}"></strong>{{ app()->getLocale() === 'ar' ? '؟' : '?' }}
                                     </p>
                                     <p class="text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-1.5">
                                         <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

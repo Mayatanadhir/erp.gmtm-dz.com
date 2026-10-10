@@ -66,6 +66,48 @@
                transition-all duration-150;
     }
 
+    .btn-edit {
+        @apply inline-flex items-center justify-center
+               px-4 py-2.5
+               bg-amber-500 hover:bg-amber-600 active:bg-amber-700
+               dark:bg-amber-600 dark:hover:bg-amber-500 dark:active:bg-amber-700
+               text-white border border-transparent
+               rounded-xl font-semibold text-xs sm:text-sm tracking-wide
+               shadow-sm shadow-amber-500/20
+               focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2
+               dark:focus:ring-offset-gray-800
+               disabled:opacity-50 disabled:cursor-not-allowed
+               transition-all duration-150;
+    }
+
+    .btn-success {
+        @apply inline-flex items-center justify-center
+               px-4 py-2.5
+               bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800
+               dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:active:bg-emerald-700
+               text-white border border-transparent
+               rounded-xl font-semibold text-xs sm:text-sm tracking-wide
+               shadow-sm shadow-emerald-500/25
+               focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
+               dark:focus:ring-offset-gray-800
+               disabled:opacity-50 disabled:cursor-not-allowed
+               transition-all duration-150;
+    }
+
+    .btn-info {
+        @apply inline-flex items-center justify-center
+               px-4 py-2.5
+               bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
+               dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:active:bg-indigo-700
+               text-white border border-transparent
+               rounded-xl font-semibold text-xs sm:text-sm tracking-wide
+               shadow-sm shadow-indigo-500/25
+               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+               dark:focus:ring-offset-gray-800
+               disabled:opacity-50 disabled:cursor-not-allowed
+               transition-all duration-150;
+    }
+
     .btn-ghost {
         @apply inline-flex items-center justify-center
                px-4 py-2.5

@@ -7,10 +7,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProverVerification extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'prover_verifications';
 
@@ -61,5 +63,31 @@ class ProverVerification extends Model
     public function jauge(): BelongsTo
     {
         return $this->belongsTo(Instrument::class, 'jauge_id');
+    }
+
+    /**
+     * Calibration verification measurement runs and partial fillings.
+     */
+    public function runs(): HasMany
+    {
+        return $this->hasMany(ProverVerificationRun::class, 'prover_verification_id')->orderBy('run_number')->orderBy('fill_number');
+    }
+
+    /**
+     * Cascade soft delete and restore for verification runs.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (self $proverVerification): void {
+            if ($proverVerification->isForceDeleting()) {
+                $proverVerification->runs()->forceDelete();
+            } else {
+                $proverVerification->runs()->delete();
+            }
+        });
+
+        static::restoring(function (self $proverVerification): void {
+            $proverVerification->runs()->withTrashed()->restore();
+        });
     }
 }

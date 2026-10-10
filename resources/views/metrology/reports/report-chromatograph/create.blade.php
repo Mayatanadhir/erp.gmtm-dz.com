@@ -6,12 +6,12 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h2 class="font-bold text-2xl text-gray-900 dark:text-white leading-tight">
-                            {{ __('Nouveau Rapport de Vérification Chromatographe (CPG)') }}
+                            {{ __('New Gas Chromatograph (GC) Verification Report') }}
                         </h2>
-                        <x-badge variant="neutral" size="sm">report-chromatograph</x-badge>
+                        <x-badge variant="neutral" size="sm">{{ __('Chromatographs') }}</x-badge>
                     </div>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                        {{ __('Initialisation d\'une session de vérification analytique pour chromatographes de gaz naturel en ligne (CPG)') }}
+                        {{ __('Initialize an analytical verification session for on-line natural gas chromatographs (CPG).') }}
                     </p>
                 </div>
             </div>
@@ -19,7 +19,7 @@
                 <a href="{{ route('metrology.reports.report-chromatograph.index') }}">
                     <x-secondary-button type="button" class="gap-2 text-xs">
                         <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                        <span>{{ __('Tableau CPG') }}</span>
+                        <span>{{ __('Chromatographs Table') }}</span>
                     </x-secondary-button>
                 </a>
             </div>
@@ -45,10 +45,10 @@
                             </div>
                             <div>
                                 <h4 class="text-xs font-bold text-brand-900 dark:text-brand-200">
-                                    {{ __('Module d\'Analyse Chromatographique CPG') }}
+                                    {{ __('Gas Chromatography Analysis Module (CPG)') }}
                                 </h4>
                                 <p class="text-[11px] text-brand-700/80 dark:text-brand-300/80 mt-0.5">
-                                    {{ __('Vérification de composition molaire du gaz naturel (N2, CO2, C1 à C6+), facteurs de réponse et propriétés thermiques.') }}
+                                    {{ __('Verification of natural gas molar composition (N2, CO2, C1 to C6+), response factors, and thermal properties.') }}
                                 </p>
                             </div>
                         </div>
@@ -76,14 +76,14 @@
                         <div class="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700/60">
                             <h3 class="text-base font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-2">
                                 <svg class="w-5 h-5 text-brand-600 dark:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <span>{{ __('Informations Générales du Rapport Chromatographe') }}</span>
+                                <span>{{ __('General Gas Chromatograph Report Information') }}</span>
                             </h3>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <!-- Report Number -->
                                 <div>
                                     <x-input-label for="report_number" class="text-xs mb-1">
-                                        {{ __('Numéro de Rapport') }} <span class="text-rose-500">*</span>
+                                        {{ __('Report Number') }} <span class="text-rose-500">*</span>
                                     </x-input-label>
                                     <input type="text"
                                            id="report_number"
@@ -93,47 +93,47 @@
                                            dir="ltr"
                                            placeholder="RPT-CPG-YYYY-NNN"
                                            class="input-base w-full text-xs font-mono font-bold tracking-wider py-2 px-3" />
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{{ __('Numéro séquentiel officiel pour le rapport CPG.') }}</p>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{{ __('Official sequential number for the GC report.') }}</p>
                                 </div>
 
                                 <!-- Mission -->
                                 <div>
                                     <x-input-label for="mission_id" class="text-xs mb-1">
-                                        {{ __('Mission / Site Associé') }}
+                                        {{ __('Associated Mission / Site') }}
                                     </x-input-label>
                                     <select id="mission_id"
                                             name="mission_id"
                                             class="input-base w-full text-xs py-2 px-3">
-                                        <option value="">{{ __('--- Sélectionner une Mission ---') }}</option>
+                                        <option value="">{{ __('--- Select a Mission ---') }}</option>
                                         @foreach($missions as $m)
                                             <option value="{{ $m->id }}" @selected(old('mission_id') == $m->id)>
-                                                {{ $m->code ?? $m->reference ?? 'MS-'.$m->id }} &bull; {{ $m->site?->short_name ?? $m->site?->name ?? __('Sans Site') }}
+                                                {{ $m->code ?? $m->reference ?? 'MS-'.$m->id }} &bull; {{ $m->site?->short_name ?? $m->site?->name ?? __('No Site') }}
                                             </option>
                                         @endforeach
                                     </select>
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{{ __('Le choix de la mission charge les chromatographes de gaz présents sur le site.') }}</p>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{{ __('Selecting a mission loads the gas chromatographs present on site.') }}</p>
                                 </div>
 
                                 <!-- Site Name (Readonly) -->
                                 <div>
                                     <x-input-label for="site_name_display" class="text-xs mb-1">
-                                        {{ __('Site d\'Intervention') }}
+                                        {{ __('Intervention Site') }}
                                     </x-input-label>
                                     <input type="text"
                                            id="site_name_display"
                                            readonly
-                                           placeholder="{{ __('Sélectionné automatiquement depuis la mission...') }}"
+                                           placeholder="{{ __('Automatically selected from mission...') }}"
                                            class="w-full text-xs rounded-md border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 text-gray-600 dark:text-gray-300 font-semibold py-2 px-3 cursor-not-allowed focus:outline-none" />
                                 </div>
 
                                 <!-- Status (Locked to Progress on Creation) -->
                                 <div>
                                     <x-input-label class="text-xs mb-1">
-                                        {{ __('Statut Initial') }}
+                                        {{ __('Initial Status') }}
                                     </x-input-label>
                                     <div class="flex items-center h-[38px] px-3 rounded-md border border-amber-200 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/20 text-xs font-semibold">
                                         <x-badge variant="warning" :dot="true" :dotPing="true" size="sm">
-                                            {{ __('En cours (Progress)') }}
+                                            {{ __('In Progress') }}
                                         </x-badge>
                                     </div>
                                 </div>
@@ -144,34 +144,34 @@
                         <div class="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700/60">
                             <h3 class="text-base font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-2">
                                 <x-tool-icon name="chromatograph" class="w-5 h-5 shrink-0" />
-                                <span>{{ __('Mélange de Gaz Étalon & Références Analytiques') }}</span>
+                                <span>{{ __('Standard Gas Mixture & Analytical References') }}</span>
                             </h3>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <x-input-label class="text-xs mb-1">
-                                        {{ __('Bouteille Étalon de Gaz Certifié (CRM)') }}
+                                        {{ __('Certified Reference Material Gas Cylinder (CRM)') }}
                                     </x-input-label>
                                     <select name="default_calibrators[flow_computer_calibrator_1]" class="input-base w-full text-xs py-2 px-3">
-                                        <option value="">{{ __('--- Sélectionner la Bouteille Étalon ---') }}</option>
+                                        <option value="">{{ __('--- Select Standard Gas Cylinder ---') }}</option>
                                         @foreach($calibratorsData['flow_computer_calibrator_1'] ?? [] as $eq)
                                             <option value="{{ $eq->id }}">{{ $eq->tag_number ?? $eq->designation }} &bull; {{ $eq->serial_number }}</option>
                                         @endforeach
                                     </select>
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{{ __('Mélange étalon conforme ISO 6142 / ISO 6143 avec certificat de composition.') }}</p>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{{ __('Standard mixture conforming to ISO 6142 / ISO 6143 with composition certificate.') }}</p>
                                 </div>
 
                                 <div>
                                     <x-input-label class="text-xs mb-1">
-                                        {{ __('Manomètre / Régulateur de Pression Étalon') }}
+                                        {{ __('Standard Pressure Gauge / Regulator') }}
                                     </x-input-label>
                                     <select name="default_calibrators[pressure_calibrator_1]" class="input-base w-full text-xs py-2 px-3">
-                                        <option value="">{{ __('--- Sélectionner le Manomètre Étalon ---') }}</option>
+                                        <option value="">{{ __('--- Select Standard Pressure Gauge ---') }}</option>
                                         @foreach($calibratorsData['pressure_calibrator_1'] ?? [] as $eq)
                                             <option value="{{ $eq->id }}">{{ $eq->tag_number ?? $eq->designation }} &bull; {{ $eq->serial_number }}</option>
                                         @endforeach
                                     </select>
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{{ __('Contrôle de la pression d\'injection gaz vecteur (He/H2) et échantillon.') }}</p>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{{ __('Control of carrier gas (He/H2) and sample injection pressure.') }}</p>
                                 </div>
                             </div>
                         </div>
@@ -182,18 +182,18 @@
                                 <div>
                                     <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                         <x-tool-icon name="chromatograph" class="w-5 h-5 shrink-0" />
-                                        <span>{{ __('Chromatographes de Gaz Disponibles sur le Site') }}</span>
+                                        <span>{{ __('Gas Chromatographs Available on Site') }}</span>
                                     </h3>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                        {{ __('Cochez les analyseurs CPG à inclure dans ce rapport de vérification.') }}
+                                        {{ __('Check GC analyzers to include in this verification report.') }}
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <x-secondary-button type="button" id="btn_select_all" class="!px-2.5 !py-1 !text-xs font-semibold">
-                                        {{ __('Tout Cocher') }}
+                                        {{ __('Select All') }}
                                     </x-secondary-button>
                                     <x-secondary-button type="button" id="btn_deselect_all" class="!px-2.5 !py-1 !text-xs font-semibold">
-                                        {{ __('Tout Décocher') }}
+                                        {{ __('Deselect All') }}
                                     </x-secondary-button>
                                 </div>
                             </div>
@@ -201,7 +201,7 @@
                             <div id="instruments_container" class="space-y-2">
                                 <div id="instruments_empty_notice" class="py-8 text-center text-xs text-gray-500 dark:text-gray-400">
                                     <svg class="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                                    <span>{{ __('Veuillez sélectionner une mission pour charger les analyseurs chromatographiques.') }}</span>
+                                    <span>{{ __('Please select a mission to load chromatographic analyzers.') }}</span>
                                 </div>
                                 <div id="instruments_list" class="grid grid-cols-1 md:grid-cols-2 gap-3 hidden">
                                     <!-- Populated via AJAX when mission is selected -->
@@ -213,13 +213,13 @@
                         <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/60">
                             <a href="{{ route('metrology.reports.report-chromatograph.index') }}">
                                 <x-secondary-button type="button" class="text-xs">
-                                    {{ __('Annuler') }}
+                                    {{ __('Cancel') }}
                                 </x-secondary-button>
                             </a>
 
                             <x-primary-button type="submit" class="text-xs gap-2">
                                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                <span>{{ __('Créer le Rapport CPG & Démarrer l\'Analyse') }}</span>
+                                <span>{{ __('Create GC Report & Start Analysis') }}</span>
                             </x-primary-button>
                         </div>
                     </form>
@@ -240,6 +240,16 @@
             const btnDeselectAll = document.getElementById('btn_deselect_all');
             const category = 'chromatograph';
 
+            function escapeHtml(str) {
+                if (str === null || str === undefined) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
             function loadMissionInstruments(missionId) {
                 if (!missionId) {
                     siteDisplay.value = '';
@@ -249,7 +259,7 @@
                     return;
                 }
 
-                emptyNotice.textContent = "{{ __('Chargement des analyseurs CPG...') }}";
+                emptyNotice.textContent = "{{ __('Loading GC analyzers...') }}";
                 emptyNotice.classList.remove('hidden');
                 instrumentsList.classList.add('hidden');
 
@@ -261,7 +271,7 @@
                         siteDisplay.value = data.site_name || '-';
 
                         if (!data.instruments || data.instruments.length === 0) {
-                            emptyNotice.textContent = "{{ __('Aucun chromatographe de gaz CPG répertorié sur le site de cette mission.') }}";
+                            emptyNotice.textContent = "{{ __('No on-line gas chromatographs found on this mission site.') }}";
                             emptyNotice.classList.remove('hidden');
                             instrumentsList.classList.add('hidden');
                             instrumentsList.innerHTML = '';
@@ -273,8 +283,17 @@
                         instrumentsList.innerHTML = '';
 
                         data.instruments.forEach(inst => {
-                            const imageHtml = inst.image_url
-                                ? `<img src="${inst.image_url}" alt="${inst.tag_number || ''}" class="w-11 h-11 object-contain rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 p-0.5 shrink-0 shadow-xs" />`
+                            const safeId = parseInt(inst.id, 10);
+                            const safeTag = escapeHtml(inst.tag_number || '---');
+                            const safeSerial = escapeHtml(inst.serial_number || '---');
+                            const safeType = escapeHtml(inst.instrument_type || '');
+                            const safeTechnology = escapeHtml(inst.technology || 'CPG');
+                            const safeImageUrl = (inst.image_url && (inst.image_url.startsWith('/') || inst.image_url.startsWith('http://') || inst.image_url.startsWith('https://')))
+                                ? encodeURI(inst.image_url)
+                                : null;
+
+                            const imageHtml = safeImageUrl
+                                ? `<img src="${safeImageUrl}" alt="${safeTag}" class="w-11 h-11 object-contain rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 p-0.5 shrink-0 shadow-xs" />`
                                 : `<div class="w-11 h-11 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100/70 dark:bg-gray-700/50 flex items-center justify-center text-gray-400 dark:text-gray-500 shrink-0">
                                      <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
                                    </div>`;
@@ -282,16 +301,16 @@
                             const card = document.createElement('label');
                             card.className = 'group flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-500 dark:hover:border-brand-500 bg-white dark:bg-gray-800 cursor-pointer transition-all shadow-sm';
                             card.innerHTML = `
-                                <input type="checkbox" name="instrument_ids[]" value="${inst.id}" checked
+                                <input type="checkbox" name="instrument_ids[]" value="${safeId}" checked
                                        class="instrument-check w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 dark:bg-gray-700 dark:focus:ring-offset-gray-800 shrink-0" />
                                 ${imageHtml}
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center justify-between gap-2">
-                                        <span dir="ltr" class="font-bold text-xs text-gray-900 dark:text-white font-mono">${inst.tag_number || '---'}</span>
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-500/10 text-brand-800 dark:text-brand-300 border border-brand-500/20 capitalize">${inst.instrument_type}</span>
+                                        <span dir="ltr" class="font-bold text-xs text-gray-900 dark:text-white font-mono">${safeTag}</span>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-500/10 text-brand-800 dark:text-brand-300 border border-brand-500/20 capitalize">${safeType}</span>
                                     </div>
                                     <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                                        SN: <strong class="font-mono text-gray-700 dark:text-gray-300">${inst.serial_number || '---'}</strong> &bull; {{ __('Technologie') }}: ${inst.technology || 'CPG Chromatographie'}
+                                        SN: <strong class="font-mono text-gray-700 dark:text-gray-300">${safeSerial}</strong> &bull; {{ __('Technology') }}: <span class="font-mono text-gray-700 dark:text-gray-300">${safeTechnology}</span>
                                     </div>
                                 </div>
                             `;
@@ -300,7 +319,7 @@
                     })
                     .catch(err => {
                         console.error('Error loading mission details:', err);
-                        emptyNotice.textContent = "{{ __('Erreur lors du chargement des équipements.') }}";
+                        emptyNotice.textContent = "{{ __('Error loading mission instruments.') }}";
                         emptyNotice.classList.remove('hidden');
                     });
             }
@@ -324,4 +343,3 @@
     </script>
     @endpush
 </x-app-layout>
-

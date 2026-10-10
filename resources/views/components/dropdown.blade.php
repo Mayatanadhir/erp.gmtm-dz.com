@@ -18,7 +18,7 @@ $width = match ($width) {
 };
 @endphp
 
-<div class="relative" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
+<div class="relative" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false" @keydown.escape.window="open = false">
     <div @click="open = ! open">
         {{ $trigger }}
     </div>
@@ -33,7 +33,7 @@ $width = match ($width) {
             class="absolute z-50 mt-2 {{ $width }} max-w-[calc(100vw-2rem)] rounded-2xl shadow-xl {{ $alignmentClasses }}"
             x-cloak
             @click="open = false">
-        <div class="rounded-2xl ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 {{ $contentClasses }}">
+        <div class="rounded-2xl ring-1 ring-black/5 dark:ring-white/10 {{ $contentClasses }}">
             {{ $content }}
         </div>
     </div>

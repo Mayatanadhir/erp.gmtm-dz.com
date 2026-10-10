@@ -25,9 +25,9 @@
                         <x-badge variant="neutral" size="sm">{{ __('Chromatograph CPG') }}</x-badge>
                         @if(isset($verification) && $verification->id)
                             @if($verification->overall_status)
-                                <x-badge variant="success" size="sm" :dot="true">{{ __('CONFORME') }}</x-badge>
+                                <x-badge variant="success" size="sm" :dot="true">{{ __('COMPLIANT') }}</x-badge>
                             @else
-                                <x-badge variant="danger" size="sm" :dot="true">{{ __('NON-CONFORME') }}</x-badge>
+                                <x-badge variant="danger" size="sm" :dot="true">{{ __('NON-COMPLIANT') }}</x-badge>
                             @endif
                         @else
                             <x-badge variant="warning" size="sm" :dot="true">{{ __('New Verification Session') }}</x-badge>
@@ -661,7 +661,7 @@
                                 <textarea id="remarks"
                                           name="remarks"
                                           rows="3"
-                                          placeholder="{{ __('Observations particulières concernant le chromatographe, la stabilité du pic, la régulation thermique ou la pression bouteille...') }}"
+                                          placeholder="{{ __('Specific observations regarding the chromatograph, peak stability, thermal regulation, or cylinder pressure...') }}"
                                           class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:border-brand-500 focus:ring-brand-500 p-3 leading-relaxed">{{ old('remarks', $verification->remarks ?? '') }}</textarea>
                             </div>
                         </div>
@@ -925,9 +925,9 @@
                 if (!hasCompletedComps) {
                     badgeRep.innerHTML = '<span class="text-gray-400">{{ __('Incomplete') }}</span>';
                 } else if (allCompRepConforme) {
-                    badgeRep.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400"><i class="fas fa-check-circle"></i> {{ __('CONFORME') }}</span>';
+                    badgeRep.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400"><i class="fas fa-check-circle"></i> {{ __('COMPLIANT') }}</span>';
                 } else {
-                    badgeRep.innerHTML = '<span class="text-rose-600 dark:text-rose-400"><i class="fas fa-times-circle"></i> {{ __('NON-CONFORME') }}</span>';
+                    badgeRep.innerHTML = '<span class="text-rose-600 dark:text-rose-400"><i class="fas fa-times-circle"></i> {{ __('NON-COMPLIANT') }}</span>';
                 }
             }
 
@@ -935,9 +935,9 @@
                 if (!hasCompletedComps) {
                     badgeComp.innerHTML = '<span class="text-gray-400">{{ __('Incomplete') }}</span>';
                 } else if (allCompErrConforme) {
-                    badgeComp.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400"><i class="fas fa-check-circle"></i> {{ __('CONFORME') }}</span>';
+                    badgeComp.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400"><i class="fas fa-check-circle"></i> {{ __('COMPLIANT') }}</span>';
                 } else {
-                    badgeComp.innerHTML = '<span class="text-rose-600 dark:text-rose-400"><i class="fas fa-times-circle"></i> {{ __('NON-CONFORME') }}</span>';
+                    badgeComp.innerHTML = '<span class="text-rose-600 dark:text-rose-400"><i class="fas fa-times-circle"></i> {{ __('NON-COMPLIANT') }}</span>';
                 }
             }
 
@@ -945,9 +945,9 @@
                 if (!hasCompletedProps) {
                     badgeProp.innerHTML = '<span class="text-gray-400">{{ __('Incomplete') }}</span>';
                 } else if (allPropErrConforme && allPropRepConforme) {
-                    badgeProp.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400"><i class="fas fa-check-circle"></i> {{ __('CONFORME') }}</span>';
+                    badgeProp.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400"><i class="fas fa-check-circle"></i> {{ __('COMPLIANT') }}</span>';
                 } else {
-                    badgeProp.innerHTML = '<span class="text-rose-600 dark:text-rose-400"><i class="fas fa-times-circle"></i> {{ __('NON-CONFORME') }}</span>';
+                    badgeProp.innerHTML = '<span class="text-rose-600 dark:text-rose-400"><i class="fas fa-times-circle"></i> {{ __('NON-COMPLIANT') }}</span>';
                 }
             }
 
@@ -955,9 +955,9 @@
                 if (!hasCompletedComps || !hasCompletedProps) {
                     badgeOverall.innerHTML = '<span class="text-gray-400 uppercase text-xs tracking-wider">{{ __('Pending Data Entry') }}</span>';
                 } else if (allCompRepConforme && allCompErrConforme && allPropErrConforme && allPropRepConforme) {
-                    badgeOverall.innerHTML = '<span class="text-emerald-700 dark:text-emerald-300 font-extrabold uppercase tracking-wider"><i class="fas fa-check-circle"></i> {{ __('CONFORME (OIML R 140 / ISO 6974)') }}</span>';
+                    badgeOverall.innerHTML = '<span class="text-emerald-700 dark:text-emerald-300 font-extrabold uppercase tracking-wider"><i class="fas fa-check-circle"></i> {{ __('COMPLIANT (OIML R 140 / ISO 6974)') }}</span>';
                 } else {
-                    badgeOverall.innerHTML = '<span class="text-rose-700 dark:text-rose-300 font-extrabold uppercase tracking-wider"><i class="fas fa-times-circle"></i> {{ __('NON-CONFORME') }}</span>';
+                    badgeOverall.innerHTML = '<span class="text-rose-700 dark:text-rose-300 font-extrabold uppercase tracking-wider"><i class="fas fa-times-circle"></i> {{ __('NON-COMPLIANT') }}</span>';
                 }
             }
         }

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -22,7 +23,7 @@ use Spatie\Activitylog\Support\LogOptions;
 ])]
 class MissionDeployment extends Model
 {
-    use HasActivity, HasFactory;
+    use HasActivity, HasFactory, SoftDeletes;
 
     protected $table = 'mission_deployments';
 

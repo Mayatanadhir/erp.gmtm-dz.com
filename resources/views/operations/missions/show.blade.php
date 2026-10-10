@@ -2,9 +2,9 @@
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-3.5">
-                <a href="{{ route('operations.missions') }}" class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <x-secondary-button href="{{ route('operations.missions') }}" class="!p-2.5 !rounded-xl" title="{{ __('Back to Missions') }}">
                     <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                </a>
+                </x-secondary-button>
                 <div>
                     <div class="flex items-center gap-2.5">
                         <h2 class="font-bold text-2xl text-gray-900 dark:text-white leading-tight font-mono">
@@ -23,53 +23,52 @@
             <!-- Lifecycle Actions -->
             <div class="flex flex-wrap items-center gap-2">
                 <!-- Statistics Button -->
-                <a href="{{ route('operations.missions.statistics', $mission->id) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium text-sm rounded-lg border border-indigo-200 dark:border-indigo-800 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                <x-secondary-button href="{{ route('operations.missions.statistics', $mission->id) }}" class="gap-1.5">
+                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                     <span>{{ __('Unit Economics') }}</span>
-                </a>
+                </x-secondary-button>
 
                 <!-- Equipment Manifest Button -->
-                <a href="{{ route('operations.missions.equipments', $mission->id) }}" target="_blank" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-medium text-sm rounded-lg border border-amber-200 dark:border-amber-800 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                <x-secondary-button href="{{ route('operations.missions.equipments', $mission->id) }}" target="_blank" class="gap-1.5">
+                    <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                     <span>{{ __('Equipment Manifest') }}</span>
-                </a>
+                </x-secondary-button>
 
                 @can('edit missions')
                     @if ($mission->status->canActivate())
                         <form action="{{ route('operations.missions.activate', $mission->id) }}" method="POST" class="inline-block" x-data>
                             @csrf
-                            <button type="button" @click="if (confirm({{ json_encode(__('Activate this mission and verify equipment availability?')) }})) { $el.closest('form').submit(); }" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg shadow-sm transition-colors">
+                            <x-primary-button type="button" @click="if (confirm({{ json_encode(__('Activate this mission and verify equipment availability?')) }})) { $el.closest('form').submit(); }" class="gap-1.5">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 <span>{{ __('Activate Mission') }}</span>
-                            </button>
+                            </x-primary-button>
                         </form>
                     @endif
 
                     @if ($mission->status->canComplete())
                         <form action="{{ route('operations.missions.complete', $mission->id) }}" method="POST" class="inline-block" x-data>
                             @csrf
-                            <button type="button" @click="if (confirm({{ json_encode(__('Mark mission as completed and release deployed calibrators?')) }})) { $el.closest('form').submit(); }" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm transition-colors">
+                            <x-success-button type="button" @click="if (confirm({{ json_encode(__('Mark mission as completed and release deployed calibrators?')) }})) { $el.closest('form').submit(); }" class="gap-1.5">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 <span>{{ __('Complete Mission') }}</span>
-                            </button>
+                            </x-success-button>
                         </form>
                     @endif
 
                     @if ($mission->status->canRevert())
                         <form action="{{ route('operations.missions.revert', $mission->id) }}" method="POST" class="inline-block" x-data>
                             @csrf
-                            <button type="button" @click="if (confirm({{ json_encode(__('Revert mission back to Planned status?')) }})) { $el.closest('form').submit(); }" class="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium text-sm rounded-lg transition-colors" title="{{ __('Revert to Planned') }}">
+                            <x-secondary-button type="button" @click="if (confirm({{ json_encode(__('Revert mission back to Planned status?')) }})) { $el.closest('form').submit(); }" class="gap-1.5" title="{{ __('Revert to Planned') }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                 <span>{{ __('Revert') }}</span>
-                            </button>
+                            </x-secondary-button>
                         </form>
                     @endif
 
                     @if ($mission->status->isModifiable())
-                        <a href="{{ route('operations.missions.edit', $mission->id) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium text-sm rounded-lg border border-amber-200 dark:border-amber-800 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            <span>{{ __('Edit') }}</span>
-                        </a>
+                        <x-edit-button href="{{ route('operations.missions.edit', $mission->id) }}">
+                            {{ __('Edit') }}
+                        </x-edit-button>
                     @endif
                 @endcan
             </div>
@@ -218,14 +217,9 @@
                                         @endif
                                     </td>
                                     <td class="px-5 py-4 text-end">
-                                        <div class="inline-flex items-center gap-2">
-                                            <a href="{{ route('operations.missions.orders.print', [$mission->id, $order->id]) }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded text-xs font-medium transition-colors" title="{{ __('Print Travel Order') }}">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                                                <span>{{ __('Print') }}</span>
-                                            </a>
-                                            <a href="{{ route('operations.missions.orders.edit', [$mission->id, $order->id]) }}" class="p-1.5 text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 dark:hover:bg-gray-700/50 rounded transition-colors" title="{{ __('Edit Itinerary') }}">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                                            </a>
+                                        <div class="inline-flex items-center gap-1.5">
+                                            <x-table.action-print href="{{ route('operations.missions.orders.print', [$mission->id, $order->id]) }}" target="_blank" title="{{ __('Print Travel Order') }}" />
+                                            <x-table.action-edit href="{{ route('operations.missions.orders.edit', [$mission->id, $order->id]) }}" title="{{ __('Edit Itinerary') }}" />
                                         </div>
                                     </td>
                                 </tr>
@@ -244,10 +238,10 @@
                     </h3>
                     <div class="flex items-center gap-3">
                         <span class="text-xs text-gray-500 dark:text-gray-400">{{ $mission->technical_deployments->count() }} {{ __('items deployed') }}</span>
-                        <a href="{{ route('operations.missions.equipments', $mission->id) }}" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-semibold transition-colors" title="{{ __('Print Equipment Manifest') }}">
+                        <x-secondary-button href="{{ route('operations.missions.equipments', $mission->id) }}" target="_blank" class="!px-3 !py-1.5 !text-xs !rounded-lg gap-1.5" title="{{ __('Print Equipment Manifest') }}">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                             <span>{{ __('Print Equipment Manifest') }}</span>
-                        </a>
+                        </x-secondary-button>
                     </div>
                 </div>
 

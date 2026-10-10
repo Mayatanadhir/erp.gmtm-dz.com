@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Enums\EquipmentCategory;
-use App\Enums\EquipmentStatus;
 use App\Interfaces\EquipmentRepositoryInterface;
 use App\Models\Equipment;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class EquipmentService extends BaseService
 {
@@ -33,18 +31,11 @@ class EquipmentService extends BaseService
     ): Equipment {
         return $this->executeInTransaction(function () use ($data, $image, $certificate, $params): Equipment {
             if ($image !== null) {
-                $storedPath = $this->mediaService->optimizeImage($image, 'equipment/images');
-                $data['image_path'] = $storedPath;
-
-                $disk = Storage::disk('public');
-                if ($disk->exists($storedPath)) {
-                    $data['image_hash'] = hash('sha256', (string) $disk->get($storedPath));
-                }
+                $data['image_path'] = $this->mediaService->optimizeImage($image, 'equipment/images');
             }
 
             if ($certificate !== null) {
-                $storedCert = $this->mediaService->optimizePdf($certificate, 'equipment/certificates');
-                $data['certificate_path'] = $storedCert;
+                $data['certificate_path'] = $this->mediaService->optimizePdf($certificate, 'equipment/certificates');
             }
 
             $cleanData = Arr::except($data, ['image', 'certificate', 'params']);
@@ -83,35 +74,16 @@ class EquipmentService extends BaseService
             $removeCertificate
         ): bool {
             if ($removeImage) {
-                if (! blank($equipment->image_path)) {
-                    $this->mediaService->safeDelete($equipment->image_path, 'public', $equipment->id);
-                    $data['image_path'] = null;
-                    $data['image_hash'] = null;
-                }
+                $data['image_path'] = null;
+                $data['image_hash'] = null;
             } elseif ($image !== null) {
-                if (! blank($equipment->image_path)) {
-                    $this->mediaService->safeDelete($equipment->image_path, 'public', $equipment->id);
-                }
-                $storedPath = $this->mediaService->optimizeImage($image, 'equipment/images');
-                $data['image_path'] = $storedPath;
-
-                $disk = Storage::disk('public');
-                if ($disk->exists($storedPath)) {
-                    $data['image_hash'] = hash('sha256', (string) $disk->get($storedPath));
-                }
+                $data['image_path'] = $this->mediaService->optimizeImage($image, 'equipment/images');
             }
 
             if ($removeCertificate) {
-                if (! blank($equipment->certificate_path)) {
-                    $this->mediaService->safeDelete($equipment->certificate_path, 'public', $equipment->id);
-                    $data['certificate_path'] = null;
-                }
+                $data['certificate_path'] = null;
             } elseif ($certificate !== null) {
-                if (! blank($equipment->certificate_path)) {
-                    $this->mediaService->safeDelete($equipment->certificate_path, 'public', $equipment->id);
-                }
-                $storedCert = $this->mediaService->optimizePdf($certificate, 'equipment/certificates');
-                $data['certificate_path'] = $storedCert;
+                $data['certificate_path'] = $this->mediaService->optimizePdf($certificate, 'equipment/certificates');
             }
 
             $cleanData = Arr::except($data, ['image', 'certificate', 'params']);
@@ -141,7 +113,9 @@ class EquipmentService extends BaseService
     public function syncSpecifications(Equipment $equipment, ?array $params, bool $requiresCalibration): void
     {
         if (! $requiresCalibration) {
-            $equipment->specifications()->delete();
+            foreach ($equipment->specifications as $spec) {
+                $spec->delete();
+            }
 
             return;
         }
@@ -168,31 +142,43 @@ class EquipmentService extends BaseService
             }
         }
 
-        $equipment->specifications()->whereNotIn('id', $keptIds)->delete();
+        $specsToDelete = $equipment->specifications()->whereNotIn('id', $keptIds)->get();
+        foreach ($specsToDelete as $spec) {
+            $spec->delete();
+        }
     }
 
     /**
      * Get aggregate statistics for the equipment overview KPI bar.
+     * Consolidated into a single database query for optimal high-throughput performance.
      *
      * @return array<string, int>
      */
     public function getStatistics(): array
     {
+        $raw = DB::table('equipment')
+            ->whereNull('deleted_at')
+            ->selectRaw("
+                COUNT(*) as total,
+                COUNT(CASE WHEN status = 'active' THEN 1 END) as active,
+                COUNT(CASE WHEN status = 'active' AND (requires_calibration = 1 OR category = 'measuring_instrument') THEN 1 END) as has_certificate,
+                COUNT(CASE WHEN status = 'active' AND category = 'work_tool' THEN 1 END) as work_tools,
+                COUNT(CASE WHEN status = 'active' AND category = 'vehicle' THEN 1 END) as vehicles,
+                COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive,
+                COUNT(CASE WHEN category = 'measuring_instrument' THEN 1 END) as measuring_instruments,
+                COUNT(CASE WHEN requires_calibration = 1 THEN 1 END) as requires_calibration
+            ")
+            ->first();
+
         return [
-            'total' => Equipment::count(),
-            'active' => Equipment::where('status', EquipmentStatus::Active->value)->count(),
-            'has_certificate' => Equipment::where('status', EquipmentStatus::Active->value)
-                ->where(function ($q): void {
-                    $q->where('requires_calibration', true)
-                        ->orWhere('category', EquipmentCategory::MeasuringInstrument->value);
-                })->count(),
-            'work_tools' => Equipment::where('status', EquipmentStatus::Active->value)
-                ->where('category', EquipmentCategory::WorkTool->value)->count(),
-            'vehicles' => Equipment::where('status', EquipmentStatus::Active->value)
-                ->where('category', EquipmentCategory::Vehicle->value)->count(),
-            'inactive' => Equipment::where('status', EquipmentStatus::Inactive->value)->count(),
-            'measuring_instruments' => Equipment::where('category', EquipmentCategory::MeasuringInstrument->value)->count(),
-            'requires_calibration' => Equipment::where('requires_calibration', true)->count(),
+            'total' => (int) ($raw->total ?? 0),
+            'active' => (int) ($raw->active ?? 0),
+            'has_certificate' => (int) ($raw->has_certificate ?? 0),
+            'work_tools' => (int) ($raw->work_tools ?? 0),
+            'vehicles' => (int) ($raw->vehicles ?? 0),
+            'inactive' => (int) ($raw->inactive ?? 0),
+            'measuring_instruments' => (int) ($raw->measuring_instruments ?? 0),
+            'requires_calibration' => (int) ($raw->requires_calibration ?? 0),
         ];
     }
 }

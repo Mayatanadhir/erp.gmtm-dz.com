@@ -31,12 +31,10 @@ class ImportLegacyEquipmentCommand extends Command
     public function handle(): int
     {
         $this->info('Step 1/2: Seeding standard physical quantities (grandeurs)...');
-        $grandeurSeeder = new GrandeurSeeder;
-        $grandeurSeeder->run();
+        $this->call('db:seed', ['--class' => GrandeurSeeder::class]);
 
         $this->info('Step 2/2: Migrating legacy equipment records, optimizing images to WebP, and syncing specifications...');
-        $seeder = new LegacyEquipmentSeeder;
-        $seeder->run();
+        $this->call('db:seed', ['--class' => LegacyEquipmentSeeder::class]);
 
         $equipment = Equipment::with('specifications.grandeur')->orderBy('id')->get();
 

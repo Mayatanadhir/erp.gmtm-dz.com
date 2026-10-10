@@ -9,10 +9,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
 class Report extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'reports';
 
     /**
@@ -422,10 +425,82 @@ class Report extends Model
     public function getCategoryLabelAttribute(): string
     {
         return match ($this->category) {
-            'chromatograph' => __('Chromatographes CPG'),
-            'prover' => __('Tubes Étalons & Prover'),
-            default => __('Instruments Industriels'),
+            'chromatograph' => __('Gas Chromatographs'),
+            'prover' => __('Standard Provers'),
+            default => __('Industrial Instruments'),
         };
+    }
+
+    /**
+     * Determine the EMT compliance verdict of the report.
+     * Returns an array with 'label', 'variant', and 'is_conforme'.
+     */
+    public function getComplianceVerdictAttribute(): array
+    {
+        if ($this->status !== 'completed') {
+            return [
+                'is_conforme' => null,
+                'variant' => 'warning',
+                'label' => __('In Progress'),
+            ];
+        }
+
+        // Check if there are any non-conforming verifications or points
+        $hasFailure = false;
+        $hasVerifications = false;
+
+        if ($this->category === 'chromatograph') {
+            $verifs = $this->chromatographVerifications;
+            if ($verifs->isNotEmpty()) {
+                $hasVerifications = true;
+                if ($verifs->contains(fn ($v) => $v->overall_status === false || (int) $v->overall_status === 0)) {
+                    $hasFailure = true;
+                }
+            }
+        } else {
+            $transmitters = $this->transmitterVerifications;
+            $probes = $this->probeVerifications;
+            $flowComputers = $this->flowComputerVerifications;
+
+            if ($transmitters->isNotEmpty() || $probes->isNotEmpty() || $flowComputers->isNotEmpty()) {
+                $hasVerifications = true;
+                if (
+                    $transmitters->contains(fn ($v) => (int) $v->overall_status === 0) ||
+                    $probes->contains(fn ($v) => (int) $v->overall_status === 0) ||
+                    $flowComputers->contains(fn ($v) => (int) $v->overall_status === 0)
+                ) {
+                    $hasFailure = true;
+                }
+            }
+        }
+
+        if ($hasFailure) {
+            return [
+                'is_conforme' => false,
+                'variant' => 'danger',
+                'label' => __('Non-Compliant'),
+            ];
+        }
+
+        if ($hasVerifications || $this->status === 'completed') {
+            $standardLabel = match ($this->category) {
+                'chromatograph' => __('ISO 6974 / OIML R 140 Compliant'),
+                'prover' => __('API MPMS Ch. 4 Compliant'),
+                default => __('OIML / ISO Compliant'),
+            };
+
+            return [
+                'is_conforme' => true,
+                'variant' => 'success',
+                'label' => $standardLabel,
+            ];
+        }
+
+        return [
+            'is_conforme' => null,
+            'variant' => 'neutral',
+            'label' => __('Pending Evaluation'),
+        ];
     }
 
     public function getCategoryBadgeVariantAttribute(): string

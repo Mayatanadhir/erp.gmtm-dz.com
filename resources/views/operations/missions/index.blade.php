@@ -17,10 +17,10 @@
                     <span class="font-mono"><bdi>{{ $missions->total() }}</bdi></span> {{ __('Missions') }}
                 </x-badge>
                 @can('create missions')
-                    <a href="{{ route('operations.missions.create') }}" class="btn-primary flex items-center gap-2">
+                    <x-primary-button href="{{ route('operations.missions.create') }}" class="gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         <span>{{ __('Create Mission') }}</span>
-                    </a>
+                    </x-primary-button>
                 @endcan
             </div>
         </div>

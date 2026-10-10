@@ -23,7 +23,11 @@ class StoreFlowComputerRequest extends FormRequest
             'points.*.applied_percentage' => ['required', 'numeric'],
             'points.*.expected_signal' => ['required', 'numeric'],
             'points.*.measured_signal' => ['required', 'numeric'],
+            'points.*.calibrator_1_correction' => ['nullable', 'numeric'],
+            'points.*.corrected_signal' => ['nullable', 'numeric'],
             'points.*.expected_value' => ['required', 'numeric'],
+            'points.*.calibrator_2_correction' => ['nullable', 'numeric'],
+            'points.*.corrected_expected_value' => ['nullable', 'numeric'],
             'points.*.indicated_value' => ['required', 'numeric'],
         ];
     }

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -25,7 +26,7 @@ use Spatie\Activitylog\Support\LogOptions;
 ])]
 class Attachment extends Model
 {
-    use FilterableTrait, HasActivity, HasFactory;
+    use FilterableTrait, HasActivity, HasFactory, SoftDeletes;
 
     protected $table = 'attachments';
 

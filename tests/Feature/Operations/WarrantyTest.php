@@ -192,7 +192,7 @@ class WarrantyTest extends TestCase
         );
 
         $response->assertRedirect(route('financial.warranties'));
-        $this->assertDatabaseMissing('garanties', [
+        $this->assertSoftDeleted('garanties', [
             'id' => $warranty->id,
         ]);
     }

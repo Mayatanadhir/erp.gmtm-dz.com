@@ -114,18 +114,22 @@ class MissionRepository extends BaseRepository implements MissionRepositoryInter
         $year = (int) date('Y');
         $prefix = "M-{$year}-";
 
-        $latest = $this->model->newQueryWithoutScopes()
+        $references = $this->model->newQueryWithoutScopes()
             ->where('reference', 'like', "{$prefix}%")
-            ->orderByDesc('reference')
-            ->value('reference');
+            ->pluck('reference');
 
-        if ($latest) {
-            $parts = explode('-', (string) $latest);
-            $lastNumber = isset($parts[2]) ? (int) $parts[2] : 0;
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
+        $maxNumber = 0;
+        foreach ($references as $ref) {
+            $parts = explode('-', (string) $ref);
+            if (isset($parts[2]) && is_numeric($parts[2])) {
+                $num = (int) $parts[2];
+                if ($num > $maxNumber) {
+                    $maxNumber = $num;
+                }
+            }
         }
+
+        $nextNumber = $maxNumber + 1;
 
         return sprintf('M-%d-%03d', $year, $nextNumber);
     }

@@ -7,13 +7,19 @@ namespace Tests\Feature\Operations;
 use App\Enums\EmployeePosition;
 use App\Enums\EquipmentCategory;
 use App\Enums\EquipmentStatus;
+use App\Enums\MissionDeploymentStatus;
+use App\Enums\MissionOrderStatus;
 use App\Enums\MissionStatus;
+use App\Interfaces\MissionOrderRepositoryInterface;
+use App\Interfaces\MissionRepositoryInterface;
 use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\Equipment;
 use App\Models\Mission;
+use App\Models\MissionOrder;
 use App\Models\Site;
 use App\Models\User;
+use App\Services\MissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -873,5 +879,158 @@ class MissionManagementTest extends TestCase
 
         $response->assertRedirect(route('operations.missions.show', $completedMission->id));
         $response->assertSessionHas('warning', __('Only planned missions can be modified.'));
+    }
+
+    /**
+     * 22. Updating a mission preserves customized employee order dates and updates destination when site changes.
+     */
+    public function test_update_mission_preserves_customized_employee_dates_and_updates_destination(): void
+    {
+        $site2 = Site::create([
+            'site_code' => 'SIT-002',
+            'full_name' => 'Secondary Operating Field',
+            'short_name' => 'Site Two',
+            'location' => 'In Amenas Gas Field',
+        ]);
+
+        $mission = app(MissionService::class)->createMission([
+            'site_id' => $this->site->id,
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-10',
+            'mob_dmob_days' => 1.5,
+            'description' => 'Initial Mission',
+            'employees' => [$this->employee1->id, $this->employee2->id],
+            'chief_id' => $this->employee1->id,
+        ]);
+
+        // Customize employee2's dates (partial assignment within mission)
+        $order2 = $mission->missionOrders()->where('employee_id', $this->employee2->id)->first();
+        $order2->update([
+            'started_at' => '2026-10-03',
+            'ended_at' => '2026-10-07',
+        ]);
+
+        // Update the mission to new dates and new site
+        $payload = [
+            'site_id' => $site2->id,
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-20',
+            'mob_dmob_days' => 2.0,
+            'description' => 'Updated Mission Site',
+            'employees' => [$this->employee1->id, $this->employee2->id],
+            'chief_id' => $this->employee1->id,
+        ];
+
+        $this->actingAs($this->superAdmin)
+            ->put(route('operations.missions.update', $mission->id), $payload)
+            ->assertRedirect(route('operations.missions.show', $mission->id));
+
+        $mission->refresh();
+        $this->assertEquals($site2->id, $mission->site_id);
+        $this->assertEquals(2.0, (float) $mission->mob_dmob_days);
+
+        $refreshedOrder1 = $mission->missionOrders()->where('employee_id', $this->employee1->id)->first();
+        $refreshedOrder2 = $mission->missionOrders()->where('employee_id', $this->employee2->id)->first();
+
+        // Order 1 was full-span, so it updated to new mission span
+        $this->assertEquals('2026-10-01', $refreshedOrder1->started_at->format('Y-m-d'));
+        $this->assertEquals('2026-10-20', $refreshedOrder1->ended_at->format('Y-m-d'));
+        $this->assertEquals('Alger - In Amenas Gas Field - Alger', $refreshedOrder1->destination);
+
+        // Order 2 was customized, so its unique dates were strictly preserved
+        $this->assertEquals('2026-10-03', $refreshedOrder2->started_at->format('Y-m-d'));
+        $this->assertEquals('2026-10-07', $refreshedOrder2->ended_at->format('Y-m-d'));
+        $this->assertEquals('Oran - In Amenas Gas Field - Oran', $refreshedOrder2->destination);
+    }
+
+    /**
+     * 23. Reference generation parses integer sequences and correctly exceeds 999.
+     */
+    public function test_reference_generation_handles_sequences_past_999(): void
+    {
+        $year = (int) date('Y');
+        Mission::create([
+            'reference' => "M-{$year}-999",
+            'site_id' => $this->site->id,
+            'start_date' => '2026-11-01',
+            'end_date' => '2026-11-10',
+            'status' => MissionStatus::Planned->value,
+        ]);
+
+        $nextRef = app(MissionRepositoryInterface::class)->getNextReference();
+        $this->assertEquals("M-{$year}-1000", $nextRef);
+    }
+
+    /**
+     * 24. Travel order reference generation parses integer sequences and correctly exceeds 999.
+     */
+    public function test_travel_order_reference_generation_handles_sequences_past_999(): void
+    {
+        $mission = Mission::create([
+            'reference' => 'M-2026-ORD-SEQ',
+            'site_id' => $this->site->id,
+            'start_date' => '2026-11-01',
+            'end_date' => '2026-11-10',
+            'status' => MissionStatus::Planned->value,
+        ]);
+
+        MissionOrder::create([
+            'mission_id' => $mission->id,
+            'employee_id' => $this->employee1->id,
+            'order_reference' => '999/ALG/26',
+            'status' => MissionOrderStatus::Active->value,
+            'destination' => 'Site A',
+        ]);
+
+        $nextOrderRef = app(MissionOrderRepositoryInterface::class)->getNextOrderReference(2026);
+        $this->assertEquals('1000/ALG/26', $nextOrderRef);
+    }
+
+    /**
+     * 25. Complete and revert mission operations preserve partial cancelled and damaged statuses.
+     */
+    public function test_complete_and_revert_mission_preserves_partial_cancelled_and_damaged_statuses(): void
+    {
+        $mission = app(MissionService::class)->createMission([
+            'site_id' => $this->site->id,
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-10',
+            'employees' => [$this->employee1->id, $this->employee2->id],
+            'chief_id' => $this->employee1->id,
+            'equipments' => [$this->calibrator->id],
+        ]);
+
+        $missionService = app(MissionService::class);
+        $missionService->activateMission($mission);
+
+        // Manually mark employee2's order as Cancelled
+        $order2 = $mission->missionOrders()->where('employee_id', $this->employee2->id)->first();
+        $order2->update(['status' => MissionOrderStatus::Cancelled->value]);
+
+        // Manually mark deployment as Damaged
+        $deployment = $mission->deployments()->first();
+        $deployment->update(['status' => MissionDeploymentStatus::Damaged->value]);
+
+        // Complete the mission
+        $missionService->completeMission($mission);
+        $mission->refresh();
+
+        $this->assertEquals(MissionStatus::Completed, $mission->status);
+        $this->assertEquals(MissionOrderStatus::Completed, $mission->missionOrders()->where('employee_id', $this->employee1->id)->first()->status);
+        // Order 2 remained Cancelled
+        $this->assertEquals(MissionOrderStatus::Cancelled, $mission->missionOrders()->where('employee_id', $this->employee2->id)->first()->status);
+        // Deployment remained Damaged
+        $this->assertEquals(MissionDeploymentStatus::Damaged, $mission->deployments()->first()->status);
+
+        // Revert the mission
+        $missionService->revertMission($mission);
+        $mission->refresh();
+
+        $this->assertEquals(MissionStatus::Planned, $mission->status);
+        $this->assertEquals(MissionOrderStatus::Active, $mission->missionOrders()->where('employee_id', $this->employee1->id)->first()->status);
+        // Order 2 still Cancelled
+        $this->assertEquals(MissionOrderStatus::Cancelled, $mission->missionOrders()->where('employee_id', $this->employee2->id)->first()->status);
+        // Deployment still Damaged
+        $this->assertEquals(MissionDeploymentStatus::Damaged, $mission->deployments()->first()->status);
     }
 }

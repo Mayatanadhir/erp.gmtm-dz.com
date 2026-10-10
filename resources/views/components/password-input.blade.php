@@ -17,7 +17,7 @@
             x-bind:aria-pressed="show.toString()"
             x-bind:aria-label="show ? @js(__('Hide password')) : @js(__('Show password'))"
             aria-label="{{ __('Show password') }}"
-            aria-controls="{{ $attributes->get('id') }}"
+            @if($attributes->has('id')) aria-controls="{{ $attributes->get('id') }}" @endif
             class="absolute inset-y-0 end-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none focus-visible:text-brand-600 transition-colors">
         {{-- eye --}}
         <svg x-bind:class="{ 'hidden': show }" class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

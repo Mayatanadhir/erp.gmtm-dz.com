@@ -39,29 +39,26 @@
                     @if($attachment->status !== 'approved')
                         <form action="{{ route('operations.attachments.update_status', $attachment->id) }}" method="POST" class="inline-block">
                             @csrf @method('PATCH')
-                            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors">
+                            <x-success-button type="submit" class="gap-1.5 text-xs">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 <span>{{ __('Approve Attachment') }}</span>
-                            </button>
+                            </x-success-button>
                         </form>
                     @else
                         <form action="{{ route('operations.attachments.revert', $attachment->id) }}" method="POST" class="inline-block" x-data>
                             @csrf @method('PATCH')
-                            <button type="button" @click="if (confirm({{ json_encode(__('Are you sure you want to revert this attachment to draft?')) }})) { $el.closest('form').submit(); }" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 transition-colors">
+                            <x-secondary-button type="button" @click="if (confirm({{ json_encode(__('Are you sure you want to revert this attachment to draft?')) }})) { $el.closest('form').submit(); }" class="gap-1.5 text-xs">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                                 <span>{{ __('Revert to Draft') }}</span>
-                            </button>
+                            </x-secondary-button>
                         </form>
                     @endif
 
-                    <a href="{{ route('operations.attachments.edit', $attachment->id) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        <span>{{ __('Edit') }}</span>
-                    </a>
+                    <x-edit-button href="{{ route('operations.attachments.edit', $attachment->id) }}" class="gap-1.5 text-xs" />
                 @endcan
 
                 @can('delete attachments')
-                    <button
+                    <x-danger-button
                         type="button"
                         x-data
                         @click="$dispatch('open-delete-modal', {
@@ -69,11 +66,11 @@
                             name: '{{ addslashes($attachment->attachment_number ?? $attachment->title ?? '') }}',
                             title: '{{ __('Delete Attachment') }}'
                         })"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors"
+                        class="gap-1.5 text-xs"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         <span>{{ __('Delete') }}</span>
-                    </button>
+                    </x-danger-button>
                 @endcan
             </div>
         </div>

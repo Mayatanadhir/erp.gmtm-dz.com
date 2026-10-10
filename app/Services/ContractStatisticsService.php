@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Contract;
-use Illuminate\Support\Carbon;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class ContractStatisticsService
 {
@@ -26,21 +25,21 @@ class ContractStatisticsService
         $itemIds = $contract->items->pluck('id');
 
         // ── Date / Duration ──────────────────────────────────────────
-        $startDate = $contract->date_signature;
-        $endDate = $startDate?->copy()->addMonths((int) $contract->duree);
-        $totalDays = $startDate && $endDate ? (int) $startDate->diffInDays($endDate) : 0;
-        $elapsedDays = $startDate ? (int) min($startDate->diffInDays(now()), $totalDays) : 0;
+        $startDate = $contract->date_signature ? Carbon::parse($contract->date_signature) : null;
+        $endDate = $startDate ? $startDate->copy()->addMonthsNoOverflow((int) $contract->duree) : null;
+        $totalDays = $startDate && $endDate && $endDate->gte($startDate) ? (int) $startDate->diffInDays($endDate) : 0;
+        $elapsedDays = $startDate && now()->gte($startDate) ? (int) min(now()->diffInDays($startDate), $totalDays) : 0;
         $remainingDays = $contract->remain_days ?? 0;
 
         // ── Revenue ──────────────────────────────────────────────────
         $totalRevenue = 0.0;
-        if (Schema::hasTable('attachment_items') && Schema::hasTable('attachments')) {
+        if ($itemIds->isNotEmpty()) {
             $totalRevenue = (float) DB::table('attachment_items')
                 ->join('contract_items', 'attachment_items.contract_item_id', '=', 'contract_items.id')
                 ->join('attachments', 'attachment_items.attachment_id', '=', 'attachments.id')
                 ->whereIn('attachment_items.contract_item_id', $itemIds)
                 ->where('attachments.status', 'approved')
-                ->sum(DB::raw('attachment_items.actual_quantity * contract_items.unit_price'));
+                ->sum(DB::raw('COALESCE(attachment_items.actual_quantity, 0) * contract_items.unit_price'));
         }
 
         $plannedRevenue = (float) $contract->items->sum(
@@ -53,7 +52,7 @@ class ContractStatisticsService
 
         // ── Direct charges & HR costs per mission ────────────────────
         $chargesByMission = collect();
-        if (Schema::hasTable('charges') && $missionIds->isNotEmpty()) {
+        if ($missionIds->isNotEmpty()) {
             $chargesByMission = DB::table('charges')
                 ->whereIn('mission_id', $missionIds)
                 ->groupBy('mission_id')
@@ -62,21 +61,19 @@ class ContractStatisticsService
         }
 
         $orders = collect();
-        if (Schema::hasTable('mission_orders') && $missionIds->isNotEmpty()) {
-            $ordersQuery = DB::table('mission_orders')
+        if ($missionIds->isNotEmpty()) {
+            $orders = DB::table('mission_orders')
                 ->whereIn('mission_id', $missionIds)
-                ->whereNotNull('started_at');
-
-            if (Schema::hasColumn('mission_orders', 'deleted_at')) {
-                $ordersQuery->whereNull('deleted_at');
-            }
-
-            $orders = $ordersQuery->select(['mission_id', 'daily_rate', 'started_at', 'ended_at'])->get();
+                ->whereNull('deleted_at')
+                ->whereNotNull('started_at')
+                ->whereNotNull('ended_at')
+                ->select(['mission_id', 'daily_rate', 'started_at', 'ended_at'])
+                ->get();
         }
         $ordersByMission = $orders->groupBy('mission_id');
 
         $revenueByMission = collect();
-        if (Schema::hasTable('attachment_items') && Schema::hasTable('attachments') && $missionIds->isNotEmpty()) {
+        if ($missionIds->isNotEmpty()) {
             $revenueByMission = DB::table('attachment_items')
                 ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
                 ->join('contract_items', 'contract_items.id', '=', 'attachment_items.contract_item_id')
@@ -92,14 +89,16 @@ class ContractStatisticsService
             $missionOrders = $ordersByMission->get($mission->id, collect());
             $mHrCost = 0.0;
             foreach ($missionOrders as $order) {
-                $days = ($order->started_at && $order->ended_at)
-                    ? (int) Carbon::parse($order->started_at)->diffInDays(Carbon::parse($order->ended_at)) + 1
-                    : ($order->started_at ? 1 : 0);
-                $mHrCost += $days * (float) $order->daily_rate;
+                $oStart = $order->started_at ? Carbon::parse($order->started_at) : null;
+                $oEnd = $order->ended_at ? Carbon::parse($order->ended_at) : null;
+                $days = ($oStart && $oEnd && $oEnd->gte($oStart))
+                    ? (int) $oStart->diffInDays($oEnd) + 1
+                    : 0;
+                $mHrCost += $days * (float) ($order->daily_rate ?? 0);
             }
 
             $mDirectCharges = (float) ($chargesByMission->get($mission->id) ?? 0.0);
-            $mTotalExpenses = $mHrCost + $mDirectCharges; // إجمالي النفقات المباشرة للمهمة
+            $mTotalExpenses = $mHrCost + $mDirectCharges;
             $mRevenue = (float) ($revenueByMission->get($mission->id) ?? 0.0);
             $mGrossProfit = $mRevenue - $mTotalExpenses;
             $mGrossMargin = $mRevenue > 0 ? round(($mGrossProfit / $mRevenue) * 100, 2) : 0.0;
@@ -109,7 +108,7 @@ class ContractStatisticsService
                 'reference' => $mission->reference,
                 'start_date' => $mission->start_date?->format('Y-m-d'),
                 'end_date' => $mission->end_date?->format('Y-m-d'),
-                'mob_days' => (int) ($mission->mob_dmob_days ?? 0),
+                'mob_days' => (float) ($mission->mob_dmob_days ?? 0.0),
                 'status' => $mission->status instanceof \BackedEnum
                     ? $mission->status->value
                     : (string) $mission->status,
@@ -127,19 +126,15 @@ class ContractStatisticsService
         $missionsDirectCharges = (float) collect($missionsDetail)->sum('direct_charges');
 
         // Contract-level charges not bound to any specific mission
-        $contractOnlyCharges = 0.0;
-        if (Schema::hasTable('charges')) {
-            $contractOnlyCharges = (float) DB::table('charges')
-                ->where('contract_id', $contract->id)
-                ->where(function ($q) use ($missionIds) {
-                    $q->whereNull('mission_id')
-                        ->orWhereNotIn('mission_id', $missionIds);
-                })
-                ->sum('amount');
-        }
+        $contractOnlyCharges = (float) DB::table('charges')
+            ->where('contract_id', $contract->id)
+            ->where(function ($q) use ($missionIds) {
+                $q->whereNull('mission_id')
+                    ->orWhereNotIn('mission_id', $missionIds);
+            })
+            ->sum('amount');
 
         $directCharges = $missionsDirectCharges + $contractOnlyCharges;
-        // Operating Expenses = sum of "إجمالي النفقات المباشرة" for all missions (+ contract direct charges)
         $totalExpenses = $totalHrCost + $directCharges;
 
         // ── Profit ────────────────────────────────────────────────────
@@ -151,7 +146,7 @@ class ContractStatisticsService
         // ── Operational ──────────────────────────────────────────────
         $attachmentsCount = $contract->attachmentsCount();
 
-        $totalMobDays = (int) $missions->sum('mob_dmob_days');
+        $totalMobDays = (float) $missions->sum('mob_dmob_days');
         $avgMobDays = $missions->count() > 0
             ? round((float) $missions->avg('mob_dmob_days'), 1)
             : 0.0;
@@ -175,7 +170,7 @@ class ContractStatisticsService
                 'total' => $totalRevenue,
                 'planned' => $plannedRevenue,
                 'consumption_rate' => $consumptionRate,
-                'remaining' => max(0, $plannedRevenue - $totalRevenue),
+                'remaining' => max(0.0, $plannedRevenue - $totalRevenue),
             ],
             'costs' => [
                 'total_hr' => $totalHrCost,

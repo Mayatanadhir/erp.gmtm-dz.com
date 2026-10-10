@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\Models\Concerns\HasActivity;
@@ -28,7 +29,7 @@ use Spatie\Activitylog\Support\LogOptions;
 ])]
 class Contract extends Model
 {
-    use FilterableTrait, HasActivity, HasFactory;
+    use FilterableTrait, HasActivity, HasFactory, SoftDeletes;
 
     /**
      * The table associated with the model.
@@ -228,7 +229,7 @@ class Contract extends Model
             return null;
         }
 
-        $endDate = $this->date_signature->copy()->addMonths($this->duree);
+        $endDate = $this->date_signature->copy()->addMonthsNoOverflow((int) $this->duree);
 
         return (int) now()->startOfDay()->diffInDays($endDate, false);
     }
@@ -242,10 +243,11 @@ class Contract extends Model
             return 0.0;
         }
 
-        $totalDays = $this->date_signature->diffInDays($this->date_signature->copy()->addMonths($this->duree));
+        $endDate = $this->date_signature->copy()->addMonthsNoOverflow((int) $this->duree);
+        $totalDays = (int) $this->date_signature->diffInDays($endDate);
         $remainDays = $this->remain_days ?? 0;
 
-        if ($totalDays <= 0 || $remainDays <= 0) {
+        if ($totalDays <= 0 || $remainDays < 0) {
             return 0.0;
         }
 
@@ -264,7 +266,7 @@ class Contract extends Model
             return 'unknown';
         }
 
-        if ($remain <= 0) {
+        if ($remain < 0) {
             return 'archive';
         }
 

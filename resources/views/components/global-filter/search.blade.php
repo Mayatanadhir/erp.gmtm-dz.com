@@ -1,4 +1,4 @@
-﻿@props([
+@props([
     'name' => 'search',
     'placeholder' => __('Search...'),
     'value' => null,

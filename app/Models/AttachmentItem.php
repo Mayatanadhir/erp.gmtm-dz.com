@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'attachment_id',
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class AttachmentItem extends Model
 {
-    use FilterableTrait, HasFactory;
+    use FilterableTrait, HasFactory, SoftDeletes;
 
     protected $table = 'attachment_items';
 

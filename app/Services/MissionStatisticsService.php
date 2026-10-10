@@ -7,7 +7,6 @@ namespace App\Services;
 use App\Models\Mission;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class MissionStatisticsService
 {
@@ -29,27 +28,23 @@ class MissionStatisticsService
             $totalMissionDays = (int) $startDate->diffInDays($endDate) + 1;
         }
 
-        $mobDemobDays = (int) ($mission->mob_dmob_days ?? 0);
-        $operationalDays = max(0, $totalMissionDays - $mobDemobDays);
-        $totalDueDays = $operationalDays + $mobDemobDays; // Total due days = operational days + transit/mobility days (worker is on duty during transit)
+        $mobDemobDays = (float) ($mission->mob_dmob_days ?? 0.0);
+        $operationalDays = max(0.0, (float) $totalMissionDays - $mobDemobDays);
+        $totalDueDays = $operationalDays + $mobDemobDays; // Total due days = operational days + transit/mobility days
 
         // 2. Mission HR Costs & Paid Days (Strict individual employee calculation)
-        $detailedOrdersQuery = DB::table('mission_orders')
+        $detailedOrders = DB::table('mission_orders')
             ->join('employees', 'employees.id', '=', 'mission_orders.employee_id')
-            ->where('mission_orders.mission_id', $mission->id);
-
-        if (Schema::hasColumn('mission_orders', 'deleted_at')) {
-            $detailedOrdersQuery->whereNull('mission_orders.deleted_at');
-        }
-
-        $detailedOrders = $detailedOrdersQuery->select([
-            'mission_orders.employee_id',
-            'employees.full_name',
-            'mission_orders.daily_rate',
-            'mission_orders.started_at',
-            'mission_orders.ended_at',
-            'mission_orders.is_leader',
-        ])
+            ->where('mission_orders.mission_id', $mission->id)
+            ->whereNull('mission_orders.deleted_at')
+            ->select([
+                'mission_orders.employee_id',
+                'employees.full_name',
+                'mission_orders.daily_rate',
+                'mission_orders.started_at',
+                'mission_orders.ended_at',
+                'mission_orders.is_leader',
+            ])
             ->orderByDesc('mission_orders.is_leader')
             ->orderBy('employees.full_name')
             ->get();
@@ -58,8 +53,10 @@ class MissionStatisticsService
         $totalHrCost = 0.0;
 
         $hrBreakdown = $detailedOrders->map(function ($order) use (&$totalPaidDays, &$totalHrCost) {
-            $days = ($order->started_at && $order->ended_at)
-                ? (int) Carbon::parse($order->started_at)->diffInDays(Carbon::parse($order->ended_at)) + 1
+            $oStart = $order->started_at ? Carbon::parse($order->started_at) : null;
+            $oEnd = $order->ended_at ? Carbon::parse($order->ended_at) : null;
+            $days = ($oStart && $oEnd && $oEnd->gte($oStart))
+                ? (int) $oStart->diffInDays($oEnd) + 1
                 : 0;
             $totalAmount = $days * (float) $order->daily_rate;
 
@@ -70,8 +67,8 @@ class MissionStatisticsService
                 'employee_id' => $order->employee_id,
                 'full_name' => $order->full_name,
                 'daily_rate' => (float) $order->daily_rate,
-                'started_at' => $order->started_at ? Carbon::parse($order->started_at)->format('Y-m-d') : null,
-                'ended_at' => $order->ended_at ? Carbon::parse($order->ended_at)->format('Y-m-d') : null,
+                'started_at' => $oStart?->format('Y-m-d'),
+                'ended_at' => $oEnd?->format('Y-m-d'),
                 'is_leader' => (bool) $order->is_leader,
                 'days_count' => $days,
                 'total_amount' => $totalAmount,
@@ -79,172 +76,127 @@ class MissionStatisticsService
         });
 
         $assignedStaffCount = $detailedOrders->pluck('employee_id')->unique()->count();
-        $dailyTeamRate = 0.0; // Replaced by individual employee entitlements
 
         // 3. Direct Mission Charges
-        $directCharges = 0.0;
-        if (Schema::hasTable('charges')) {
-            $directCharges = (float) DB::table('charges')
-                ->where('mission_id', $mission->id)
-                ->sum('amount');
-        }
+        $directCharges = (float) DB::table('charges')
+            ->where('mission_id', $mission->id)
+            ->sum('amount');
 
         // 4. Mission Gross Revenue from Attachments
-        $totalRevenue = 0.0;
-        if (Schema::hasTable('attachments') && Schema::hasTable('attachment_items')) {
-            if (Schema::hasTable('contract_items')) {
-                $totalRevenue = (float) DB::table('attachment_items')
-                    ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
-                    ->join('contract_items', 'contract_items.id', '=', 'attachment_items.contract_item_id')
-                    ->where('attachments.mission_id', $mission->id)
-                    ->sum(DB::raw('COALESCE(attachment_items.actual_quantity, 0) * contract_items.unit_price'));
-            } elseif (Schema::hasTable('item_contracts')) {
-                $totalRevenue = (float) DB::table('attachment_items')
-                    ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
-                    ->join('item_contracts', 'item_contracts.id', '=', 'attachment_items.item_contract_id')
-                    ->where('attachments.mission_id', $mission->id)
-                    ->sum(DB::raw('attachment_items.actual_quantity * item_contracts.unit_price'));
-            }
-        }
+        $totalRevenue = (float) DB::table('attachment_items')
+            ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
+            ->join('contract_items', 'contract_items.id', '=', 'attachment_items.contract_item_id')
+            ->where('attachments.mission_id', $mission->id)
+            ->sum(DB::raw('COALESCE(attachment_items.actual_quantity, 0) * contract_items.unit_price'));
 
         $totalDepenses = $totalHrCost + $directCharges;
         $grossProfit = $totalRevenue - $totalDepenses;
         $grossMargin = $totalRevenue > 0 ? ($grossProfit / $totalRevenue) * 100 : 0.0;
+
         // Mobility cost & mission transit expenses: Direct Charges + (Mobility Days × Total Daily Team Rates)
         $dailyTeamRate = (float) $detailedOrders->unique('employee_id')->sum('daily_rate');
         $mobilityCost = $directCharges + ($mobDemobDays * $dailyTeamRate);
         $totalExpensesMission = $mobilityCost;
 
         // 5. Global Annual Expenses & Company Overhead
-        $totalChargesForYear = 0.0;
-        $globalDirectCharges = 0.0;
-        $annualFixedCharges = 0.0;
-        $gmtmFixed = 0.0;
-        $gmtmVar = 0.0;
-        $gmtmTotal = 0.0;
+        $totalChargesForYear = (float) DB::table('charges')
+            ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->sum('amount');
+        $globalDirectCharges = (float) DB::table('charges')
+            ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->whereNotNull('mission_id')
+            ->sum('amount');
+        $annualFixedCharges = $totalChargesForYear - $globalDirectCharges;
 
-        if (Schema::hasTable('charges')) {
-            $totalChargesForYear = (float) DB::table('charges')
-                ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                ->sum('amount');
-            $globalDirectCharges = (float) DB::table('charges')
-                ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                ->whereNotNull('mission_id')
-                ->sum('amount');
-            $annualFixedCharges = $totalChargesForYear - $globalDirectCharges;
+        $gmtmFixed = (float) DB::table('charges')
+            ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->where('type', 'gmtm')
+            ->where('charge_type', 'fixed')
+            ->sum('amount');
+        $gmtmVar = (float) DB::table('charges')
+            ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->where('type', 'gmtm')
+            ->where('charge_type', 'variable')
+            ->sum('amount');
+        $gmtmTotal = $gmtmFixed + $gmtmVar;
 
-            $chargeTypeCol = Schema::hasColumn('charges', 'charge_type') ? 'charge_type' : (Schema::hasColumn('charges', 'ChargeType') ? 'ChargeType' : null);
-            if (Schema::hasColumn('charges', 'type') && $chargeTypeCol) {
-                $gmtmFixed = (float) DB::table('charges')
-                    ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                    ->where('type', 'gmtm')
-                    ->where($chargeTypeCol, 'fixed')
-                    ->sum('amount');
-                $gmtmVar = (float) DB::table('charges')
-                    ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                    ->where('type', 'gmtm')
-                    ->where($chargeTypeCol, 'variable')
-                    ->sum('amount');
-                $gmtmTotal = $gmtmFixed + $gmtmVar;
-            }
-
-            if ($gmtmTotal === 0.0 && $annualFixedCharges > 0.0) {
-                $gmtmTotal = $annualFixedCharges;
-            }
+        if ($gmtmTotal === 0.0 && $annualFixedCharges > 0.0) {
+            $gmtmTotal = $annualFixedCharges;
         }
 
         // Active Employee Annual Payroll
-        $monthlyPayroll = 0.0;
-        if (Schema::hasTable('employees') && Schema::hasColumn('employees', 'salary')) {
-            $monthlyPayroll = (float) DB::table('employees')
-                ->where('status', 'active')
-                ->sum('salary');
-        }
+        $monthlyPayroll = (float) DB::table('employees')
+            ->where('status', 'active')
+            ->whereNull('deleted_at')
+            ->sum('salary');
         $annualPayroll = $monthlyPayroll * 12;
 
         // Annual Global HR Mission Cost
-        $annualOrdersQuery = DB::table('mission_orders')
+        $annualOrders = DB::table('mission_orders')
+            ->whereNull('deleted_at')
             ->whereNotNull('started_at')
             ->whereNotNull('ended_at')
-            ->whereBetween('started_at', ["{$currentYear}-01-01", "{$currentYear}-12-31"]);
-
-        if (Schema::hasColumn('mission_orders', 'deleted_at')) {
-            $annualOrdersQuery->whereNull('deleted_at');
-        }
+            ->whereBetween('started_at', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->get();
 
         $globalHrCost = 0.0;
-        foreach ($annualOrdersQuery->get() as $ord) {
-            $d = (int) Carbon::parse($ord->started_at)->diffInDays(Carbon::parse($ord->ended_at)) + 1;
+        foreach ($annualOrders as $ord) {
+            $ordStart = Carbon::parse($ord->started_at);
+            $ordEnd = Carbon::parse($ord->ended_at);
+            $d = $ordEnd->gte($ordStart) ? (int) $ordStart->diffInDays($ordEnd) + 1 : 0;
             $globalHrCost += $d * (float) ($ord->daily_rate ?? 0);
         }
 
         // Annual Calibration Costs
-        $annualCalibrationCosts = 0.0;
-        if (Schema::hasTable('calibration_certificates') && Schema::hasColumn('calibration_certificates', 'price')) {
-            $annualCalibrationCosts = (float) DB::table('calibration_certificates')
-                ->whereBetween('calibration_date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                ->sum('price');
-        }
+        $annualCalibrationCosts = (float) DB::table('calibration_certificates')
+            ->whereNull('deleted_at')
+            ->whereBetween('calibration_date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->sum('price');
 
         // Active Bank Guarantees Total
-        $activeGuaranteesTotal = 0.0;
-        if (Schema::hasTable('garanties') && Schema::hasColumn('garanties', 'amount')) {
-            $activeGuaranteesTotal = (float) DB::table('garanties')
-                ->where('status', 'active')
-                ->sum('amount');
-        }
+        $activeGuaranteesTotal = (float) DB::table('garanties')
+            ->where('status', 'active')
+            ->sum('amount');
 
         $globalTotalDepenses = $annualFixedCharges + $annualPayroll + $globalHrCost + $globalDirectCharges + $annualCalibrationCosts;
 
         // 6. Annual Global Revenue
-        $globalRevenue = 0.0;
         $missionIdsInYear = DB::table('missions')
+            ->whereNull('deleted_at')
             ->whereBetween('start_date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
             ->pluck('id')
             ->filter()
             ->toArray();
 
-        if (! empty($missionIdsInYear) && Schema::hasTable('attachments') && Schema::hasTable('attachment_items')) {
-            if (Schema::hasTable('contract_items')) {
-                $globalRevenue = (float) DB::table('attachment_items')
-                    ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
-                    ->join('contract_items', 'contract_items.id', '=', 'attachment_items.contract_item_id')
-                    ->whereIn('attachments.mission_id', $missionIdsInYear)
-                    ->sum(DB::raw('attachment_items.actual_quantity * contract_items.unit_price'));
-            } elseif (Schema::hasTable('item_contracts')) {
-                $globalRevenue = (float) DB::table('attachment_items')
-                    ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
-                    ->join('item_contracts', 'item_contracts.id', '=', 'attachment_items.item_contract_id')
-                    ->whereIn('attachments.mission_id', $missionIdsInYear)
-                    ->sum(DB::raw('attachment_items.actual_quantity * item_contracts.unit_price'));
-            }
+        $globalRevenue = 0.0;
+        if (! empty($missionIdsInYear)) {
+            $globalRevenue = (float) DB::table('attachment_items')
+                ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
+                ->join('contract_items', 'contract_items.id', '=', 'attachment_items.contract_item_id')
+                ->whereIn('attachments.mission_id', $missionIdsInYear)
+                ->sum(DB::raw('COALESCE(attachment_items.actual_quantity, 0) * contract_items.unit_price'));
         }
 
         $globalGrossProfit = $globalRevenue - $globalTotalDepenses;
         $globalGrossMargin = $globalRevenue > 0 ? ($globalGrossProfit / $globalRevenue) * 100 : 0.0;
 
         // 7. Forecast & Working Days Configuration
-        $forecastDays = 0;
-        if (Schema::hasTable('income_forecasts') && Schema::hasColumn('income_forecasts', 'expected_work_days')) {
-            $forecastDays = (int) DB::table('income_forecasts')
-                ->where('year', $currentYear)
-                ->value('expected_work_days');
-        }
+        $forecastDays = (int) DB::table('income_forecasts')
+            ->where('year', $currentYear)
+            ->value('expected_work_days');
 
-        $missionsThisYearQuery = DB::table('missions')
+        $missionsThisYear = DB::table('missions')
+            ->whereNull('deleted_at')
             ->whereBetween('start_date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
             ->whereNotNull('start_date')
-            ->whereNotNull('end_date');
-
-        if (Schema::hasColumn('missions', 'deleted_at')) {
-            $missionsThisYearQuery->whereNull('deleted_at');
-        }
-
-        $missionsThisYear = $missionsThisYearQuery->get(['start_date', 'end_date']);
+            ->whereNotNull('end_date')
+            ->get(['start_date', 'end_date']);
 
         $totalCompanyWorkingDays = 0;
         foreach ($missionsThisYear as $m) {
-            $totalCompanyWorkingDays += (int) Carbon::parse($m->start_date)->diffInDays(Carbon::parse($m->end_date)) + 1;
+            $mStart = Carbon::parse($m->start_date);
+            $mEnd = Carbon::parse($m->end_date);
+            $totalCompanyWorkingDays += $mEnd->gte($mStart) ? (int) $mStart->diffInDays($mEnd) + 1 : 0;
         }
 
         $totalMissionsThisYear = $missionsThisYear->count();
@@ -269,6 +221,7 @@ class MissionStatisticsService
 
         // Available years for dropdown filter
         $availableYears = DB::table('missions')
+            ->whereNull('deleted_at')
             ->whereNotNull('start_date')
             ->selectRaw('DISTINCT '.(DB::getDriverName() === 'sqlite' ? "strftime('%Y', start_date)" : 'YEAR(start_date)').' as yr')
             ->pluck('yr')
@@ -388,129 +341,98 @@ class MissionStatisticsService
     {
         $currentYear = $year ?? (int) date('Y');
 
-        $totalChargesForYear = 0.0;
-        $globalDirectCharges = 0.0;
-        $annualFixedCharges = 0.0;
-        $gmtmFixed = 0.0;
-        $gmtmVar = 0.0;
-        $gmtmTotal = 0.0;
+        $totalChargesForYear = (float) DB::table('charges')
+            ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->sum('amount');
+        $globalDirectCharges = (float) DB::table('charges')
+            ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->whereNotNull('mission_id')
+            ->sum('amount');
+        $annualFixedCharges = $totalChargesForYear - $globalDirectCharges;
 
-        if (Schema::hasTable('charges')) {
-            $totalChargesForYear = (float) DB::table('charges')
-                ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                ->sum('amount');
-            $globalDirectCharges = (float) DB::table('charges')
-                ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                ->whereNotNull('mission_id')
-                ->sum('amount');
-            $annualFixedCharges = $totalChargesForYear - $globalDirectCharges;
+        $gmtmFixed = (float) DB::table('charges')
+            ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->where('type', 'gmtm')
+            ->where('charge_type', 'fixed')
+            ->sum('amount');
+        $gmtmVar = (float) DB::table('charges')
+            ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->where('type', 'gmtm')
+            ->where('charge_type', 'variable')
+            ->sum('amount');
+        $gmtmTotal = $gmtmFixed + $gmtmVar;
 
-            $chargeTypeCol = Schema::hasColumn('charges', 'charge_type') ? 'charge_type' : (Schema::hasColumn('charges', 'ChargeType') ? 'ChargeType' : null);
-            if (Schema::hasColumn('charges', 'type') && $chargeTypeCol) {
-                $gmtmFixed = (float) DB::table('charges')
-                    ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                    ->where('type', 'gmtm')
-                    ->where($chargeTypeCol, 'fixed')
-                    ->sum('amount');
-                $gmtmVar = (float) DB::table('charges')
-                    ->whereBetween('date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                    ->where('type', 'gmtm')
-                    ->where($chargeTypeCol, 'variable')
-                    ->sum('amount');
-                $gmtmTotal = $gmtmFixed + $gmtmVar;
-            }
-
-            if ($gmtmTotal === 0.0 && $annualFixedCharges > 0.0) {
-                $gmtmTotal = $annualFixedCharges;
-            }
+        if ($gmtmTotal === 0.0 && $annualFixedCharges > 0.0) {
+            $gmtmTotal = $annualFixedCharges;
         }
 
-        $monthlyPayroll = 0.0;
-        if (Schema::hasTable('employees') && Schema::hasColumn('employees', 'salary')) {
-            $monthlyPayroll = (float) DB::table('employees')
-                ->where('status', 'active')
-                ->sum('salary');
-        }
+        $monthlyPayroll = (float) DB::table('employees')
+            ->where('status', 'active')
+            ->whereNull('deleted_at')
+            ->sum('salary');
         $annualPayroll = $monthlyPayroll * 12;
 
-        $annualOrdersQuery = DB::table('mission_orders')
+        $annualOrders = DB::table('mission_orders')
+            ->whereNull('deleted_at')
             ->whereNotNull('started_at')
             ->whereNotNull('ended_at')
-            ->whereBetween('started_at', ["{$currentYear}-01-01", "{$currentYear}-12-31"]);
-
-        if (Schema::hasColumn('mission_orders', 'deleted_at')) {
-            $annualOrdersQuery->whereNull('deleted_at');
-        }
+            ->whereBetween('started_at', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->get();
 
         $globalHrCost = 0.0;
-        foreach ($annualOrdersQuery->get() as $ord) {
-            $d = (int) Carbon::parse($ord->started_at)->diffInDays(Carbon::parse($ord->ended_at)) + 1;
+        foreach ($annualOrders as $ord) {
+            $ordStart = Carbon::parse($ord->started_at);
+            $ordEnd = Carbon::parse($ord->ended_at);
+            $d = $ordEnd->gte($ordStart) ? (int) $ordStart->diffInDays($ordEnd) + 1 : 0;
             $globalHrCost += $d * (float) ($ord->daily_rate ?? 0);
         }
 
-        $annualCalibrationCosts = 0.0;
-        if (Schema::hasTable('calibration_certificates') && Schema::hasColumn('calibration_certificates', 'price')) {
-            $annualCalibrationCosts = (float) DB::table('calibration_certificates')
-                ->whereBetween('calibration_date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
-                ->sum('price');
-        }
+        $annualCalibrationCosts = (float) DB::table('calibration_certificates')
+            ->whereNull('deleted_at')
+            ->whereBetween('calibration_date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
+            ->sum('price');
 
-        $activeGuaranteesTotal = 0.0;
-        if (Schema::hasTable('garanties') && Schema::hasColumn('garanties', 'amount')) {
-            $activeGuaranteesTotal = (float) DB::table('garanties')
-                ->where('status', 'active')
-                ->sum('amount');
-        }
+        $activeGuaranteesTotal = (float) DB::table('garanties')
+            ->where('status', 'active')
+            ->sum('amount');
 
         $globalTotalDepenses = $annualFixedCharges + $annualPayroll + $globalHrCost + $globalDirectCharges + $annualCalibrationCosts;
 
         $missionIdsInYear = DB::table('missions')
+            ->whereNull('deleted_at')
             ->whereBetween('start_date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
             ->pluck('id')
             ->filter()
             ->toArray();
 
         $globalRevenue = 0.0;
-        if (! empty($missionIdsInYear) && Schema::hasTable('attachments') && Schema::hasTable('attachment_items')) {
-            if (Schema::hasTable('contract_items')) {
-                $globalRevenue = (float) DB::table('attachment_items')
-                    ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
-                    ->join('contract_items', 'contract_items.id', '=', 'attachment_items.contract_item_id')
-                    ->whereIn('attachments.mission_id', $missionIdsInYear)
-                    ->sum(DB::raw('attachment_items.actual_quantity * contract_items.unit_price'));
-            } elseif (Schema::hasTable('item_contracts')) {
-                $globalRevenue = (float) DB::table('attachment_items')
-                    ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
-                    ->join('item_contracts', 'item_contracts.id', '=', 'attachment_items.item_contract_id')
-                    ->whereIn('attachments.mission_id', $missionIdsInYear)
-                    ->sum(DB::raw('attachment_items.actual_quantity * item_contracts.unit_price'));
-            }
+        if (! empty($missionIdsInYear)) {
+            $globalRevenue = (float) DB::table('attachment_items')
+                ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
+                ->join('contract_items', 'contract_items.id', '=', 'attachment_items.contract_item_id')
+                ->whereIn('attachments.mission_id', $missionIdsInYear)
+                ->sum(DB::raw('COALESCE(attachment_items.actual_quantity, 0) * contract_items.unit_price'));
         }
 
         $globalGrossProfit = $globalRevenue - $globalTotalDepenses;
         $globalGrossMargin = $globalRevenue > 0 ? ($globalGrossProfit / $globalRevenue) * 100 : 0.0;
 
-        $forecastDays = 0;
-        if (Schema::hasTable('income_forecasts') && Schema::hasColumn('income_forecasts', 'expected_work_days')) {
-            $forecastDays = (int) DB::table('income_forecasts')
-                ->where('year', $currentYear)
-                ->value('expected_work_days');
-        }
+        $forecastDays = (int) DB::table('income_forecasts')
+            ->where('year', $currentYear)
+            ->value('expected_work_days');
 
-        $missionsThisYearQuery = DB::table('missions')
+        $missionsThisYear = DB::table('missions')
+            ->whereNull('deleted_at')
             ->whereBetween('start_date', ["{$currentYear}-01-01", "{$currentYear}-12-31"])
             ->whereNotNull('start_date')
-            ->whereNotNull('end_date');
-
-        if (Schema::hasColumn('missions', 'deleted_at')) {
-            $missionsThisYearQuery->whereNull('deleted_at');
-        }
-
-        $missionsThisYear = $missionsThisYearQuery->get(['start_date', 'end_date']);
+            ->whereNotNull('end_date')
+            ->get(['start_date', 'end_date']);
 
         $totalCompanyWorkingDays = 0;
         foreach ($missionsThisYear as $m) {
-            $totalCompanyWorkingDays += (int) Carbon::parse($m->start_date)->diffInDays(Carbon::parse($m->end_date)) + 1;
+            $mStart = Carbon::parse($m->start_date);
+            $mEnd = Carbon::parse($m->end_date);
+            $totalCompanyWorkingDays += $mEnd->gte($mStart) ? (int) $mStart->diffInDays($mEnd) + 1 : 0;
         }
 
         $totalMissionsThisYear = $missionsThisYear->count();
@@ -526,49 +448,59 @@ class MissionStatisticsService
             ->orderBy('start_date', 'asc')
             ->get();
 
+        $missionIds = $missions->pluck('id')->toArray();
+
+        $ordersByMission = DB::table('mission_orders')
+            ->whereIn('mission_id', $missionIds)
+            ->whereNull('deleted_at')
+            ->whereNotNull('started_at')
+            ->whereNotNull('ended_at')
+            ->get()
+            ->groupBy('mission_id');
+
+        $orderCountsByMission = DB::table('mission_orders')
+            ->whereIn('mission_id', $missionIds)
+            ->whereNull('deleted_at')
+            ->select('mission_id', DB::raw('count(*) as count'))
+            ->groupBy('mission_id')
+            ->pluck('count', 'mission_id');
+
+        $chargesByMission = DB::table('charges')
+            ->whereIn('mission_id', $missionIds)
+            ->select('mission_id', DB::raw('sum(amount) as total'))
+            ->groupBy('mission_id')
+            ->pluck('total', 'mission_id');
+
+        $revenueByMission = DB::table('attachment_items')
+            ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
+            ->join('contract_items', 'contract_items.id', '=', 'attachment_items.contract_item_id')
+            ->whereIn('attachments.mission_id', $missionIds)
+            ->select('attachments.mission_id', DB::raw('sum(COALESCE(attachment_items.actual_quantity, 0) * contract_items.unit_price) as total'))
+            ->groupBy('attachments.mission_id')
+            ->pluck('total', 'attachments.mission_id');
+
         $missionsDetails = [];
         foreach ($missions as $m) {
-            $totalDays = ($m->start_date && $m->end_date)
-                ? (int) Carbon::parse($m->start_date)->diffInDays(Carbon::parse($m->end_date)) + 1
+            $mStart = $m->start_date ? Carbon::parse($m->start_date) : null;
+            $mEnd = $m->end_date ? Carbon::parse($m->end_date) : null;
+            $totalDays = ($mStart && $mEnd && $mEnd->gte($mStart))
+                ? (int) $mStart->diffInDays($mEnd) + 1
                 : 0;
 
-            $workersCount = DB::table('mission_orders')->where('mission_id', $m->id)->count();
+            $workersCount = (int) ($orderCountsByMission[$m->id] ?? 0);
 
-            $ordList = DB::table('mission_orders')
-                ->where('mission_id', $m->id)
-                ->whereNotNull('started_at')
-                ->whereNotNull('ended_at')
-                ->get();
-
+            $ordList = $ordersByMission->get($m->id, collect());
             $hrCost = 0.0;
             foreach ($ordList as $o) {
-                $daysCount = (int) Carbon::parse($o->started_at)->diffInDays(Carbon::parse($o->ended_at)) + 1;
+                $oStart = Carbon::parse($o->started_at);
+                $oEnd = Carbon::parse($o->ended_at);
+                $daysCount = $oEnd->gte($oStart) ? (int) $oStart->diffInDays($oEnd) + 1 : 0;
                 $hrCost += $daysCount * (float) ($o->daily_rate ?? 0);
             }
 
-            $mDirectCharges = 0.0;
-            if (Schema::hasTable('charges')) {
-                $mDirectCharges = (float) DB::table('charges')->where('mission_id', $m->id)->sum('amount');
-            }
-
+            $mDirectCharges = (float) ($chargesByMission[$m->id] ?? 0.0);
             $mExpenses = $hrCost + $mDirectCharges;
-
-            $mRevenue = 0.0;
-            if (Schema::hasTable('attachments') && Schema::hasTable('attachment_items')) {
-                if (Schema::hasTable('contract_items')) {
-                    $mRevenue = (float) DB::table('attachment_items')
-                        ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
-                        ->join('contract_items', 'contract_items.id', '=', 'attachment_items.contract_item_id')
-                        ->where('attachments.mission_id', $m->id)
-                        ->sum(DB::raw('attachment_items.actual_quantity * contract_items.unit_price'));
-                } elseif (Schema::hasTable('item_contracts')) {
-                    $mRevenue = (float) DB::table('attachment_items')
-                        ->join('attachments', 'attachments.id', '=', 'attachment_items.attachment_id')
-                        ->join('item_contracts', 'item_contracts.id', '=', 'attachment_items.item_contract_id')
-                        ->where('attachments.mission_id', $m->id)
-                        ->sum(DB::raw('attachment_items.actual_quantity * item_contracts.unit_price'));
-                }
-            }
+            $mRevenue = (float) ($revenueByMission[$m->id] ?? 0.0);
 
             $mGrossProfit = $mRevenue - $mExpenses;
             $mNetProfit = $mGrossProfit - ($totalDays * $gmtmExpenseRate);
@@ -578,8 +510,8 @@ class MissionStatisticsService
                 'reference' => $m->reference,
                 'site_name' => $m->site?->short_name ?? $m->site?->full_name ?? '—',
                 'customer_name' => $m->contract?->customer?->short_name ?? $m->contract?->customer?->company_name ?? '—',
-                'start_date' => $m->start_date ? Carbon::parse($m->start_date)->format('Y-m-d') : null,
-                'end_date' => $m->end_date ? Carbon::parse($m->end_date)->format('Y-m-d') : null,
+                'start_date' => $mStart?->format('Y-m-d'),
+                'end_date' => $mEnd?->format('Y-m-d'),
                 'total_days' => $totalDays,
                 'workers_count' => $workersCount,
                 'revenue' => $mRevenue,

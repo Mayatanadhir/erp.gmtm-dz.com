@@ -214,7 +214,7 @@ class SiteTest extends TestCase
         $response->assertRedirect(route('master-data.sites'));
         $response->assertSessionHas('success');
 
-        $this->assertDatabaseMissing('sites', [
+        $this->assertSoftDeleted('sites', [
             'id' => $site->id,
         ]);
     }
@@ -235,7 +235,7 @@ class SiteTest extends TestCase
         $deleteResponse = $this->actingAs($this->superAdmin)->delete(route('master-data.sites.destroy', $site));
         $deleteResponse->assertRedirect(route('master-data.sites'));
 
-        $this->assertDatabaseMissing('sites', [
+        $this->assertSoftDeleted('sites', [
             'id' => $site->id,
         ]);
     }

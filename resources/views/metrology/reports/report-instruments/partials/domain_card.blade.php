@@ -25,7 +25,7 @@
     <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-100 dark:border-gray-700/60">
         <a href="{{ route('metrology.reports.report-instruments.index') }}">
             <x-primary-button type="button" class="gap-1.5 text-xs py-2 px-3">
-                <span>{{ __('Tableau Instruments') }}</span>
+                <span>{{ __('Instruments Table') }}</span>
                 <span class="rtl:rotate-180">&rarr;</span>
             </x-primary-button>
         </a>

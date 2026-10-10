@@ -28,18 +28,39 @@
     </x-slot>
 
     @php
-        $specsJson = json_encode($equipment->specifications->keyBy('grandeur_id')->map(fn($s) => [
-            'selected' => true,
-            'min'      => (float) $s->range_min,
-            'max'      => (float) $s->range_max,
-            'acc'      => (float) $s->accuracy_value,
-            'acc_type' => $s->accuracy_type->value ?? '%',
-        ])->all() ?: (object)[]);
+        $isOldPut = old('_method') === 'PUT';
+        if ($isOldPut && is_array(old('params'))) {
+            $specsMap = [];
+            foreach (old('params') as $gid => $p) {
+                if (! empty($p['selected'])) {
+                    $specsMap[(int) $gid] = [
+                        'selected' => true,
+                        'min'      => isset($p['min']) && $p['min'] !== '' ? (float) $p['min'] : '',
+                        'max'      => isset($p['max']) && $p['max'] !== '' ? (float) $p['max'] : '',
+                        'acc'      => isset($p['acc']) && $p['acc'] !== '' ? (float) $p['acc'] : '',
+                        'acc_type' => $p['acc_type'] ?? '%',
+                    ];
+                }
+            }
+            $specsJson = json_encode((object) $specsMap);
+        } else {
+            $specsJson = json_encode($equipment->specifications->keyBy('grandeur_id')->map(fn($s) => [
+                'selected' => true,
+                'min'      => (float) $s->range_min,
+                'max'      => (float) $s->range_max,
+                'acc'      => (float) $s->accuracy_value,
+                'acc_type' => $s->accuracy_type->value ?? '%',
+            ])->all() ?: (object)[]);
+        }
     @endphp
 
     <div class="py-8"
         x-data="{
-            activeTab: window.location.hash ? window.location.hash.replace('#', '') : 'overview',
+            activeTab: (function() {
+                const validTabs = ['overview', 'specifications', 'certificates', 'audit'];
+                const h = window.location.hash ? window.location.hash.replace('#', '') : '';
+                return validTabs.includes(h) ? h : 'overview';
+            })(),
             showEditModal: {{ ($errors->any() && old('_method') === 'PUT') ? 'true' : 'false' }} || window.location.hash === '#edit',
             editFullName: {{ json_encode(old('_method') === 'PUT' ? (string) old('full_name', '') : (string) $equipment->full_name) }},
             editShortName: {{ json_encode(old('_method') === 'PUT' ? (string) old('short_name', '') : (string) $equipment->short_name) }},

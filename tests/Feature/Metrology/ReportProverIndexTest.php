@@ -86,7 +86,7 @@ class ReportProverIndexTest extends TestCase
         $response = $this->actingAs($user)->get('/en/metrology/reports/report-prover');
 
         $response->assertStatus(200);
-        $response->assertViewIs('metrology.reports.report-Prover.index');
+        $response->assertViewIs('metrology.reports.report-prover.index');
         $response->assertViewHas(['provers', 'sites', 'stats', 'filters']);
         $response->assertSee('PRV-HMD-001');
         $response->assertSee('JAUGE-HMD-500');

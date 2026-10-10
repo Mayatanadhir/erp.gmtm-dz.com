@@ -296,4 +296,57 @@ class EquipmentFeatureTest extends TestCase
 
         $response->assertSessionHasErrors('status');
     }
+
+    public function test_update_equipment_sanitizes_open_redirect_target(): void
+    {
+        $equipment = Equipment::create([
+            'full_name' => 'Safe Redirect Test',
+            'category' => EquipmentCategory::MeasuringInstrument,
+            'package' => EquipmentPackage::Lot01,
+            'status' => EquipmentStatus::Active,
+        ]);
+
+        // Attempt external redirect (Open Redirect attack)
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('metrology.equipment.update', $equipment), [
+                'full_name' => 'Safe Redirect Test Updated',
+                'category' => EquipmentCategory::MeasuringInstrument->value,
+                '_redirect' => 'https://malicious-site.com/steal-creds',
+            ]);
+
+        // Must redirect to default route('metrology.equipment'), NOT the external malicious URL
+        $response->assertRedirect(route('metrology.equipment'));
+        $this->assertNotSame('https://malicious-site.com/steal-creds', $response->headers->get('Location'));
+    }
+
+    public function test_specifications_deletion_dispatches_activity_events(): void
+    {
+        $equipment = Equipment::create([
+            'full_name' => 'Calibrator With Specs',
+            'category' => EquipmentCategory::MeasuringInstrument,
+            'package' => EquipmentPackage::Lot01,
+            'status' => EquipmentStatus::Active,
+        ]);
+
+        $equipment->specifications()->create([
+            'grandeur_id' => $this->grandeurPressure->id,
+            'range_min' => 0,
+            'range_max' => 100,
+            'accuracy_value' => 0.05,
+            'accuracy_type' => '%',
+        ]);
+
+        $this->assertCount(1, $equipment->specifications);
+
+        // Update with empty specs should safely delete existing spec via Model instance
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('metrology.equipment.update', $equipment), [
+                'full_name' => 'Calibrator Specs Cleared',
+                'category' => EquipmentCategory::MeasuringInstrument->value,
+                'params' => [],
+            ]);
+
+        $response->assertRedirect();
+        $this->assertCount(0, $equipment->fresh()->specifications);
+    }
 }
